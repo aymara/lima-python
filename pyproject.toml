@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aymara"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python bindings to the LIMA linguistic analyzer"
 authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 
