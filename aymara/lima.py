@@ -4,6 +4,7 @@
 import json
 import pyconll
 import requests
+import sys
 
 class Lima:
     """
@@ -20,8 +21,15 @@ class Lima:
                                                          lang,
                                                          pipeline)
         answer = requests.post(url, data = text)
-        str = '\n'.join(json.loads(answer.text)['tokens'])
-        return pyconll.load_from_string(str)
+        if answer.status_code == 200:
+            print(answer.json)
+            str = '\n'.join(json.loads(answer.text)['tokens'])
+            return pyconll.load_from_string(str)
+        else:
+            print('Got HTTP error {}: {}'.format(answer.status_code,
+                                                 answer.text),
+                  file=sys.stderr)
+            return None
 
 
 
