@@ -5,7 +5,9 @@ description = ""
 authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 
 [tool.poetry.dependencies]
+pyconll
 python = "^3.6"
+requests
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
