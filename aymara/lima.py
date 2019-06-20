@@ -22,7 +22,6 @@ class Lima:
                                                          pipeline)
         answer = requests.post(url, data = text)
         if answer.status_code == 200:
-            print(answer.json)
             str = '\n'.join(json.loads(answer.text)['tokens'])
             return pyconll.load_from_string(str)
         else:
