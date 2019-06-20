@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "aymara"
 version = "0.1.0"
-description = ""
+description = "Python bindings to the LIMA linguistic analyzer"
 authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 
 [tool.poetry.dependencies]
-pyconll
 python = "^3.6"
-requests
+pyconll = "^2.0"
+requests = "^2.22"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
