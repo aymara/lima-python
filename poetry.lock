@@ -97,6 +97,17 @@ version = "2.0.0"
 requests = ">=2.21"
 
 [[package]]
+category = "main"
+description = "Python bindings for the Qt cross-platform application and UI framework"
+name = "pyside2"
+optional = false
+python-versions = "*"
+version = "5.12.4"
+
+[package.dependencies]
+shiboken2 = "5.12.4"
+
+[[package]]
 category = "dev"
 description = "pytest: simple powerful testing with Python"
 name = "pytest"
@@ -129,6 +140,14 @@ idna = ">=2.5,<2.9"
 urllib3 = ">=1.21.1,<1.25.0 || >1.25.0,<1.25.1 || >1.25.1,<1.26"
 
 [[package]]
+category = "main"
+description = "Python / C++ bindings helper module"
+name = "shiboken2"
+optional = false
+python-versions = "*"
+version = "5.12.4"
+
+[[package]]
 category = "dev"
 description = "Python 2 and 3 compatibility utilities"
 name = "six"
@@ -153,7 +172,7 @@ python-versions = ">=2.7"
 version = "0.5.1"
 
 [metadata]
-content-hash = "7cc781008481b11272d07eb31ab95f576e2d439336af240ffdf6cd742b570c4c"
+content-hash = "651e22300393638f9bda5ec572c7bfea061b54e18d23f21cd466d8b2808cee76"
 python-versions = "^3.6"
 
 [metadata.hashes]
@@ -168,8 +187,10 @@ more-itertools = ["2112d2ca570bb7c3e53ea1a35cd5df42bb0fd10c45f0fb97178679c3c03d6
 pluggy = ["0825a152ac059776623854c1543d65a4ad408eb3d33ee114dff91e57ec6ae6fc", "b9817417e95936bf75d85d3f8767f7df6cdde751fc40aed3bb3074cbcb77757c"]
 py = ["64f65755aee5b381cea27766a3a147c3f15b9b6b9ac88676de66ba2ae36793fa", "dc639b046a6e2cff5bbe40194ad65936d6ba360b52b3c3fe1d08a82dd50b5e53"]
 pyconll = ["2c63f37cbf61603c51d0379b41cfa201daa5baa6739440e2254304cf4013c972", "8219fc66bd3c6de11de7b899f06a37885190109a302bbad1e3b34b220d20548a"]
+pyside2 = ["348d9e691698eb1c42264263edd221ce284f009a76cf05cd253939e67c3fae7c", "55527f92e716b81685277e4a121f02acf04b017e881febc691b1dca3c180c855", "68fd4db4c10b559e0fb17de0005ba6638c351724497f15aa5988638deae5d600", "8080373528d28ef925e7f3f69bca4e54d24cb578135cbcd3fc66cc7956584e4f", "98fe8376321a92eb512f22d724aa701940a7d8611bee9223c34fccf9a74c8797", "a538999a03ae3fbb6da22ddd48476ac8ea7011ba753d23f69bd6025109b06bff"]
 pytest = ["3f193df1cfe1d1609d4c583838bea3d532b18d6160fd3f55c9447fdca30848ec", "e246cf173c01169b9617fc07264b7b1316e78d7a650055235d6d897bc80d9660"]
 requests = ["11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4", "9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31"]
+shiboken2 = ["019815820625cdb43e5f2a18ede4821be98e3b9448c69aae07713035ee34572c", "35ab0109e03e4f2c43b01d73b1c978f3eaee25d357abcfadb51e81fe1149ac2c", "3a4b07fc5039c11530949a49f505be88cecf04f0b01677382294519837c31371", "561d4e5165d8ff503234bd17d3f880a8df3f6a6cc9a44f565d73fe207550d044", "7427a43acee54f3a2ac7e12baef8580b7c8c60783ee390ec913bcdcb07c3bae6", "9379237def2b7e73dac85897853ba993a6f4692c66666f55a0b0a15efb076b36"]
 six = ["3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c", "d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73"]
 urllib3 = ["b246607a25ac80bedac05c6f282e3cdaf3afb65420fd024ac94435cabe6e18d1", "dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232"]
 zipp = ["8c1019c6aad13642199fbe458275ad6a84907634cc9f0989877ccc4a2840139d", "ca943a7e809cc12257001ccfb99e3563da9af99d52f261725e96dfe0f9275bc3"]

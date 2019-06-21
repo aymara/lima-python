@@ -8,6 +8,7 @@ authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 python = "^3.6"
 pyconll = "^2.0"
 requests = "^2.22"
+PySide2 = "^5.12"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
