@@ -6,7 +6,7 @@ import pyconll
 import requests
 import sys
 
-class LimaClient:
+class Client:
     """
     A simple client for the LIMA REST server
 
