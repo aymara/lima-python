@@ -49,26 +49,31 @@ class Client:
         self.container = None
         if host == "localhost" and container:
             docker_client = docker.from_env()
-            if not docker_client.images.list(name="aymara/lima"):
-                docker_client.images.pull("aymara/lima")
-            self.container = docker_client.containers.run(
-                "aymara/lima",
-                #"limaserver",
-                detach=True,
-                ports={"{}/tcp".format(self.port): self.port},
-            )
-            # wait a little time to let limaserver start in the container
-            while True:
-                logs = self.container.logs()
-                logs = logs.decode('UTF-8')
-                if debug:
-                    print(f"[lima docker image logs] : {logs}",
-                          file=sys.stderr)
-                if "Server listening on host" in logs:
-                    break
-                elif "terminate called" in logs:
-                    raise RuntimeError("LIMA server crashed.")
-                time.sleep(1)
+            running_limas = docker_client.containers.list(
+              filters={"status":"running","ancestor":"aymara/lima"})
+            if running_limas:
+                self.container = running_limas[0]
+            else:
+                if not docker_client.images.list(name="aymara/lima"):
+                    docker_client.images.pull("aymara/lima")
+                self.container = docker_client.containers.run(
+                    "aymara/lima",
+                    #"limaserver",
+                    detach=True,
+                    ports={"{}/tcp".format(self.port): self.port},
+                )
+                # wait a little time to let limaserver start in the container
+                while True:
+                    logs = self.container.logs()
+                    logs = logs.decode('UTF-8')
+                    if debug:
+                        print(f"[lima docker image logs] : {logs}",
+                              file=sys.stderr)
+                    if "Server listening on host" in logs:
+                        break
+                    elif "terminate called" in logs:
+                        raise RuntimeError("LIMA server crashed.")
+                    time.sleep(1)
 
         if client is None:
             client = self
