@@ -7,6 +7,7 @@ endif()
 
 # Consider changing the project name to something relevant for you.
 project(LimaBinding)
+find_package(PythonExtensions REQUIRED)
 
 find_package(Qt5 REQUIRED Core)
 
@@ -151,6 +152,8 @@ set(${bindings_library}_sources ${generated_sources})
 
 add_library(${bindings_library} MODULE ${${bindings_library}_sources})
 
+#python_extension_module(${bindings_library})
+
 target_include_directories(${bindings_library} PRIVATE ${python_include_dir})
 target_include_directories(${bindings_library} PRIVATE ${PYSIDE2_DIR}/include/)
 target_include_directories(${bindings_library} PRIVATE ${PYSIDE2_DIR}/include/QtCore)
@@ -167,8 +170,8 @@ set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
              "${bindings_library}${PYTHON_EXTENSION_SUFFIX}")
 
 install(TARGETS ${bindings_library} ${sample_library}
-        LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}
-        RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}
+        LIBRARY DESTINATION aymara
+        RUNTIME DESTINATION aymara
         )
 
 
