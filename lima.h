@@ -66,7 +66,9 @@ public:
   LimaAnalyzer(const LimaAnalyzer&_a);
   LimaAnalyzer operator=(const LimaAnalyzer&_a);
   virtual LimaAnalyzer *clone();
-  virtual const std::string analyzeText(const std::string& text, const std::string& lang="eng", const std::string& pipeline="deep");
+  virtual const std::string analyzeText(const std::string& text,
+                                        const std::string& lang="eng",
+                                        const std::string& pipeline="deep");
 
 private:
   LimaAnalyzerPrivate* m_d;
