@@ -10,7 +10,7 @@ cmake_policy(SET CMP0094 NEW)
 project(LimaBinding)
 find_package(Python3 COMPONENTS Interpreter Development.Embed REQUIRED)
 message(STATUS "PYTHON_INCLUDE_DIR: ${PYTHON_INCLUDE_DIR}")
-find_package(PythonExtensions REQUIRED)
+#find_package(PythonExtensions REQUIRED)
 find_package(Qt5 REQUIRED Core)
 
 get_target_property(QtCore_location Qt5::Core LOCATION)
@@ -170,6 +170,10 @@ target_link_libraries(${bindings_library} PRIVATE ${pyside2_link})
 set_property(TARGET ${bindings_library} PROPERTY PREFIX "")
 set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
              "${bindings_library}${PYTHON_EXTENSION_SUFFIX}")
+
+
+file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
+install(FILES ${LIB_FILES} DESTINATION aymara)
 
 install(TARGETS ${bindings_library} ${sample_library}
         LIBRARY DESTINATION aymara

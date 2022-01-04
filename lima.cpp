@@ -150,7 +150,9 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate()
   {
     throw InvalidConfiguration("loadLibrary method failed.");
   }
-  std::cerr << "Amose plugins initialized" << std::endl;
+  std::cerr << "Amose plugins are now initialized hop" << std::endl;
+  qDebug() << "Amose plugins are now initialized";
+
 
   std::string lpConfigFile = "lima-analysis.xml";
   std::string commonConfigFile = "lima-common.xml";
@@ -317,6 +319,7 @@ const std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& lang,
                                     const std::string& pipeline)
 {
+  std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
   try {
   return m_d->analyzeText(text, lang, pipeline);
   }
@@ -330,6 +333,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                                     const std::string& lang,
                                     const std::string& pipeline)
 {
+  qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
 //     ("output,o",
 //    po::value< std::vector<std::string> >(&outputsv),
 //    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")

@@ -45,9 +45,20 @@ RUN touch /opt/_internal/cpython-3.8.12/lib/x86_64-linux-gnu/libpython3.8.a
 RUN apt-get update -y -qq && apt-get install -y libpulse-mainloop-glib0
 RUN python3.8 setup.py install --cmake=/opt/python/cp38-cp38/bin/cmake --build-type=all
 
+RUN echo "LC_ALL=en_US.UTF-8" > /etc/default/locale
+RUN echo "LANG=en_US.UTF-8" >> /etc/default/locale
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+RUN cp  /etc/default/locale /etc/environment
+RUN locale-gen
+RUN dpkg-reconfigure locales
 
 # Build LIMA wheel
-RUN mkdir /lima-python
-COPY . /lima-python
+RUN install -d /lima-python/scripts
+RUN install -d /lima-python/clib
+COPY ./scripts/linuxdeploy.py /lima-python/scripts/linuxdeploy.py
+ENV LD_LIBRARY_PATH=${QT_PATH}/${QT_VERSION}/${QT_PLATFORM}/lib:$LD_LIBRARY_PATH
 WORKDIR /lima-python
+RUN python3 /lima-python/scripts/linuxdeploy.py /usr/lib/liblima-*.so -d clib -o clib/libs.json
+COPY . /lima-python
+RUN install -d clib/lib
 RUN python3.8 setup.py bdist_wheel
