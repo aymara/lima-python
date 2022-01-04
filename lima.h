@@ -68,7 +68,7 @@ public:
   virtual LimaAnalyzer *clone();
   virtual const std::string analyzeText(const std::string& text,
                                         const std::string& lang="eng",
-                                        const std::string& pipeline="deep");
+                                        const std::string& pipeline="main");
 
 private:
   LimaAnalyzerPrivate* m_d;

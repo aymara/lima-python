@@ -7,6 +7,8 @@ setup(
     install_requires=[
         'pyconll',
         'requests',
+        'unix_ar',
+        'tqdm',
         ],
     include_package_data=True,
 
@@ -25,4 +27,5 @@ setup(
                 '-DCMAKE_GENERATOR=Ninja',
                 "-DPython3_INCLUDE_DIR=/opt/python/cp38-cp38/include/python3.8",
                 '-DPython3_LIBRARY=/opt/python/cp38-cp38/lib/python3.8'],
+    scripts=['aymara/lima_models.py'],
 )

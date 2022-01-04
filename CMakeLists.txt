@@ -45,7 +45,7 @@ set(sample_library "liblimabinding")
 
 # The name of the generated bindings module (as imported in Python). You can change the name
 # to something relevant for your project.
-set(bindings_library "aymara")
+set(bindings_library "lima")
 
 # The header file with all the types and functions for which bindings will be generated.
 # Usually it simply includes other headers of the library you are creating bindings for.
@@ -59,7 +59,7 @@ set(typesystem_file ${CMAKE_SOURCE_DIR}/bindings.xml)
 # and a '.cpp' file per C++ type. These are needed for generating the module shared
 # library.
 set(generated_sources
-    ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/aymara_module_wrapper.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/${bindings_library}_module_wrapper.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/limaanalyzer_wrapper.cpp
 )
 
@@ -171,6 +171,9 @@ set_property(TARGET ${bindings_library} PROPERTY PREFIX "")
 set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
              "${bindings_library}${PYTHON_EXTENSION_SUFFIX}")
 
+
+#set(site_packages "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
+#install(FILES lima_models.py DESTINATION ${site_packages})
 
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
 install(FILES ${LIB_FILES} DESTINATION aymara)

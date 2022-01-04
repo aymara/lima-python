@@ -52,3 +52,8 @@ https://setuptools.pypa.io/en/latest/
 
 A project that includes all what we seem to need
 https://github.com/palaimon/fastfm2
+
+# TODO
+
+* Allow to find libraries inside the wheel without touching to LD_LIBRARY_PATH
+
