@@ -4,11 +4,13 @@ cmake_policy(VERSION 3.15)
 if(POLICY CMP0068)
   cmake_policy(SET CMP0068 NEW)
 endif()
+cmake_policy(SET CMP0094 NEW)
 
 # Consider changing the project name to something relevant for you.
 project(LimaBinding)
+find_package(Python3 COMPONENTS Interpreter Development.Embed REQUIRED)
+message(STATUS "PYTHON_INCLUDE_DIR: ${PYTHON_INCLUDE_DIR}")
 find_package(PythonExtensions REQUIRED)
-
 find_package(Qt5 REQUIRED Core)
 
 get_target_property(QtCore_location Qt5::Core LOCATION)
@@ -62,10 +64,10 @@ set(generated_sources
 )
 
 set(Python3_FIND_VIRTUALENV ONLY)
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+#find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 if(NOT python_interpreter)
-    find_program(python_interpreter "python")
+    find_program(python_interpreter "python3.8")
 endif()
 
 

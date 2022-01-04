@@ -29,5 +29,5 @@ setup(
 #    cmake_install_dir= 'aymara/',
     cmake_minimum_required_version= '3.15',
     setup_requires= ['cmake',],
-    cmake_args=['-DCMAKE_BUILD_TYPE=Debug', '-DCMAKE_GENERATOR=Ninja'],
+    cmake_args=['-DCMAKE_BUILD_TYPE=Debug', '-DCMAKE_GENERATOR=Ninja', "-DPython3_INCLUDE_DIR=/opt/python/cp38-cp38/include/python3.8", '-DPython3_LIBRARY=/opt/python/cp38-cp38/lib/python3.8'],
 )

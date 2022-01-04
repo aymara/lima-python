@@ -33,6 +33,10 @@ python setup.py install --cmake=/usr/bin/cmake --build-type=all
 
 https://github.com/pypa/auditwheel
 
+# pybind11 based bindings
+https://github.com/yssource/pybind11-qt-foo
+
+
 https://scikit-build.readthedocs.io/en/latest/
 https://discuss.python.org/t/notes-on-binary-wheel-packaging-for-c-library-wrappers/2609
 https://github.com/riddell-stan/poetry-install-shared-lib-demo
