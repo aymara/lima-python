@@ -45,7 +45,55 @@ def debug(s):
 
 blacklist = [
     'linux-vdso.so.1',
-    'ld-linux-x86-64.so.2'
+    'ld-linux-x86-64.so.2',
+    'libstdc++',
+    "libcom_err.so",
+    "libcrypt.so",
+    "libdl.so",
+    "libexpat.so",
+    "libfontconfig.so",
+    "libgcc_s.so",
+    "libglib-2.0.so",
+    "libgpg-error.so",
+    "libgssapi_krb5.so",
+    "libgssapi.so",
+    "libhcrypto.so",
+    "libheimbase.so",
+    "libheimntlm.so",
+    "libhx509.so",
+    "libICE.so",
+    "libidn.so",
+    "libk5crypto.so",
+    "libkeyutils.so",
+    "libkrb5.so",
+    "libkrb5.so",
+    "libkrb5support.so",
+    "liblber-2.4.so.2",  # needed for debian wheezy
+    "libldap_r-2.4.so.2",  # needed for debian wheezy
+    "libm.so",
+    "libp11-kit.so",
+    "libpcre.so",
+    "libpthread.so",
+    "libresolv.so",
+    "libroken.so",
+    "librt.so",
+    "libsasl2.so",
+    "libSM.so",
+    "libusb-1.0.so",
+    "libuuid.so",
+    "libwind.so",
+    "libz.so",
+
+    #//Delete potentially dangerous libraries
+    "libstdc",
+    "libgobject",
+    "libc.so",
+
+    "libdbus-1.so",
+
+    #// Fix the "libGL error" messages
+    "libGL.so",
+    "libdrm.so",
 ]
 
 
@@ -80,68 +128,8 @@ def which(program):
 
 def resolve_dependencies(executable):
     # NOTE Use 'ldd' method for now.
-    # TODO Use non-ldd method (objdump) for cross-compiled apps
     return ldd(executable)
-    # objdump(executable)
     return {}
-
-
-def objdump(executable):
-    '''Get all library dependencies (recursive) of 'executable' using objdump'''
-    libs = {}
-    return objdumpr(executable, libs)
-
-
-def objdumpr(executable, libs):
-    '''Get all library dependencies (recursive) of 'executable' using objdump'''
-    try:
-        output = subprocess.check_output(["objdump", "-x", executable])
-    except subprocess.CalledProcessError as e:
-        warn("CalledProcessError while running %s. Return code %s - output: %s"
-             % (e.cmd, e.returncode, e.output))
-        output = e.output
-
-    output = output.split('\n')
-
-    accepted_columns = ['NEEDED', 'RPATH', 'RUNPATH']
-
-    for line in output:
-        split = line.split()
-        if len(split) == 0:
-            continue
-
-        if split[1] not in accepted_columns:
-            continue
-
-        if split[1] in blacklist or os.path.basename(split[0]) in blacklist:
-            debug("'%s' is blacklisted. Skipping..." % (split[0]))
-            continue
-
-        so = split[1]
-        path = split[2]
-        realpath = os.path.realpath(path)
-
-        if not os.path.exists(path):
-            debug("Can't find path for %s (resolved to %s). Skipping..." % (so, path))
-            continue
-
-        if so not in libs:
-            details = {
-                'so': so,
-                'path': path,
-                'realpath': realpath,
-                'dependants': set([executable]),
-                'type': 'lib'
-                    }
-            libs[so] = details
-
-            debug("Resolved %s to %s" % (so, realpath))
-
-            libs = merge_dicts(libs, lddr(realpath, libs))
-        else:
-            libs[so]['dependants'].add(executable)
-
-    return libs
 
 
 def ldd(executable):
@@ -167,7 +155,8 @@ def lddr(executable, libs):
         if len(split) == 0:
             continue
 
-        if split[0] in blacklist or os.path.basename(split[0]) in blacklist:
+        if [split[0] for black in blacklist if split[0].startswith(black)
+                or os.path.basename(split[0]).startswith(black)]:
             debug("'%s' is blacklisted. Skipping..." % (split[0]))
             continue
 
