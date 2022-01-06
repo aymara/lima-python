@@ -138,13 +138,13 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
   QCoreApplication app(argc, argv);
 //   VIRTUAL_ENV/lib/python3.8/site-packages/aymara/config/
 //   /opt/_internal/cpython-3.8.12/lib/python3.8/site-packages/aymara
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
-            << QCoreApplication::applicationDirPath().toStdString()
-            << " --- "
-            << QCoreApplication::applicationName().toStdString()
-            << " --- "
-            << modulePath.toStdString()
-            << std::endl;
+//   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
+//             << QCoreApplication::applicationDirPath().toStdString()
+//             << " --- "
+//             << QCoreApplication::applicationName().toStdString()
+//             << " --- "
+//             << modulePath.toStdString()
+//             << std::endl;
 //   auto appName = QCoreApplication::applicationName();
 //   QStringList filters({"python*"});
 //   auto dir = QDir(QCoreApplication::applicationDirPath());
@@ -163,16 +163,16 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
   auto resourcesPath = resourcesDirs.join(LIMA_PATH_SEPARATOR);
 
   QsLogging::initQsLog(configPath);
-  std::cerr << "QsLog initialized" << std::endl;
+//   std::cerr << "QsLog initialized" << std::endl;
   // Necessary to initialize factories
   Lima::AmosePluginsManager::single();
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
+//   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
   if (!Lima::AmosePluginsManager::changeable().loadPlugins(configPath))
   {
     throw InvalidConfiguration("loadLibrary method failed.");
   }
-  std::cerr << "Amose plugins are now initialized hop" << std::endl;
-  qDebug() << "Amose plugins are now initialized";
+//   std::cerr << "Amose plugins are now initialized hop" << std::endl;
+//   qDebug() << "Amose plugins are now initialized";
 
 
   std::string lpConfigFile = "lima-analysis.xml";
@@ -230,27 +230,27 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
   uint64_t beginTime=TimeUtils::getCurrentTime();
 
   std::deque<std::string> langs = {"fre", "eng"};
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
-            << resourcesPath.toUtf8().constData() << ", "
-            << configPath.toUtf8().constData() << ", "
-            << commonConfigFile << ", "
-            << langs.front() << std::endl;
+//   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
+//             << resourcesPath.toUtf8().constData() << ", "
+//             << configPath.toUtf8().constData() << ", "
+//             << commonConfigFile << ", "
+//             << langs.front() << std::endl;
   // initialize common
   Common::MediaticData::MediaticData::changeable().init(
     resourcesPath.toUtf8().constData(),
     configPath.toUtf8().constData(),
     commonConfigFile,
     langs);
-  std::cerr << "MediaticData initialized" << std::endl;
+//   std::cerr << "MediaticData initialized" << std::endl;
 
   bool clientFactoryConfigured = false;
   Q_FOREACH(QString configDir, configDirs)
   {
     if (QFileInfo::exists(configDir + "/" + lpConfigFile.c_str()))
     {
-      std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
-          << (configDir + "/" + lpConfigFile.c_str()).toUtf8().constData() << ", "
-          << clientId << std::endl;
+//       std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
+//           << (configDir + "/" + lpConfigFile.c_str()).toUtf8().constData() << ", "
+//           << clientId << std::endl;
 
       // initialize linguistic processing
       Lima::Common::XMLConfigurationFiles::XMLConfigurationFileParser lpconfig(
@@ -266,10 +266,12 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
   }
   if(!clientFactoryConfigured)
   {
-//     std::cerr << "No LinguisticProcessingClientFactory were configured with" << configDirs.join(LIMA_PATH_SEPARATOR).toStdString() << "and" << lpConfigFile << std::endl;
+    std::cerr << "No LinguisticProcessingClientFactory were configured with"
+              << configDirs.join(LIMA_PATH_SEPARATOR).toStdString()
+              << "and" << lpConfigFile << std::endl;
     throw LimaException("Configuration failure");
   }
-  std::cerr << "Client factory configured" << std::endl;
+//   std::cerr << "Client factory configured" << std::endl;
 
   m_client = std::shared_ptr< AbstractLinguisticProcessingClient >(
       std::dynamic_pointer_cast<AbstractLinguisticProcessingClient>(
@@ -341,7 +343,7 @@ const std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& lang,
                                     const std::string& pipeline)
 {
-  std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
+//   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
   try {
   return m_d->analyzeText(text, lang, pipeline);
   }
@@ -420,7 +422,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
     QStringList allText = QString::fromUtf8(text.c_str()).split("\n");
     int lineNum = 0;
     int nbLines = allText.size();
-    std::cerr << "\rStarting analysis";
+//     std::cerr << "\rStarting analysis";
     for (const auto& contentText: allText)
     {
       lineNum++;
@@ -448,7 +450,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
     else
     {
       // analyze it
-      std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
+//       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
       m_client->analyze(contentText,metaData, pipeline, handlers, inactiveUnits);
     }
   }
