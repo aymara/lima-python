@@ -298,14 +298,14 @@ set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
 #set(site_packages "${Python3_SITELIB}")
 #message("site_packages ${Python3_SITELIB}")
 #install(FILES aymaralima/lima_analyzer.py aymaralima/lima_models.py DESTINATION ${site_packages}/aymaralima)
-install(FILES aymaralima/lima_analyzer.py aymaralima/lima_models.py DESTINATION aymaralima)
+install(FILES aymara/lima.py aymara/lima_models.py DESTINATION aymara)
 
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
-install(FILES ${LIB_FILES} DESTINATION aymara)
+install(FILES ${LIB_FILES} DESTINATION aymaralima)
 
 install(TARGETS ${bindings_library} ${sample_library}
-        LIBRARY DESTINATION aymara
-        RUNTIME DESTINATION aymara
+        LIBRARY DESTINATION aymaralima
+        RUNTIME DESTINATION aymaralima
         )
 
 

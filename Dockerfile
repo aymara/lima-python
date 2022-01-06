@@ -18,9 +18,9 @@ RUN cmake --version
 WORKDIR /lima-python
 COPY . /lima-python
 RUN install -d clib/lib
-RUN cp -R /usr/share/apps/lima/resources /lima-python/aymara
-RUN install -d /lima-python/aymara/config
-RUN cp -R /usr/share/config/lima/* /lima-python/aymara/config
+RUN cp -R /usr/share/apps/lima/resources /lima-python/aymaralima
+RUN install -d /lima-python/aymaralima/config
+RUN cp -R /usr/share/config/lima/* /lima-python/aymaralima/config
 RUN python3.8 /lima-python/scripts/linuxdeploy.py /usr/lib/liblima*.so -d clib -o clib/libs.json
 RUN python3.8 setup.py bdist_wheel
 ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-3.8/cmake-build:$LD_LIBRARY_PATH
