@@ -80,6 +80,7 @@
 #include <iomanip>
 #include <fstream>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QString>
 #include <QtCore/QStringRef>
 
@@ -101,7 +102,7 @@ class LimaAnalyzerPrivate
 {
   friend class LimaAnalyzer;
 public:
-  LimaAnalyzerPrivate();
+  LimaAnalyzerPrivate(const QString& modulePath);
   ~LimaAnalyzerPrivate() {}
   LimaAnalyzerPrivate(const LimaAnalyzerPrivate& a){}
   LimaAnalyzerPrivate& operator=(const LimaAnalyzerPrivate& a){}
@@ -130,15 +131,35 @@ public:
 };
 
 
-LimaAnalyzerPrivate::LimaAnalyzerPrivate()
+LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
 {
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate()" << std::endl;
+  int argc = 1;
+  char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
+  QCoreApplication app(argc, argv);
+//   VIRTUAL_ENV/lib/python3.8/site-packages/aymara/config/
+//   /opt/_internal/cpython-3.8.12/lib/python3.8/site-packages/aymara
+  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
+            << QCoreApplication::applicationDirPath().toStdString()
+            << " --- "
+            << QCoreApplication::applicationName().toStdString()
+            << " --- "
+            << modulePath.toStdString()
+            << std::endl;
+//   auto appName = QCoreApplication::applicationName();
+//   QStringList filters({"python*"});
+//   auto dir = QDir(QCoreApplication::applicationDirPath());
+//   dir.cdUp();
+//   dir.cd("lib");
+//   dir.cd(appName);
+//   dir.cd("site-packages");
+//   dir.cd("aymara");
+//   QString d = dir.absolutePath();
   auto configDirs = buildConfigurationDirectoriesList(QStringList({"lima"}),
-                                                      QStringList());
+                                                      QStringList({modulePath+"/config"}));
   auto configPath = configDirs.join(LIMA_PATH_SEPARATOR);
 
   auto resourcesDirs = buildResourcesDirectoriesList(QStringList({"lima"}),
-                                                     QStringList());
+                                                     QStringList(modulePath+"/resources"));
   auto resourcesPath = resourcesDirs.join(LIMA_PATH_SEPARATOR);
 
   QsLogging::initQsLog(configPath);
@@ -290,7 +311,8 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate()
 
 }
 
-LimaAnalyzer::LimaAnalyzer() : m_d(new LimaAnalyzerPrivate())
+LimaAnalyzer::LimaAnalyzer(const std::string& modulePath) :
+  m_d(new LimaAnalyzerPrivate(QString::fromStdString(modulePath)))
 {
 }
 

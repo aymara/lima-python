@@ -21,7 +21,7 @@ RUN install -d clib/lib
 RUN cp -R /usr/share/apps/lima/resources /lima-python/aymara
 RUN install -d /lima-python/aymara/config
 RUN cp -R /usr/share/config/lima/* /lima-python/aymara/config
-RUN python3 /lima-python/scripts/linuxdeploy.py /usr/lib/liblima*.so -d clib -o clib/libs.json
+RUN python3.8 /lima-python/scripts/linuxdeploy.py /usr/lib/liblima*.so -d clib -o clib/libs.json
 RUN python3.8 setup.py bdist_wheel
 ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-3.8/cmake-build:$LD_LIBRARY_PATH
 RUN auditwheel repair /lima-python/dist/aymara-0.3.0-cp38-cp38-linux_x86_64.whl

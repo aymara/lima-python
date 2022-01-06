@@ -295,8 +295,10 @@ set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
              "${bindings_library}${PYTHON_EXTENSION_SUFFIX}")
 
 
-#set(site_packages "${PYTHON_RELATIVE_SITE_PACKAGES_DIR}")
-#install(FILES lima_models.py DESTINATION ${site_packages})
+#set(site_packages "${Python3_SITELIB}")
+#message("site_packages ${Python3_SITELIB}")
+#install(FILES aymaralima/lima_analyzer.py aymaralima/lima_models.py DESTINATION ${site_packages}/aymaralima)
+install(FILES aymaralima/lima_analyzer.py aymaralima/lima_models.py DESTINATION aymaralima)
 
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
 install(FILES ${LIB_FILES} DESTINATION aymara)

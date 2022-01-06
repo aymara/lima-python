@@ -51,17 +51,17 @@
 #ifndef LIMAANALYZER_H
 #define LIMAANALYZER_H
 
+#include "macros.h"
+
 #include <memory>
 #include <string>
-
-#include "macros.h"
 
 class LimaAnalyzerPrivate;
 class BINDINGS_API LimaAnalyzer
 {
   friend class LimaAnalyzerPrivate;
 public:
-  LimaAnalyzer();
+  LimaAnalyzer(const std::string& modulePath);
   virtual ~LimaAnalyzer();
   LimaAnalyzer(const LimaAnalyzer&_a);
   LimaAnalyzer operator=(const LimaAnalyzer&_a);
