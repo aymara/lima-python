@@ -18,6 +18,7 @@ RUN cmake --version
 WORKDIR /lima-python
 COPY . /lima-python
 RUN install -d clib/lib
+RUN install -d /lima-python/aymaralima
 RUN cp -R /usr/share/apps/lima/resources /lima-python/aymaralima
 RUN install -d /lima-python/aymaralima/config
 RUN cp -R /usr/share/config/lima/* /lima-python/aymaralima/config
