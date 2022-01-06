@@ -16,6 +16,7 @@ import argparse
 import errno
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -127,9 +128,7 @@ def which(program):
 
 
 def resolve_dependencies(executable):
-    # NOTE Use 'ldd' method for now.
     return ldd(executable)
-    return {}
 
 
 def ldd(executable):
@@ -150,6 +149,8 @@ def lddr(executable, libs):
     # print(output.decode())
     output = output.decode().split('\n')
 
+    debug(f"Add input lib: {os.path.basename(executable)} => {executable}")
+    output.append(f"{os.path.basename(executable)} => {executable}")
     for line in output:
         split = line.split()
         if len(split) == 0:
@@ -225,7 +226,8 @@ def build_appdir(dest_dir, dependencies):
 
         if details['type'] == 'lib':
             src = details['realpath']
-            dst = dest_dir+os.sep+appdir_libs+os.sep+dep
+            res = re.match(r"^(.*\.so)\.?", dep).group(1)
+            dst = dest_dir+os.sep+appdir_libs+os.sep+res
             debug("Copying library "+dep+": "+src+' -> '+dst)
             shutil.copyfile(src, dst)  # overrides dest no questions asked
             strip(dst)
