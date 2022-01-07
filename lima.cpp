@@ -106,7 +106,7 @@ class LimaAnalyzerPrivate
 {
   friend class LimaAnalyzer;
 public:
-  LimaAnalyzerPrivate(const QString& modulePath);
+  LimaAnalyzerPrivate(const QStringList& qlangs, const QString& modulePath);
   ~LimaAnalyzerPrivate() {}
   LimaAnalyzerPrivate(const LimaAnalyzerPrivate& a){}
   LimaAnalyzerPrivate& operator=(const LimaAnalyzerPrivate& a){}
@@ -135,7 +135,7 @@ public:
 };
 
 
-LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
+LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QString& modulePath)
 {
   int argc = 1;
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
@@ -182,7 +182,6 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
   std::string lpConfigFile = "lima-analysis.xml";
   std::string commonConfigFile = "lima-common.xml";
   std::string clientId = "lima-coreclient";
-  std::vector<std::string> languages;
   std::vector<std::string> dumpersv;
 
   std::string pipeline = "main";
@@ -233,7 +232,9 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
 
   uint64_t beginTime=TimeUtils::getCurrentTime();
 
-  std::deque<std::string> langs = {"fre", "eng"};
+  std::deque<std::string> langs;
+  for (const auto& lang: qlangs)
+    langs.push_back(lang.toStdString());
 //   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
 //             << resourcesPath.toUtf8().constData() << ", "
 //             << configPath.toUtf8().constData() << ", "
@@ -317,9 +318,10 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QString& modulePath)
 
 }
 
-LimaAnalyzer::LimaAnalyzer(const std::string& modulePath) :
-  m_d(new LimaAnalyzerPrivate(QString::fromStdString(modulePath)))
+LimaAnalyzer::LimaAnalyzer(const std::string& langs, const std::string& modulePath)
 {
+  QStringList qlangs = QString::fromStdString(langs).split(",");
+  m_d = new LimaAnalyzerPrivate(qlangs, QString::fromStdString(modulePath));
 }
 
 LimaAnalyzer::~LimaAnalyzer()

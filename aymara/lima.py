@@ -20,8 +20,8 @@ import aymaralima
 
 
 class Lima:
-    def __init__(self):
-        self.analyzer = aymaralima.lima.LimaAnalyzer(aymaralima.__path__[-1])
+    def __init__(self, langs: str = "fre,eng"):
+        self.analyzer = aymaralima.lima.LimaAnalyzer(langs, aymaralima.__path__[-1])
 
     def analyzeText(self,
                     text: str,
