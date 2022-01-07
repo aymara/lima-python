@@ -13,6 +13,7 @@ import urllib.request
 from tqdm import tqdm
 from os import listdir
 from os.path import isfile, join
+from pathlib import Path
 
 
 URL_DEB = (
@@ -52,6 +53,7 @@ def get_target_dir(dest=None):
 
 def install_language(language, dest=None, select=None, force=False):
     target_dir = get_target_dir(dest)
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
 
     code, lang = find_lang_code(language.lower())
     deb_url = URL_DEB % (code, lang)
@@ -104,6 +106,7 @@ def info():
 
 
 def install_model(dir, fn, code, prefix_list):
+    Path(dir).mkdir(parents=True, exist_ok=True)
     ar_file = unix_ar.open(fn)
     tarball = ar_file.open("data.tar.gz")
     tar_file = tarfile.open(fileobj=tarball)
@@ -148,6 +151,7 @@ def install_model(dir, fn, code, prefix_list):
 
 
 def download_binary_file(url, dir):
+    Path(dir).mkdir(parents=True, exist_ok=True)
     chunk_size = 4096
     local_filename = os.path.join(dir, url.split("/")[-1])
     totalbytes = 0
@@ -184,6 +188,7 @@ def find_lang_code(lang_str):
 
 def list_installed_models(dest=None):
     target_dir = get_target_dir(dest)
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
 
     langs = list_installed_languages(target_dir)
 
@@ -220,6 +225,7 @@ def list_installed_models(dest=None):
 
 
 def list_installed_languages(target_dir):
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
     langs = {
         "tok": list_installed_languages_per_module(
             join(target_dir, "TensorFlowTokenizer", "ud"), ["tokenizer"]
@@ -236,6 +242,8 @@ def list_installed_languages(target_dir):
 
 
 def list_installed_languages_per_module(target_dir, prefix_list):
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
+
     files = [f for f in listdir(target_dir) if isfile(join(target_dir, f))]
     d = {}
     for f in files:
@@ -324,6 +332,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dest = get_target_dir(args.dest)
+    Path(dest).mkdir(parents=True, exist_ok=True)
     if args.info:
         info()
         sys.exit(0)
