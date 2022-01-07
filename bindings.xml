@@ -50,7 +50,7 @@
 **
 ****************************************************************************/
 -->
-<typesystem package="aymara">
+<typesystem package="lima">
 
     <primitive-type name="int"/>
     <primitive-type name="bool"/>

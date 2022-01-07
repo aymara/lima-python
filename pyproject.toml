@@ -44,5 +44,8 @@ exclude = '''
 '''
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
+
+#[build-system]
+#requires = ["poetry>=0.12"]
+#build-backend = "poetry.masonry.api"
