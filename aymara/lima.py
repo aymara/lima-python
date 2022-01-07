@@ -20,12 +20,18 @@ import aymaralima
 
 
 class Lima:
-    def __init__(self, langs: str = "fre,eng"):
-        self.analyzer = aymaralima.lima.LimaAnalyzer(langs, aymaralima.__path__[-1])
+    def __init__(self, langs: str = "fre,eng", pipes: str = "main,deepud"):
+        self.analyzer = aymaralima.lima.LimaAnalyzer(langs, pipes,
+                                                     aymaralima.__path__[-1])
 
     def analyzeText(self,
                     text: str,
                     lang: str = "eng",
-                    pipeline: str = "main") -> pyconll.unit.conll.Conll:
+                    pipeline: str = None) -> pyconll.unit.conll.Conll:
+        if not pipeline:
+            if lang.startswith("ud-"):
+                pipeline = "deepud"
+            else:
+                pipeline = "main"
         return pyconll.load.load_from_string(
             self.analyzer.analyzeText(text, lang=lang, pipeline=pipeline))

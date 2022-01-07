@@ -1,3 +1,70 @@
+# LIMA python bindings
+
+## Installation
+
+LIMA python bindings are currently available for python 3.8 only. Install with:
+```bash
+$ pip install aymara
+```
+
+You can use it like that in English (eng) or French (fre) but it is preferable to use deep-learning based models. To install them, use the `lima_models.py` script:
+
+```bash
+$ lima_models.py -h
+usage: lima_models.py [-h] [-i] [-l LANG] [-d DEST] [-s SELECT] [-f] [-L]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i, --info            print list of available languages and exit
+  -l LANG, --lang LANG  install model for the given language name or language code (example: 'english'
+                        or 'eng')
+  -d DEST, --dest DEST  destination directory
+  -s SELECT, --select SELECT
+                        select particular models to install: tokenizer, morphosyntax, lemmatizer
+                        (comma-separated list)
+  -f, --force           force reinstallation of existing files
+  -L, --list            list installed models
+```
+
+For example:
+```bash
+$ lima_models.py -l eng
+```
+
+## Running
+
+
+```
+$ python
+Python 3.8.10 (default, Nov 26 2021, 20:14:08)
+[GCC 9.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import aymara.lima
+>>> l = aymara.lima.Lima("ud-eng")
+>>> r = l.analyzeText("The author wrote a novel.", lang="ud-eng")
+>>> print(r.conll())
+# sent_id = 1
+# text = The author wrote a novel.
+1       The     the     DET     _       Definite=Def|PronType=Art       2       det     _       Len=3|Pos=1
+2       author  author  NOUN    _       Number=Sing     3       nsubj   _       Len=6|Pos=5
+3       wrote   write   VERB    _       Mood=Ind|Tense=Past|VerbForm=Fin        0       root    _       Len=5|Pos=12
+4       a       a       DET     _       Definite=Ind|PronType=Art       5       det     _       Len=1|Pos=18
+5       novel   novel   NOUN    _       Number=Sing     3       obj     _       Len=5|Pos=20|SpaceAfter=No
+6       .       .       PUNCT   _       _       3       punct   _       Len=1|Pos=25
+
+>>>
+```
+
+Note that some error messages could be displayed during the Lima object instantiation. If you get a valid object, you can ignore them. Most of them are debug messages that will be removed in a later version.
+
+You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline. This is the same for `ud-fra` and `fre`. Note that legacy pipelines do not use the Universal Dependencies tagset, but a proprietary one.
+
+## Configuration and customization
+
+To configure finely LIMA for your needs, follow the same instructions as for the native C++ tools, available here: [[https://github.com/aymara/lima/wiki/LIMA-User-Manual]].
+
+
+
 # LIMA poetry package build instructions
 
 Build, install and deploy this Pypi package using poetry
@@ -27,33 +94,4 @@ python setup.py install --cmake=/usr/bin/cmake --build-type=all
 cp /usr/bin/rcc /home/gael/Logiciels/pyside-setup/lima3_install/py3.8-qt5.15.3-64bit-release/bin/rcc
 python setup.py install --cmake=/usr/bin/cmake --build-type=all
 ```
-
-
-# To collect external shared libraries dependencies and include them in a wheel
-
-https://github.com/pypa/auditwheel
-
-# pybind11 based bindings
-https://github.com/yssource/pybind11-qt-foo
-
-
-https://scikit-build.readthedocs.io/en/latest/
-https://discuss.python.org/t/notes-on-binary-wheel-packaging-for-c-library-wrappers/2609
-https://github.com/riddell-stan/poetry-install-shared-lib-demo
-
-Important information concerning the handling of dependencies between manylinux (debian image is docker 9), which only has GCC 6
-while C++17 requires at least GCC 8, and glibc versions:
-http://catherineh.github.io/programming/2021/11/16/python-binary-distributions-whls-with-c17-cmake-auditwheel-and-manylinux
-Based on: https://martinopilia.com/posts/2018/09/15/building-python-extension.html
-
-General information on python wheels
-https://docs.python.org/3.7/distutils/setupscript.html
-https://setuptools.pypa.io/en/latest/
-
-A project that includes all what we seem to need
-https://github.com/palaimon/fastfm2
-
-# TODO
-
-* Allow to find libraries inside the wheel without touching to LD_LIBRARY_PATH
 

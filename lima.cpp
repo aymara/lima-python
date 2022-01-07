@@ -106,7 +106,8 @@ class LimaAnalyzerPrivate
 {
   friend class LimaAnalyzer;
 public:
-  LimaAnalyzerPrivate(const QStringList& qlangs, const QString& modulePath);
+  LimaAnalyzerPrivate(const QStringList& qlangs, const QStringList& qpipelines,
+                      const QString& modulePath);
   ~LimaAnalyzerPrivate() {}
   LimaAnalyzerPrivate(const LimaAnalyzerPrivate& a){}
   LimaAnalyzerPrivate& operator=(const LimaAnalyzerPrivate& a){}
@@ -135,7 +136,7 @@ public:
 };
 
 
-LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QString& modulePath)
+LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QStringList& qpipelines, const QString& modulePath)
 {
   int argc = 1;
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
@@ -184,7 +185,6 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QStrin
   std::string clientId = "lima-coreclient";
   std::vector<std::string> dumpersv;
 
-  std::string pipeline = "main";
   std::vector<std::string> files;
   std::vector<std::string> vinactiveUnits;
   std::string meta;
@@ -222,13 +222,14 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QStrin
   }
 
   std::set<std::string> inactiveUnits;
-  for (const auto & inactiveUnit : vinactiveUnits)
+  for (const auto & inactiveUnit: vinactiveUnits)
   {
     inactiveUnits.insert(inactiveUnit);
   }
   std::deque<std::string> pipelines;
+  for (const auto& pipeline: qpipelines)
+    pipelines.push_back(pipeline.toStdString());
 
-  pipelines.push_back(pipeline);
 
   uint64_t beginTime=TimeUtils::getCurrentTime();
 
@@ -318,10 +319,14 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QStrin
 
 }
 
-LimaAnalyzer::LimaAnalyzer(const std::string& langs, const std::string& modulePath)
+LimaAnalyzer::LimaAnalyzer(const std::string& langs,
+                           const std::string& pipelines,
+                           const std::string& modulePath)
 {
   QStringList qlangs = QString::fromStdString(langs).split(",");
-  m_d = new LimaAnalyzerPrivate(qlangs, QString::fromStdString(modulePath));
+  QStringList qpipelines = QString::fromStdString(pipelines).split(",");
+  m_d = new LimaAnalyzerPrivate(qlangs, qpipelines,
+                                QString::fromStdString(modulePath));
 }
 
 LimaAnalyzer::~LimaAnalyzer()

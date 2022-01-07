@@ -1,3 +1,5 @@
+*.whl
+*.whl.md5
 _skbuild
 __pycache__
 *.kdev4*
