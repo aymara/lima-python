@@ -5,6 +5,7 @@ import sys
 import os
 import re
 import argparse
+import pyconll
 import tempfile
 import unix_ar
 import tarfile
@@ -22,5 +23,9 @@ class Lima:
     def __init__(self):
         self.analyzer = aymaralima.lima.LimaAnalyzer(aymaralima.__path__[-1])
 
-    def analyzeText(self, text: str, lang: str = "eng", pipeline: str = "main"):
-        return self.analyzer.analyzeText(text, lang=lang, pipeline=pipeline)
+    def analyzeText(self,
+                    text: str,
+                    lang: str = "eng",
+                    pipeline: str = "main") -> pyconll.unit.conll.Conll:
+        return pyconll.load.load_from_string(
+            self.analyzer.analyzeText(text, lang=lang, pipeline=pipeline))

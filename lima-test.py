@@ -5,5 +5,5 @@ import aymara.lima
 
 lima = aymara.lima.Lima()
 result = lima.analyzeText("This is a text.", lang="eng", pipeline="main")
-print(result)
+print(result.conll())
 

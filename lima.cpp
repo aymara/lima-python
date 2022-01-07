@@ -95,6 +95,10 @@ std::ostream* openHandlerOutputFile(AbstractTextualAnalysisHandler* handler,
                                     const std::string& fileName,
                                     const std::set< std::string >& dumpers,
                                     const std::string& dumperId);
+std::shared_ptr< std::ostringstream > openHandlerOutputString(
+    AbstractTextualAnalysisHandler* handler,
+    const std::set<std::string>&dumpers,
+    const std::string& dumperId);
 void closeHandlerOutputFile(std::ostream* ofs);
 int run(int aargc,char** aargv);
 
@@ -357,7 +361,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                                     const std::string& lang,
                                     const std::string& pipeline)
 {
-  qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
+//   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
 //     ("output,o",
 //    po::value< std::vector<std::string> >(&outputsv),
 //    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")
@@ -378,41 +382,11 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
     }
   }
 
-  // set the output files (to 0 if not in list)
-  // remember to call closeHandlerOutputFile for each call to openHandlerOutputFile
-//   std::string file;
-//   QString bowOut = outputs.contains("bow")
-//       ? (outputs["bow"] == "stdout"
-//           ? "stdout"
-//           : QString::fromUtf8((file).c_str())+outputs["bow"])
-//       : QString::fromUtf8((file).c_str())+".bin";
-//   QString textOut = outputs.contains("text")
-//       ? (outputs["text"] == "stdout"
-//           ? "stdout"
-//           : QString::fromUtf8((file).c_str())+outputs["text"])
-//       : "stdout";
-//   QString fullxmlOut = outputs.contains("fullxml")
-//       ? (outputs["fullxml"] == "stdout"
-//           ? "stdout"
-//           : QString::fromStdString(file)+outputs["fullxml"])
-//       : "stdout";
 
-  QString bowOut = "stdout";
-  QString textOut = "stdout";
-  QString fullxmlOut = "stdout";
-  auto bowofs  = openHandlerOutputFile(bowTextWriter,
-                                        std::string(bowOut.toStdString()),
-                                        dumpers,
-                                        "bow");
-  auto txtofs  = openHandlerOutputFile(simpleStreamHandler,
-                                        std::string(textOut.toStdString()),
-                                        dumpers,
-                                        "text");
-  auto fullxmlofs  = openHandlerOutputFile(fullXmlSimpleStreamHandler,
-                                            std::string(fullxmlOut.toStdString()),
-                                            dumpers,
-                                            "fullxml");
-  std::ostringstream oss;
+//   auto bowofs  = openHandlerOutputString(bowTextWriter, os, dumpers, "bow");
+  auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
+//   *txtofs << "hello";
+//   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
 
   metaData["FileName"]="param";
   metaData["Lang"]=lang;
@@ -433,11 +407,16 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                   << " (" << percent.toUtf8().constData() << "%) lines";
       }
       // analyze it
-      m_client->analyze(contentText,
-                      metaData,
-                      pipeline,
-                      handlers,
-                      inactiveUnits);
+      try {
+        m_client->analyze(contentText,
+                        metaData,
+                        pipeline,
+                        handlers,
+                        inactiveUnits);
+      } catch (const Lima::LimaException& e) {
+        std::cerr << "Lima internal error: " << e.what() << std::endl;
+        return txtofs->str();
+      }
     }
   }
   else // default == none
@@ -451,11 +430,16 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
     {
       // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-      m_client->analyze(contentText,metaData, pipeline, handlers, inactiveUnits);
+      try {
+        m_client->analyze(contentText,metaData, pipeline, handlers, inactiveUnits);
+      } catch (const Lima::LimaException& e) {
+        std::cerr << "Lima internal error: " << e.what() << std::endl;
+        return txtofs->str();
+      }
     }
   }
 
-  return oss.str();
+  return txtofs->str();
 }
 
 std::ostream* openHandlerOutputFile(AbstractTextualAnalysisHandler* handler,
@@ -486,6 +470,19 @@ std::ostream* openHandlerOutputFile(AbstractTextualAnalysisHandler* handler,
       std::cerr << "failed to open file " << fileName << std::endl;
       delete ofs; ofs = 0;
     }
+  }
+  return ofs;
+}
+
+std::shared_ptr< std::ostringstream > openHandlerOutputString(
+    AbstractTextualAnalysisHandler* handler,
+    const std::set<std::string>&dumpers,
+    const std::string& dumperId)
+{
+  auto ofs = std::make_shared< std::ostringstream >();
+  if (dumpers.find(dumperId)!=dumpers.end())
+  {
+    handler->setOut(ofs.get());
   }
   return ofs;
 }
