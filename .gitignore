@@ -1,4 +1,5 @@
 *.whl.md5
+*.kate-swp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
