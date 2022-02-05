@@ -1,5 +1,6 @@
 # LIMA python bindings
 
+
 ## Installation
 
 LIMA python bindings are currently available for python 3.8 only. Install with:
@@ -95,3 +96,12 @@ cp /usr/bin/rcc /home/gael/Logiciels/pyside-setup/lima3_install/py3.8-qt5.15.3-6
 python setup.py install --cmake=/usr/bin/cmake --build-type=all
 ```
 
+# Building and deploying the wheel
+
+```bash
+docker build . -t lima-python:latest
+docker create -ti --name dummy lima-python:latest bash
+docker cp dummy:/lima-python/wheelhouse/aymara-0.3.3-cp38-cp38-manylinux_2_24_x86_64.whl .
+docker rm -f dummy
+scp aymara-0.3.3-cp38-cp38-manylinux_2_24_x86_64.whl gdechalendar@combava:/data/HTTP_FileServer/data/lima
+```

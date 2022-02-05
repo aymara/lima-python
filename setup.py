@@ -1,6 +1,11 @@
 import os
 import sys
 
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+
 from skbuild import setup  # This line replaces 'from setuptools import setup'
 
 
@@ -12,14 +17,25 @@ def package_files(directory):
     return paths
 
 
-#extra_files = package_files('aymaralima')
-#print(extra_files, file=sys.stderr)
-
-#extra_libs = package_files('clib')
-
 setup(
-    name='aymara',
-    version='0.3.0',
+    name="aymara",
+    version="0.3.3",
+    author="Gaël de Chalendar",
+    author_email="gael.de-chalendar@cea.fr",
+    description="Python bindings to the LIMA linguistic analyzer",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/aymara/lima",
+    project_urls={
+        "Bug Tracker": "https://github.com/aymara/lima/issues",
+        "Wiki": "https://github.com/aymara/lima/wiki"
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+        "Operating System :: POSIX :: Linux",
+    ],
+    python_requires=">=3.6",
     packages=['aymara', 'aymaralima'],
     install_requires=[
         'pyconll',
