@@ -14,6 +14,7 @@ from tqdm import tqdm
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
+from typing import List
 
 
 URL_DEB = (
@@ -24,19 +25,46 @@ URL_C2LC = "https://raw.githubusercontent.com/aymara/lima-models/master/c2lc.txt
 C2LC = {"lang2code": {}, "code2lang": {}}
 
 
-def remove_language(language, dest=None):
+def yesnoconfirm(msg):
+
+    while True:
+        try:
+            answer = input(f"{msg} [y|n]: ").lower()
+        except KeyboardInterrupt:
+            print()
+            exit(0)
+
+        if answer == 'y':
+            return True
+        elif answer == 'n':
+            return False
+        else:
+            print('not a valid input')
+
+
+def remove_language(language: str, dest: str = None) -> bool:
+    if not yesnoconfirm(f"Do you really want to remove language {language} ?"):
+        return
     target_dir = get_target_dir(dest)
     code, lang = find_lang_code(language.lower())
-    prefix_list = ["tokenizer", "morphosyntax", "lemmatizer"]
-    remove_model(target_dir, code, prefix_list)
+    if not lang:
+        print(f"There is no such language {language}")
+        sys.exit(1)
+    prefix_list = ["Tokenizer", "MorphoSyntax", "Lemmatizer"]
+    return remove_model(target_dir, code, prefix_list)
 
 
-def remove_model(target_dir, code, prefix_list):
+def remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
+    removed = False
     for prefix in prefix_list:
-        model_dir = os.path.join(target_dir, prefix, code)
+        model_dir = os.path.join(target_dir, f"TensorFlow{prefix}", "ud")
         if os.path.exists(model_dir):
-            print("Removing %s" % model_dir)
-            os.system("rm -rf %s" % model_dir)
+            # print(f"Removing *-{code}.* in {model_dir}", file=sys.stderr)
+            if os.system(f"rm -f {model_dir}/*-{code}.*") == 0:
+                removed = True
+            else:
+                print(f"Failed to remove {model_dir}")
+    return removed
 
 
 def get_target_dir(dest=None):
@@ -183,7 +211,7 @@ def find_lang_code(lang_str):
         return C2LC["lang2code"][lang_str], lang_str
     elif lang_str in C2LC["code2lang"]:
         return lang_str, C2LC["code2lang"][lang_str]
-    return None
+    return None, None
 
 
 def list_installed_models(dest=None):
@@ -202,7 +230,7 @@ def list_installed_models(dest=None):
     max_lang_len = 0
     for code in all_installed:
         lang = "Unknown"
-        if find_lang_code(code) is not None:
+        if find_lang_code(code)[0] is not None:
             lang = find_lang_code(code)[1]
             max_lang_len = max(len(lang), max_lang_len)
 
@@ -213,7 +241,7 @@ def list_installed_models(dest=None):
     print("---")
     for code in all_installed:
         lang = "Unknown"
-        if find_lang_code(code) is not None:
+        if find_lang_code(code)[0] is not None:
             lang = find_lang_code(code)[1]
         lang = lang + " " * (max_lang_len - len(lang) + 1)
         marks = {
@@ -312,7 +340,18 @@ if __name__ == "__main__":
         help="install model for the given language name or "
         "language code (example: 'english' or 'eng')",
     )
-    parser.add_argument("-d", "--dest", type=str, help="destination directory")
+    parser.add_argument(
+        "-d",
+        "--dest",
+        type=str,
+        help="destination directory")
+    parser.add_argument(
+        "-r",
+        "--remove",
+        type=str,
+        help="delet model for the given language name or "
+        "language code (example: 'english' or 'eng')",
+    )
     parser.add_argument(
         "-s",
         "--select",
@@ -339,15 +378,14 @@ if __name__ == "__main__":
     elif args.list is not None and args.list:
         list_installed_models(args.dest)
         sys.exit(0)
-    elif args.lang is None:
-        print(
-            "ERROR: the following argument is required: -l/--lang",
-            end="\n\n",
-            file=sys.stderr,
-        )
-        parser.print_help()
-        sys.exit(-1)
-    else:
+    elif args.lang:
         install_language(args.lang, args.dest, args.select, args.force)
         sys.exit(0)
+    elif args.remove:
+        removed = remove_language(args.remove)
+        if not removed:
+            print(f"Failed to remove language {args.remove}")
+            sys.exit(1)
+        sys.exit(0)
+    parser.print_help()
     sys.exit(0)
