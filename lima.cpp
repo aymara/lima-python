@@ -106,8 +106,11 @@ class LimaAnalyzerPrivate
 {
   friend class LimaAnalyzer;
 public:
-  LimaAnalyzerPrivate(const QStringList& qlangs, const QStringList& qpipelines,
-                      const QString& modulePath);
+  LimaAnalyzerPrivate(const QStringList& qlangs,
+                      const QStringList& qpipelines,
+                      const QString& modulePath,
+                      const QString& user_config_path,
+                      const QString& user_resources_path);
   ~LimaAnalyzerPrivate() {}
   LimaAnalyzerPrivate(const LimaAnalyzerPrivate& a){}
   LimaAnalyzerPrivate& operator=(const LimaAnalyzerPrivate& a){}
@@ -136,35 +139,41 @@ public:
 };
 
 
-LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QStringList& qpipelines, const QString& modulePath)
+LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs,
+                                         const QStringList& qpipelines,
+                                         const QString& modulePath,
+                                         const QString& user_config_path,
+                                         const QString& user_resources_path)
 {
   int argc = 1;
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
   QCoreApplication app(argc, argv);
-//   VIRTUAL_ENV/lib/python3.8/site-packages/aymara/config/
-//   /opt/_internal/cpython-3.8.12/lib/python3.8/site-packages/aymara
-//   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
-//             << QCoreApplication::applicationDirPath().toStdString()
-//             << " --- "
-//             << QCoreApplication::applicationName().toStdString()
-//             << " --- "
-//             << modulePath.toStdString()
-//             << std::endl;
-//   auto appName = QCoreApplication::applicationName();
-//   QStringList filters({"python*"});
-//   auto dir = QDir(QCoreApplication::applicationDirPath());
-//   dir.cdUp();
-//   dir.cd("lib");
-//   dir.cd(appName);
-//   dir.cd("site-packages");
-//   dir.cd("aymara");
-//   QString d = dir.absolutePath();
-  auto configDirs = buildConfigurationDirectoriesList(QStringList({"lima"}),
-                                                      QStringList({modulePath+"/config"}));
-  auto configPath = configDirs.join(LIMA_PATH_SEPARATOR);
 
+
+  QStringList additionalPaths({modulePath+"/config"});
+  // Add here LIMA_CONF content in front, otherwise it will be ignored
+  auto limaConf = QString::fromUtf8(qgetenv("LIMA_CONF").constData());
+  if (!limaConf.isEmpty())
+    additionalPaths = limaConf.split(LIMA_PATH_SEPARATOR) + additionalPaths;
+  // Add then the user path in front again such that it takes precedence on environment variable
+  if (!user_config_path.isEmpty())
+    additionalPaths.push_front(user_config_path);
+  auto configDirs = buildConfigurationDirectoriesList(QStringList({"lima"}),
+                                                      additionalPaths);
+  auto configPath = configDirs.join(LIMA_PATH_SEPARATOR);
+  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate configPath: "
+            << configPath << std::endl;
+
+
+  QStringList additionalResourcePaths({modulePath+"/resources"});
+  // Add here LIMA_RESOURCES content in front, otherwise it will be ignored
+  auto limaRes = QString::fromUtf8(qgetenv("LIMA_RESOURCES").constData());
+  if (!limaRes.isEmpty())
+    additionalResourcePaths = limaRes.split(LIMA_PATH_SEPARATOR) + additionalResourcePaths;
+  if (!user_resources_path.isEmpty())
+    additionalResourcePaths.push_front(user_resources_path);
   auto resourcesDirs = buildResourcesDirectoriesList(QStringList({"lima"}),
-                                                     QStringList(modulePath+"/resources"));
+                                                     additionalResourcePaths);
   auto resourcesPath = resourcesDirs.join(LIMA_PATH_SEPARATOR);
 
   QsLogging::initQsLog(configPath);
@@ -321,12 +330,16 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs, const QStrin
 
 LimaAnalyzer::LimaAnalyzer(const std::string& langs,
                            const std::string& pipelines,
-                           const std::string& modulePath)
+                           const std::string& modulePath,
+                           const std::string& user_config_path,
+                           const std::string& user_resources_path)
 {
   QStringList qlangs = QString::fromStdString(langs).split(",");
   QStringList qpipelines = QString::fromStdString(pipelines).split(",");
   m_d = new LimaAnalyzerPrivate(qlangs, qpipelines,
-                                QString::fromStdString(modulePath));
+                                QString::fromStdString(modulePath),
+                                QString::fromStdString(user_config_path),
+                                QString::fromStdString(user_resources_path));
 }
 
 LimaAnalyzer::~LimaAnalyzer()

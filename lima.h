@@ -63,7 +63,9 @@ class BINDINGS_API LimaAnalyzer
 public:
   LimaAnalyzer(const std::string& langs,
                const std::string& pipelines,
-               const std::string& modulePath);
+               const std::string& modulePath,
+               const std::string& user_config_path="",
+               const std::string& user_resources_path="");
   virtual ~LimaAnalyzer();
   LimaAnalyzer(const LimaAnalyzer&_a);
   LimaAnalyzer operator=(const LimaAnalyzer&_a);
