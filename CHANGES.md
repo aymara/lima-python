@@ -1,6 +1,8 @@
 ## 0.3.3 - 20220205
 
 * Named entities features in output
+* Export and use user configuration
+* Improve packaging process
 
 ## 0.3.2
 
