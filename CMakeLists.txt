@@ -1,3 +1,8 @@
+# Copyright 2019-2022 CEA LIST
+# SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+#
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.15)
 cmake_policy(VERSION 3.15)
 # Enable policy to not use RPATH settings for install_name on macOS.

@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2022 CEA LIST <gael.de-chalendar@cea.fr>
+#
+# SPDX-License-Identifier: MIT
+
 # -*- coding: utf-8 -*-
 
 import sys
@@ -18,7 +23,8 @@ from distutils.dir_util import copy_tree
 from tqdm import tqdm
 from os import listdir
 from os.path import isfile, join
-from typing import Tuple
+from pydantic import (parse_obj_as, ValidationError)
+from typing import Dict, Tuple
 
 import aymaralima.lima
 import aymaralima
@@ -36,30 +42,63 @@ def get_data_dir(appname):
     elif sys.platform == 'darwin':
         ans = pathlib.Path('~/Library/Application Support/').expanduser()
     else:
-        ans = pathlib.Path(getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
+        ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
     return ans.joinpath(appname)
 
 
 class Lima:
-    def __init__(self, langs: str = "fre,eng", pipes: str = "main,deepud",
-                 user_config_path: str = None,
-                 user_resources_path: str = None):
-        self.analyzer = aymaralima.lima.LimaAnalyzer(langs, pipes,
-                                                     aymaralima.__path__[-1],
-                                                     user_config_path,
-                                                     user_resources_path)
+    def __init__(self,
+                 langs: str = "fre,eng",
+                 pipes: str = "main,deepud",
+                 user_config_path: str = "",
+                 user_resources_path: str = "",
+                 meta: Dict[str, str] = {}):
+        self.analyzer = aymaralima.lima.LimaAnalyzer(
+            langs,
+            pipes,
+            aymaralima.__path__[-1],
+            user_config_path,
+            user_resources_path,
+            ",".join([f"{k}:{v}" for k, v in meta.items()])
+            )
+        self.langs = langs
+        self.pipes = pipes
+
+    def __call__(self, text: str, *args, **kwargs) -> pyconll.unit.conll.Conll:
+        analyze = self.analyzeText(text=text, *args, **kwargs)
+        return pyconll.load.load_from_string(analyze)
 
     def analyzeText(self,
                     text: str,
-                    lang: str = "eng",
-                    pipeline: str = None) -> pyconll.unit.conll.Conll:
+                    lang: str = None,
+                    pipeline: str = None,
+                    meta: Dict[str, str] = {}) -> str:
+        if lang is None:
+            lang = self.langs.split(",")[0] if self.langs else "eng"
+        if pipeline is None:
+            pipeline = self.pipes.split(",")[0] if self.pipes else "main"
+        if not isinstance(text, str):
+            raise TypeError(f"Lima.analyzeText text parameter must be str, "
+                            f"not {type(text)}")
+        if not isinstance(lang, str):
+            raise TypeError(f"Lima.analyzeText lang parameter must be str, "
+                            f"not {type(lang)}")
+        if not isinstance(pipeline, str):
+            raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
+                            f"not {type(pipeline)}")
+        try:
+            parse_obj_as(Dict[str, str], meta)
+        except ValidationError as e:
+            raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
+                            f"not {type(meta)}")
         if pipeline is None:
             if lang.startswith("ud-"):
                 pipeline = "deepud"
             else:
                 pipeline = "main"
-        return pyconll.load.load_from_string(
-            self.analyzer.analyzeText(text, lang=lang, pipeline=pipeline))
+        return self.analyzer.analyzeText(
+            text, lang=lang, pipeline=pipeline,
+            meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
 
     @staticmethod
     def ExportSystemConf(dir: pathlib.Path = None, lang: str = None) -> bool:
@@ -77,10 +116,12 @@ class Lima:
 
         fromDirectory = pathlib.Path(aymaralima.__path__[-1]) / "config"
         toDirectory = dir / "config"
+        print(f"Copying {str(fromDirectory)} to {str(toDirectory)}")
         copy_tree(str(fromDirectory), str(toDirectory))
 
         fromDirectory = pathlib.Path(aymaralima.__path__[-1]) / "resources"
         toDirectory = dir / "resources"
+        print(f"Copying {str(fromDirectory)} to {str(toDirectory)}")
         copy_tree(str(fromDirectory), str(toDirectory))
         return True
 

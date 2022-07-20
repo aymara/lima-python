@@ -1,3 +1,8 @@
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.

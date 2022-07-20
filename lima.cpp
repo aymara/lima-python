@@ -1,3 +1,8 @@
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -110,14 +115,16 @@ public:
                       const QStringList& qpipelines,
                       const QString& modulePath,
                       const QString& user_config_path,
-                      const QString& user_resources_path);
+                      const QString& user_resources_path,
+                      const QString& meta);
   ~LimaAnalyzerPrivate() {}
   LimaAnalyzerPrivate(const LimaAnalyzerPrivate& a){}
   LimaAnalyzerPrivate& operator=(const LimaAnalyzerPrivate& a){}
 
   const std::string analyzeText(const std::string& text,
                                 const std::string& lang,
-                                const std::string& pipeline);
+                                const std::string& pipeline,
+                                const std::string& meta);
 
   std::shared_ptr< AbstractLinguisticProcessingClient > m_client;
   std::map<std::string,std::string> metaData;
@@ -143,7 +150,8 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs,
                                          const QStringList& qpipelines,
                                          const QString& modulePath,
                                          const QString& user_config_path,
-                                         const QString& user_resources_path)
+                                         const QString& user_resources_path,
+                                         const QString& meta)
 {
   int argc = 1;
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
@@ -192,18 +200,14 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs,
   std::string lpConfigFile = "lima-analysis.xml";
   std::string commonConfigFile = "lima-common.xml";
   std::string clientId = "lima-coreclient";
-  std::vector<std::string> dumpersv;
 
-  std::vector<std::string> files;
   std::vector<std::string> vinactiveUnits;
-  std::string meta;
   std::string strConfigPath;
 
-  std::vector<std::pair<std::string,std::string> > userMetaData;
   // parse 'meta' argument to add metadata
-  if(!meta.empty())
+  if(!meta.isEmpty())
   {
-    std::string metaString(meta);
+    std::string metaString(meta.toStdString());
     std::string::size_type k=0;
     do
     {
@@ -219,8 +223,8 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs,
       else
       {
         //std::cout << "add metadata " << std::string(str,0,i) << "=>" << std::string(str,i+1) << std::endl;
-        userMetaData.push_back(std::make_pair(std::string(str,0,i),
-                                              std::string(str,i+1)));
+        metaData.insert(std::make_pair(std::string(str,0,i),
+                                       std::string(str,i+1)));
       }
       if (k!=std::string::npos)
       {
@@ -332,14 +336,16 @@ LimaAnalyzer::LimaAnalyzer(const std::string& langs,
                            const std::string& pipelines,
                            const std::string& modulePath,
                            const std::string& user_config_path,
-                           const std::string& user_resources_path)
+                           const std::string& user_resources_path,
+                           const std::string& meta)
 {
   QStringList qlangs = QString::fromStdString(langs).split(",");
   QStringList qpipelines = QString::fromStdString(pipelines).split(",");
   m_d = new LimaAnalyzerPrivate(qlangs, qpipelines,
                                 QString::fromStdString(modulePath),
                                 QString::fromStdString(user_config_path),
-                                QString::fromStdString(user_resources_path));
+                                QString::fromStdString(user_resources_path),
+                                QString::fromStdString(meta));
 }
 
 LimaAnalyzer::~LimaAnalyzer()
@@ -365,11 +371,12 @@ LimaAnalyzer *LimaAnalyzer::clone()
 
 const std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& lang,
-                                    const std::string& pipeline)
+                                    const std::string& pipeline,
+                                    const std::string& meta)
 {
 //   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
   try {
-  return m_d->analyzeText(text, lang, pipeline);
+  return m_d->analyzeText(text, lang, pipeline, meta);
   }
   catch (const Lima::LinguisticProcessing::LinguisticProcessingException& e) {
     std::cerr << "LIMA internal error: " << e.what() << std::endl;
@@ -379,7 +386,8 @@ const std::string LimaAnalyzer::analyzeText(const std::string& text,
 
 const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                                     const std::string& lang,
-                                    const std::string& pipeline)
+                                    const std::string& pipeline,
+                                    const std::string& meta)
 {
 //   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
 //     ("output,o",
@@ -408,10 +416,19 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
 //   *txtofs << "hello";
 //   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
 
-  metaData["FileName"]="param";
-  metaData["Lang"]=lang;
+  auto localMetaData = metaData;
+  localMetaData["FileName"]="param";
+  auto qmeta = QString::fromStdString(meta).split(",");
+  for (const auto& m: qmeta)
+  {
+    auto kv = m.split(":");
+    if (kv.size() == 2)
+      localMetaData[kv[0].toStdString()] = kv[1].toStdString();
+  }
 
-  if (splitMode == "lines")
+  localMetaData["Lang"]=lang;
+
+  if (splitMode == std::string("lines"))
   {
     QStringList allText = QString::fromUtf8(text.c_str()).split("\n");
     int lineNum = 0;
@@ -429,7 +446,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
       // analyze it
       try {
         m_client->analyze(contentText,
-                        metaData,
+                        localMetaData,
                         pipeline,
                         handlers,
                         inactiveUnits);
@@ -451,7 +468,8 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
       // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
       try {
-        m_client->analyze(contentText,metaData, pipeline, handlers, inactiveUnits);
+        m_client->analyze(contentText, localMetaData, pipeline, handlers,
+                          inactiveUnits);
       } catch (const Lima::LimaException& e) {
         std::cerr << "Lima internal error: " << e.what() << std::endl;
         return txtofs->str();
@@ -470,7 +488,7 @@ std::ostream* openHandlerOutputFile(AbstractTextualAnalysisHandler* handler,
   std::ostream* ofs = nullptr;
   if (dumpers.find(dumperId)!=dumpers.end())
   {
-    if (fileName=="stdout")
+    if (fileName==std::string("stdout"))
     {
       ofs = &std::cout;
     }

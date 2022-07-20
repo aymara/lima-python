@@ -1,3 +1,8 @@
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -65,14 +70,16 @@ public:
                const std::string& pipelines,
                const std::string& modulePath,
                const std::string& user_config_path="",
-               const std::string& user_resources_path="");
+               const std::string& user_resources_path="",
+               const std::string& meta="");
   virtual ~LimaAnalyzer();
   LimaAnalyzer(const LimaAnalyzer&_a);
   LimaAnalyzer operator=(const LimaAnalyzer&_a);
   virtual LimaAnalyzer *clone();
   virtual const std::string analyzeText(const std::string& text,
                                         const std::string& lang="eng",
-                                        const std::string& pipeline="main");
+                                        const std::string& pipeline="main",
+                                        const std::string& meta="");
 
 private:
   LimaAnalyzerPrivate* m_d;

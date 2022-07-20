@@ -3,8 +3,9 @@
 #
 # SPDX-License-Identifier: MIT
 
-from aymara import __version__
+import sys
 
+__version__ = "0.4.0"
 
-def test_version():
-    assert __version__ == "0.1.0"
+if __name__ == "__main__":
+    print(__version__)

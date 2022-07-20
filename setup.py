@@ -1,6 +1,17 @@
+
+# SPDX-FileCopyrightText: 2022 CEA LIST <gael.de-chalendar@cea.fr>
+#
+# SPDX-License-Identifier: MIT
+
 import os
 import sys
 
+from distutils.util import convert_path
+
+main_ns = {}
+ver_path = convert_path('aymara/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -19,7 +30,7 @@ def package_files(directory):
 
 setup(
     name="aymara",
-    version="0.3.3",
+    version=main_ns['__version__'],
     author="Gaël de Chalendar",
     author_email="gael.de-chalendar@cea.fr",
     description="Python bindings to the LIMA linguistic analyzer",
@@ -35,13 +46,16 @@ setup(
         "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
         "Operating System :: POSIX :: Linux",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     packages=['aymara', 'aymaralima'],
     install_requires=[
+        'pip>=22.0',
         'pyconll',
+        'pydantic',
         'requests',
-        'unix_ar',
+        'shiboken2',
         'tqdm',
+        'unix_ar',
         ],
     include_package_data=True,
 

@@ -1,3 +1,17 @@
+## 0.4.0 - 20220720
+
+* Switch to MIT license
+
+## 0.3.5 - 20220217
+
+* Make Lima class a callable which returns a PyCoNLL object
+* analyzeText now returns a string to allow the use of dumpers other than the CoNLL one
+* version number now centralized in a file
+
+## 0.3.4 - 20220205
+
+* Add meta parameter to API
+
 ## 0.3.3 - 20220205
 
 * Named entities features in output

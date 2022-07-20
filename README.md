@@ -1,10 +1,19 @@
 # LIMA python bindings
 
+## Introducing LIMA
+
+LIMA is a multilingual linguistic analyzer developed by the [CEA LIST](http://www-list.cea.fr/en), [LASTI laboratory](http://www.kalisteo.fr/en/index.htm) (French acronym for Text and Image Semantic Analysis Laboratory). LIMA is Free Software, available under the MIT license.
+
+LIMA has [state of the art performance for more than 60 languages](https://github.com/aymara/lima-models/blob/master/eval.md) thanks to its recent deep learning (neural network) based modules. But it includes also a very powerful rules based mechanism called ModEx allowing to quickly extract information (entities, relations, events…) in new domains where annotated data does not exist.
+
+For more information, detailed installation instructions and documentation, please refer to [the LIMA Wiki](https://github.com/aymara/lima/wiki).
+
 
 ## Installation
 
 LIMA python bindings are currently available for python 3.8 only. Install with:
 ```bash
+$ pip install --upgrade pip # IMPORTANT: LIMA needs a recent pip
 $ pip install aymara
 ```
 
@@ -35,7 +44,7 @@ $ lima_models.py -l eng
 ## Running
 
 
-```
+```python
 $ python
 Python 3.8.10 (default, Nov 26 2021, 20:14:08)
 [GCC 9.3.0] on linux
@@ -101,7 +110,7 @@ python setup.py install --cmake=/usr/bin/cmake --build-type=all
 ```bash
 docker build . -t lima-python:latest
 docker create -ti --name dummy lima-python:latest bash
-docker cp dummy:/lima-python/wheelhouse/aymara-0.3.3-cp38-cp38-manylinux_2_24_x86_64.whl .
+docker cp dummy:/lima-python/wheelhouse/aymara-0.3.4-cp38-cp38-manylinux_2_24_x86_64.whl .
 docker rm -f dummy
-scp aymara-0.3.3-cp38-cp38-manylinux_2_24_x86_64.whl gdechalendar@combava:/data/HTTP_FileServer/data/lima
+scp aymara-0.3.4-cp38-cp38-manylinux_2_24_x86_64.whl gdechalendar@combava:/data/HTTP_FileServer/data/lima
 ```

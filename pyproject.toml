@@ -1,15 +1,24 @@
+# Copyright 2019-2022 CEA LIST
+# SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+#
+# SPDX-License-Identifier: MIT
+
 [tool.poetry]
 name = "aymara"
-version = "0.3.3"
+version = "0.4.0"
 description = "Python bindings to the LIMA linguistic analyzer"
 authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 
 [tool.poetry.dependencies]
+pip = "^22.0"
+pydantic = "^1.8.2"
 python = "^3.8"
 pyconll = "^2.0"
 requests = "^2.22"
+shiboken2 = "^5.15.2"
 tqdm = "^4.56.0"
 unix-ar = "^0.2.1b"
+
 
 [tool.poetry.dev-dependencies]
 PySide2 = "^5.12"
