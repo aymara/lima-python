@@ -7,6 +7,7 @@ import os
 import sys
 
 from distutils.util import convert_path
+from skbuild import setup  # This line replaces 'from setuptools import setup'
 
 main_ns = {}
 ver_path = convert_path('aymara/version.py')
@@ -16,8 +17,16 @@ with open(ver_path) as ver_file:
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "3.8")
+PYTHON_SHORT_VERSION = os.environ.get("PYTHON_SHORT_VERSION", "cp38-cp38")
+# For python 3.7, it is 3.7.13
+# For python 3.8, it is 3.8.12
+PYTHON_FULL_VERSION = os.environ.get("PYTHON_FULL_VERSION", "3.8.12")
 
-from skbuild import setup  # This line replaces 'from setuptools import setup'
+include_dir = f"/opt/python/{PYTHON_SHORT_VERSION}/include/python{PYTHON_VERSION}"
+if PYTHON_VERSION == "3.6" or PYTHON_VERSION == "3.7":
+    include_dir = f"/opt/python/{PYTHON_SHORT_VERSION}/include/python{PYTHON_VERSION}m"
+library_dir = f"/opt/python/{PYTHON_SHORT_VERSION}/lib/python{PYTHON_VERSION}"
 
 
 def package_files(directory):
@@ -28,6 +37,9 @@ def package_files(directory):
     return paths
 
 
+print(f"PYTHON_VERSION: {PYTHON_VERSION}", file=sys.stderr)
+print(f"PYTHON_SHORT_VERSION: {PYTHON_SHORT_VERSION}", file=sys.stderr)
+print(f"PYTHON_FULL_VERSION: {PYTHON_FULL_VERSION}", file=sys.stderr)
 setup(
     name="aymara",
     version=main_ns['__version__'],
@@ -46,7 +58,7 @@ setup(
         "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
         "Operating System :: POSIX :: Linux",
     ],
-    python_requires=">=3.8",
+    python_requires=f">={PYTHON_VERSION}",
     packages=['aymara', 'aymaralima'],
     install_requires=[
         'pip>=22.0',
@@ -75,7 +87,7 @@ setup(
     setup_requires=['cmake', ],
     cmake_args=['-DCMAKE_BUILD_TYPE=Release',
                 '-DCMAKE_GENERATOR=Ninja',
-                "-DPython3_INCLUDE_DIR=/opt/python/cp38-cp38/include/python3.8",
-                '-DPython3_LIBRARY=/opt/python/cp38-cp38/lib/python3.8'],
+                f"-DPython3_INCLUDE_DIR={include_dir}",
+                f"-DPython3_LIBRARY={library_dir}"],
     scripts=['aymara/lima_models.py'],
 )

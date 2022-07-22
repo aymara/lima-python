@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.18)
 cmake_policy(VERSION 3.15)
 # Enable policy to not use RPATH settings for install_name on macOS.
 if(POLICY CMP0068)
@@ -14,6 +14,7 @@ cmake_policy(SET CMP0094 NEW)
 # Consider changing the project name to something relevant for you.
 project(LimaBinding)
 find_package(Python3 COMPONENTS Interpreter Development.Embed REQUIRED)
+#find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 message(STATUS "PYTHON_INCLUDE_DIR: ${PYTHON_INCLUDE_DIR}")
 #find_package(PythonExtensions REQUIRED)
 find_package(Qt5 REQUIRED Core)
@@ -72,7 +73,7 @@ set(Python3_FIND_VIRTUALENV ONLY)
 #find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 if(NOT python_interpreter)
-    find_program(python_interpreter "python3.8")
+    find_program(python_interpreter "python$ENV{PYTHON_VERSION}")
 endif()
 
 
@@ -146,14 +147,15 @@ lima-lp-automatoncompiler
 lima-lp-automaton
 lima-lp-bagofwords
 lima-lp-client
+lima-lp-compounds
 lima-lp-conllureader
 lima-lp-corefsolver
 lima-lp-dictionary
-lima-lp-easyxmldumper
 lima-lp-entitytracker
 lima-lp-eventanalyzer
 lima-lp-flattokenizer
 lima-lp-helpers
+lima-lp-langdetector
 lima-lp-lineartextrepresentation
 lima-lp-linguisticanalysisstructure
 lima-lp-linguisticdata
@@ -175,7 +177,6 @@ lima-lp-tensorflowlemmatizer
 lima-lp-tensorflowmorphosyntax
 lima-lp-tensorflowspecificentities
 lima-lp-tensorflowtokenizer
-lima-lp-test-annotationgraphs
 lima-lp-textsegmentation
 lima-lp-tgv
 lima-lp-wordsensetagger
@@ -255,14 +256,15 @@ lima-lp-automatoncompiler
 lima-lp-automaton
 lima-lp-bagofwords
 lima-lp-client
+lima-lp-compounds
 lima-lp-conllureader
 lima-lp-corefsolver
 lima-lp-dictionary
-lima-lp-easyxmldumper
 lima-lp-entitytracker
 lima-lp-eventanalyzer
 lima-lp-flattokenizer
 lima-lp-helpers
+lima-lp-langdetector
 lima-lp-lineartextrepresentation
 lima-lp-linguisticanalysisstructure
 lima-lp-linguisticdata
@@ -284,7 +286,6 @@ lima-lp-tensorflowlemmatizer
 lima-lp-tensorflowmorphosyntax
 lima-lp-tensorflowspecificentities
 lima-lp-tensorflowtokenizer
-lima-lp-test-annotationgraphs
 lima-lp-textsegmentation
 lima-lp-tgv
 lima-lp-wordsensetagger

@@ -56,7 +56,7 @@ class Lima:
         self.analyzer = aymaralima.lima.LimaAnalyzer(
             langs,
             pipes,
-            aymaralima.__path__[-1],
+            list(aymaralima.__path__)[-1],
             user_config_path,
             user_resources_path,
             ",".join([f"{k}:{v}" for k, v in meta.items()])
@@ -114,12 +114,12 @@ class Lima:
             dir = get_data_dir("lima")
         dir.mkdir(parents=True, exist_ok=True)
 
-        fromDirectory = pathlib.Path(aymaralima.__path__[-1]) / "config"
+        fromDirectory = pathlib.Path(list(aymaralima.__path__)[-1]) / "config"
         toDirectory = dir / "config"
         print(f"Copying {str(fromDirectory)} to {str(toDirectory)}")
         copy_tree(str(fromDirectory), str(toDirectory))
 
-        fromDirectory = pathlib.Path(aymaralima.__path__[-1]) / "resources"
+        fromDirectory = pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"
         toDirectory = dir / "resources"
         print(f"Copying {str(fromDirectory)} to {str(toDirectory)}")
         copy_tree(str(fromDirectory), str(toDirectory))
@@ -130,5 +130,5 @@ class Lima:
         """
         @return LIMA config and resources paths from the aymara module
         """
-        return (str(pathlib.Path(aymaralima.__path__[-1]) / "config"),
-                str(pathlib.Path(aymaralima.__path__[-1]) / "resources"))
+        return (str(pathlib.Path(list(aymaralima.__path__)[-1]) / "config"),
+                str(pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"))

@@ -13,4 +13,4 @@ set -o nounset
 
 LIMA_PYTHON_VERSION=$(python aymara/version.py)
 
-python3 -m twine upload aymara-${LIMA_PYTHON_VERSION}-cp38-cp38-manylinux_2_24_x86_64.whl
+python3 -m twine upload aymara-${LIMA_PYTHON_VERSION}-*-manylinux_2_24_x86_64.whl

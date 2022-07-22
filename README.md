@@ -11,7 +11,8 @@ For more information, detailed installation instructions and documentation, plea
 
 ## Installation
 
-LIMA python bindings are currently available for python 3.8 only. Install with:
+LIMA python bindings are currently available for python >= 3.7 and <= 3.9, under Linux. Install with:
+
 ```bash
 $ pip install --upgrade pip # IMPORTANT: LIMA needs a recent pip
 $ pip install aymara
@@ -52,7 +53,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import aymara.lima
 >>> l = aymara.lima.Lima("ud-eng")
 >>> r = l.analyzeText("The author wrote a novel.", lang="ud-eng")
->>> print(r.conll())
+>>> print(r)
 # sent_id = 1
 # text = The author wrote a novel.
 1       The     the     DET     _       Definite=Def|PronType=Art       2       det     _       Len=3|Pos=1
@@ -65,7 +66,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>>
 ```
 
-Note that some error messages could be displayed during the Lima object instantiation. If you get a valid object, you can ignore them. Most of them are debug messages that will be removed in a later version.
+Note that some error messages could be displayed during the Lima object instantiation. If you get a valid result, you can ignore them. Most of them are debug messages that will be removed in a later version.
 
 You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline. This is the same for `ud-fra` and `fre`. Note that legacy pipelines do not use the Universal Dependencies tagset, but a proprietary one.
 
@@ -90,27 +91,20 @@ More information: https://python-poetry.org/
 
 
 
-# PySide2 LIMA python bindings build instructions (in progress)
+# PySide2 LIMA python bindings build instructions
 
-First install pyside
+## Building the wheel
+Use docker using the `gbuild.sh` script, after selecting the correct version by editing `python_env.sh`.
+
 ```bash
-# Install PySide2 and shiboken2 from source as binary installs are broken
-# Done in /home/gael/Logiciels/
-sudo apt install qtbase5-private-dev qtdeclarative5-private-dev
-git clone https://code.qt.io/cgit/pyside/pyside-setup.git
-cd pyside-setup
-python setup.py install --cmake=/usr/bin/cmake --build-type=all
-# fail with rcc execution error
-cp /usr/bin/rcc /home/gael/Logiciels/pyside-setup/lima3_install/py3.8-qt5.15.3-64bit-release/bin/rcc
-python setup.py install --cmake=/usr/bin/cmake --build-type=all
+vi python_env.sh
+./gbuild.sh
 ```
 
-# Building and deploying the wheel
+## Deploying the wheel
+
+Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the `deploy.sh` script.
 
 ```bash
-docker build . -t lima-python:latest
-docker create -ti --name dummy lima-python:latest bash
-docker cp dummy:/lima-python/wheelhouse/aymara-0.3.4-cp38-cp38-manylinux_2_24_x86_64.whl .
-docker rm -f dummy
-scp aymara-0.3.4-cp38-cp38-manylinux_2_24_x86_64.whl gdechalendar@combava:/data/HTTP_FileServer/data/lima
+./deploy.sh
 ```

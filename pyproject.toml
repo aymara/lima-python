@@ -12,7 +12,7 @@ authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 [tool.poetry.dependencies]
 pip = "^22.0"
 pydantic = "^1.8.2"
-python = "^3.8"
+python = "^3.7"
 pyconll = "^2.0"
 requests = "^2.22"
 shiboken2 = "^5.15.2"
