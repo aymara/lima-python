@@ -3,7 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 ARG PYTHON_VERSION=3.8
-FROM aymara/lima-manylinux_2_24-python${PYTHON_VERSION}:latest
+ARG QT_VERSION=5.15
+FROM aymara/lima-manylinux_2_24-qt${QT_VERSION}-python${PYTHON_VERSION}:latest
 # FROM aymara/lima-manylinux_2_24:latest AS lima-python
 
 RUN echo "PYTHON_VERSION=${PYTHON_VERSION}"
@@ -47,17 +48,17 @@ ARG LIMA_PYTHON_VERSION
 COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp macros.h manageQt5.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
 RUN install -d /lima-python/aymara
 COPY aymara/* /lima-python/aymara
-ENV PATH=/opt/llvm/bin:$PATH
-RUN python${PYTHON_VERSION} setup.py bdist_wheel
-ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-build:$LD_LIBRARY_PATH
-RUN auditwheel repair /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
-WORKDIR /lima-python/wheelhouse
-RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
-RUN rm aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
-WORKDIR /lima-python/wheelhouse/aymaralima
-RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
-WORKDIR /lima-python/wheelhouse
-RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl -r *
-WORKDIR /lima-python
+# ENV PATH=/opt/llvm/bin:$PATH
+# RUN python${PYTHON_VERSION} setup.py bdist_wheel
+# ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-build:$LD_LIBRARY_PATH
+# RUN auditwheel repair /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+# WORKDIR /lima-python/wheelhouse
+# RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
+# RUN rm aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
+# WORKDIR /lima-python/wheelhouse/aymaralima
+# RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
+# WORKDIR /lima-python/wheelhouse
+# RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl -r *
+# WORKDIR /lima-python
 
 # WORKDIR /
