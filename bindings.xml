@@ -55,18 +55,17 @@
     <primitive-type name="int"/>
     <primitive-type name="bool"/>
     <primitive-type name="std::string"/>
+    <primitive-type name="std::vector"/>
 
-    <object-type name="LimaAnalyzer">
-        <!-- By default the ownership of an object created in Python is tied
-             to the Python name pointing to it. In order for the underlying
-             C++ object not to get deleted when the Python name goes out of
-             scope, we have to transfer ownership to C++.
-             -->
-<!--        <modify-function signature="analyzeText()">
-            <modify-argument index="0">
-                <define-ownership owner="c++"/>
-            </modify-argument>
-        </modify-function>-->
-    </object-type>
+    <object-type name="Lima::AnalysiContent">
+    </value-type>
+    <value-type name="LimaAnalyzer">
+    </value-type>
+    <value-type name="Doc">
+    </value-type>
+<!--    <value-type name="Span">
+    </value-type>-->
+    <value-type name="Token">
+    </value-type>
 
 </typesystem>
