@@ -108,3 +108,17 @@ Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the
 ```bash
 ./deploy.sh
 ```
+
+# Developper Notes
+To see the wheels accepted on current system:
+
+```
+>>> from packaging.tags import sys_tags
+>>> [str(t) for t in sys_tags()]
+```
+
+See: 
+  * https://cibuildwheel.readthedocs.io/en/stable/
+  * https://wiki.qt.io/Qt_for_Python
+  * https://www.qt.io/blog/2018/05/31/write-python-bindings
+

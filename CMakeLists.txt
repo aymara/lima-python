@@ -17,9 +17,9 @@ find_package(Python3 COMPONENTS Interpreter Development.Embed REQUIRED)
 #find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 message(STATUS "PYTHON_INCLUDE_DIR: ${PYTHON_INCLUDE_DIR}")
 #find_package(PythonExtensions REQUIRED)
-find_package(Qt5 REQUIRED Core)
+find_package(Qt6 REQUIRED Core)
 
-get_target_property(QtCore_location Qt5::Core LOCATION)
+get_target_property(QtCore_location Qt::Core LOCATION)
 get_filename_component(QtCore_libdir ${QtCore_location} DIRECTORY)
 
 set(CMAKE_AUTOMOC ON)
@@ -32,8 +32,8 @@ set(CMAKE_PREFIX_PATH
 )
 
 add_definitions(-D QT_NO_KEYWORDS)
-include(${CMAKE_SOURCE_DIR}/manageQt5.cmake)
-addQt5Modules(Core Xml Test Qml Quick QuickTest Gui Widgets XmlPatterns)
+include(${CMAKE_SOURCE_DIR}/manageQt.cmake)
+addQt6Modules(Core Xml Test Qml Quick QuickTest Gui Widgets XmlPatterns)
 
 find_package(LIMACOMMON REQUIRED)
 include_directories(BEFORE ${LIMACOMMON_INCLUDE_DIR})
@@ -78,9 +78,9 @@ endif()
 
 
 
-set(PYSIDE2_DIR ${Python3_SITELIB}/PySide2)
+set(PYSIDE6_DIR ${Python3_SITELIB}/PySide6)
 
-macro(pyside2_config option output_var)
+macro(pyside6_config option output_var)
     if(${ARGC} GREATER 2)
         set(is_list ${ARGV2})
     else()
@@ -88,34 +88,34 @@ macro(pyside2_config option output_var)
     endif()
 
     execute_process(
-      COMMAND ${python_interpreter} "${PYSIDE2_DIR}/examples/utils/pyside2_config.py"
+      COMMAND ${python_interpreter} "${PYSIDE6_DIR}/examples/utils/pyside6_config.py"
 		${option}
       OUTPUT_VARIABLE ${output_var}
       OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     if ("${${output_var}}" STREQUAL "")
-        message(FATAL_ERROR "Error: Calling pyside2_config.py ${option} returned no output.")
+        message(FATAL_ERROR "Error: Calling pyside6_config.py ${option} returned no output.")
     endif()
     if(is_list)
         string (REPLACE " " ";" ${output_var} "${${output_var}}")
     endif()
 endmacro()
 
-pyside2_config(--shiboken2-module-path shiboken2_module_path)
-pyside2_config(--shiboken2-generator-path shiboken2_generator_path)
-pyside2_config(--python-include-path python_include_dir)
-pyside2_config(--shiboken2-generator-include-path shiboken_include_dir 1)
-pyside2_config(--shiboken2-module-shared-libraries-cmake shiboken_shared_libraries 0)
-pyside2_config(--pyside2-shared-libraries-cmake pyside2_link 0)
+pyside6_config(--shiboken6-module-path shiboken6_module_path)
+pyside6_config(--shiboken6-generator-path shiboken6_generator_path)
+pyside6_config(--python-include-path python_include_dir)
+pyside6_config(--shiboken6-generator-include-path shiboken_include_dir 1)
+pyside6_config(--shiboken6-module-shared-libraries-cmake shiboken_shared_libraries 0)
+pyside6_config(--pyside6-shared-libraries-cmake pyside6_link 0)
 
-set(shiboken_path "${shiboken2_generator_path}/shiboken2${CMAKE_EXECUTABLE_SUFFIX}")
+set(shiboken_path "${shiboken6_generator_path}/shiboken6${CMAKE_EXECUTABLE_SUFFIX}")
 if(NOT EXISTS ${shiboken_path})
     message(FATAL_ERROR "Shiboken executable not found at path: ${shiboken_path}")
 endif()
 
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-set(CMAKE_INSTALL_RPATH ${shiboken2_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${QtCore_libdir})
+set(CMAKE_INSTALL_RPATH ${shiboken6_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${QtCore_libdir})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 set(${sample_library}_sources lima.cpp)
@@ -124,73 +124,73 @@ target_link_libraries(${sample_library}
   lima-lp-analysishandlers
   lima-lp-client
   lima-linguisticprocessing
-fasttext-lima
-lima-common-datahandler
-lima-common-data
-lima-common-factory
-lima-common-fsaaccess
-lima-common-mediaprocessors
-lima-common-mediaticdata
-lima-common-misc
-lima-common-processunitframework
-lima-common
-lima-common-time
-lima-common-tools
-lima-common-xmlconfigurationfiles
-lima-linguisticprocessing
-lima-lp-analysisdict
-lima-lp-analysisdumpers
-lima-lp-analysishandlers
-lima-lp-annotationgraph
-lima-lp-applyrecognizer
-lima-lp-automatoncompiler
-lima-lp-automaton
-lima-lp-bagofwords
-lima-lp-client
-lima-lp-compounds
-lima-lp-conllureader
-lima-lp-corefsolver
-lima-lp-dictionary
-lima-lp-entitytracker
-lima-lp-eventanalyzer
-lima-lp-flattokenizer
-lima-lp-helpers
-lima-lp-langdetector
-lima-lp-lineartextrepresentation
-lima-lp-linguisticanalysisstructure
-lima-lp-linguisticdata
-lima-lp-linguisticprocessing-core
-lima-lp-linguisticprocessors
-lima-lp-linguisticresources
-lima-lp-misc
-lima-lp-morphologicanalysis
-lima-lp-postagger
-lima-lp-propertycode
-lima-lp-regexmatcher
-lima-lp-se-datetime
-lima-lp-semanticanalysis
-lima-lp-se-number
-lima-lp-se-person
-lima-lp-specificentities
-lima-lp-syntacticanalysis
-lima-lp-tensorflowlemmatizer
-lima-lp-tensorflowmorphosyntax
-lima-lp-tensorflowspecificentities
-lima-lp-tensorflowtokenizer
-lima-lp-textsegmentation
-lima-lp-tgv
-lima-lp-wordsensetagger
-lima-xp-client
-lima-xp-core
-lima-xp-documentsreader
-lima-xp-qtsgmlentities
-tensorflow-for-lima
+    fasttext-lima
+    lima-common-datahandler
+    lima-common-data
+    lima-common-factory
+    lima-common-fsaaccess
+    lima-common-mediaprocessors
+    lima-common-mediaticdata
+    lima-common-misc
+    lima-common-processunitframework
+    lima-common
+    lima-common-time
+    lima-common-tools
+    lima-common-xmlconfigurationfiles
+    lima-linguisticprocessing
+    lima-lp-analysisdict
+    lima-lp-analysisdumpers
+    lima-lp-analysishandlers
+    lima-lp-annotationgraph
+    lima-lp-applyrecognizer
+    lima-lp-automatoncompiler
+    lima-lp-automaton
+    lima-lp-bagofwords
+    lima-lp-client
+    lima-lp-compounds
+    lima-lp-conllureader
+    lima-lp-corefsolver
+    lima-lp-dictionary
+    lima-lp-entitytracker
+    lima-lp-eventanalyzer
+    lima-lp-flattokenizer
+    lima-lp-helpers
+    lima-lp-langdetector
+    lima-lp-lineartextrepresentation
+    lima-lp-linguisticanalysisstructure
+    lima-lp-linguisticdata
+    lima-lp-linguisticprocessing-core
+    lima-lp-linguisticprocessors
+    lima-lp-linguisticresources
+    lima-lp-misc
+    lima-lp-morphologicanalysis
+    lima-lp-postagger
+    lima-lp-propertycode
+    lima-lp-regexmatcher
+    lima-lp-se-datetime
+    lima-lp-semanticanalysis
+    lima-lp-se-number
+    lima-lp-se-person
+    lima-lp-specificentities
+    lima-lp-syntacticanalysis
+    lima-lp-tensorflowlemmatizer
+    lima-lp-tensorflowmorphosyntax
+    lima-lp-tensorflowspecificentities
+    lima-lp-tensorflowtokenizer
+    lima-lp-textsegmentation
+    lima-lp-tgv
+    lima-lp-wordsensetagger
+    lima-xp-client
+    lima-xp-core
+    lima-xp-documentsreader
+    lima-xp-qtsgmlentities
+    tensorflow-for-lima
 
-Qt5::Core
+    Qt::Core
 )
 set_property(TARGET ${sample_library} PROPERTY PREFIX "")
 
-get_target_property(qtcore_lib_includes Qt5::Core INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(qtcore_lib_includes Qt::Core INTERFACE_INCLUDE_DIRECTORIES)
 list(JOIN qtcore_lib_includes ";-I" lib_includes)
 set(lib_includes "-I${lib_includes}")
 
@@ -204,7 +204,7 @@ set(shiboken_options --generator-set=shiboken --enable-parent-ctor-heuristic
     ${lib_includes}
     -I${CMAKE_SOURCE_DIR}
     -T${CMAKE_SOURCE_DIR}
-    -T${PYSIDE2_DIR}/typesystems/
+    -T${PYSIDE6_DIR}/typesystems/
     --output-directory=${CMAKE_CURRENT_BINARY_DIR}
     )
 
@@ -225,75 +225,75 @@ add_library(${bindings_library} MODULE ${${bindings_library}_sources})
 #python_extension_module(${bindings_library})
 
 target_include_directories(${bindings_library} PRIVATE ${python_include_dir})
-target_include_directories(${bindings_library} PRIVATE ${PYSIDE2_DIR}/include/)
-target_include_directories(${bindings_library} PRIVATE ${PYSIDE2_DIR}/include/QtCore)
+target_include_directories(${bindings_library} PRIVATE ${PYSIDE6_DIR}/include/)
+target_include_directories(${bindings_library} PRIVATE ${PYSIDE6_DIR}/include/QtCore)
 target_include_directories(${bindings_library} PRIVATE ${shiboken_include_dir})
 target_include_directories(${bindings_library} PRIVATE ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(${bindings_library} PRIVATE ${shiboken_shared_libraries})
 target_link_libraries(${bindings_library} PRIVATE ${sample_library})
-target_link_libraries(${bindings_library} PRIVATE ${pyside2_link})
+target_link_libraries(${bindings_library} PRIVATE ${pyside6_link})
 target_link_libraries(${bindings_library} PRIVATE fasttext-lima
-lima-common-datahandler
-lima-common-data
-lima-common-factory
-lima-common-fsaaccess
-lima-common-mediaprocessors
-lima-common-mediaticdata
-lima-common-misc
-lima-common-processunitframework
-lima-common
-lima-common-time
-lima-common-tools
-lima-common-xmlconfigurationfiles
-lima-linguisticprocessing
-lima-lp-analysisdict
-lima-lp-analysisdumpers
-lima-lp-analysishandlers
-lima-lp-annotationgraph
-lima-lp-applyrecognizer
-lima-lp-automatoncompiler
-lima-lp-automaton
-lima-lp-bagofwords
-lima-lp-client
-lima-lp-compounds
-lima-lp-conllureader
-lima-lp-corefsolver
-lima-lp-dictionary
-lima-lp-entitytracker
-lima-lp-eventanalyzer
-lima-lp-flattokenizer
-lima-lp-helpers
-lima-lp-langdetector
-lima-lp-lineartextrepresentation
-lima-lp-linguisticanalysisstructure
-lima-lp-linguisticdata
-lima-lp-linguisticprocessing-core
-lima-lp-linguisticprocessors
-lima-lp-linguisticresources
-lima-lp-misc
-lima-lp-morphologicanalysis
-lima-lp-postagger
-lima-lp-propertycode
-lima-lp-regexmatcher
-lima-lp-se-datetime
-lima-lp-semanticanalysis
-lima-lp-se-number
-lima-lp-se-person
-lima-lp-specificentities
-lima-lp-syntacticanalysis
-lima-lp-tensorflowlemmatizer
-lima-lp-tensorflowmorphosyntax
-lima-lp-tensorflowspecificentities
-lima-lp-tensorflowtokenizer
-lima-lp-textsegmentation
-lima-lp-tgv
-lima-lp-wordsensetagger
-lima-xp-client
-lima-xp-core
-lima-xp-documentsreader
-lima-xp-qtsgmlentities
-tensorflow-for-lima
+    lima-common-datahandler
+    lima-common-data
+    lima-common-factory
+    lima-common-fsaaccess
+    lima-common-mediaprocessors
+    lima-common-mediaticdata
+    lima-common-misc
+    lima-common-processunitframework
+    lima-common
+    lima-common-time
+    lima-common-tools
+    lima-common-xmlconfigurationfiles
+    lima-linguisticprocessing
+    lima-lp-analysisdict
+    lima-lp-analysisdumpers
+    lima-lp-analysishandlers
+    lima-lp-annotationgraph
+    lima-lp-applyrecognizer
+    lima-lp-automatoncompiler
+    lima-lp-automaton
+    lima-lp-bagofwords
+    lima-lp-client
+    lima-lp-compounds
+    lima-lp-conllureader
+    lima-lp-corefsolver
+    lima-lp-dictionary
+    lima-lp-entitytracker
+    lima-lp-eventanalyzer
+    lima-lp-flattokenizer
+    lima-lp-helpers
+    lima-lp-langdetector
+    lima-lp-lineartextrepresentation
+    lima-lp-linguisticanalysisstructure
+    lima-lp-linguisticdata
+    lima-lp-linguisticprocessing-core
+    lima-lp-linguisticprocessors
+    lima-lp-linguisticresources
+    lima-lp-misc
+    lima-lp-morphologicanalysis
+    lima-lp-postagger
+    lima-lp-propertycode
+    lima-lp-regexmatcher
+    lima-lp-se-datetime
+    lima-lp-semanticanalysis
+    lima-lp-se-number
+    lima-lp-se-person
+    lima-lp-specificentities
+    lima-lp-syntacticanalysis
+    lima-lp-tensorflowlemmatizer
+    lima-lp-tensorflowmorphosyntax
+    lima-lp-tensorflowspecificentities
+    lima-lp-tensorflowtokenizer
+    lima-lp-textsegmentation
+    lima-lp-tgv
+    lima-lp-wordsensetagger
+    lima-xp-client
+    lima-xp-core
+    lima-xp-documentsreader
+    lima-xp-qtsgmlentities
+    tensorflow-for-lima
 )
 
 set_property(TARGET ${bindings_library} PROPERTY PREFIX "")

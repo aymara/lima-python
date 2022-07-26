@@ -12,16 +12,16 @@ authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 [tool.poetry.dependencies]
 pip = "^22.0"
 pydantic = "^1.8.2"
-python = "^3.7"
+python = ">=3.7,<4"
 pyconll = "^2.0"
 requests = "^2.22"
-shiboken2 = "^5.15.2"
+shiboken6 = "^6.3"
 tqdm = "^4.56.0"
 unix-ar = "^0.2.1b"
 
 
 [tool.poetry.dev-dependencies]
-PySide2 = "^5.12"
+PySide6 = "^6.3"
 pytest = "^3.0"
 
 [tool.isort]
