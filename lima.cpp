@@ -131,6 +131,10 @@ public:
                                 const std::string& lang,
                                 const std::string& pipeline,
                                 const std::string& meta);
+  std::shared_ptr<Lima::AnalysisContent> operator()(const std::string& text,
+                                                    const std::string& lang="eng",
+                                                    const std::string& pipeline="main",
+                                                    const std::string& meta="") const;
 
   Doc operator()(const std::string& text,
                  const std::string& lang="eng",
