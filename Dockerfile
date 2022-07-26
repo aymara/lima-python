@@ -2,8 +2,8 @@
 # SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
 #
 # SPDX-License-Identifier: MIT
-ARG QT_VERSION=5.12
 ARG PYTHON_VERSION=3.8
+ARG QT_VERSION=5.15
 FROM aymara/lima-manylinux_2_24-qt${QT_VERSION}-python${PYTHON_VERSION}:latest
 # FROM aymara/lima-manylinux_2_24:latest AS lima-python
 

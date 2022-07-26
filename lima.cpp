@@ -54,20 +54,21 @@
 ****************************************************************************/
 
 #include "lima.h"
+#include "common/AbstractFactoryPattern/AmosePluginsManager.h"
 #include "common/LimaCommon.h"
 #include "common/LimaVersion.h"
-#include "common/tools/LimaMainTaskRunner.h"
+#include "common/Data/strwstrtools.h"
 #include "common/MediaticData/mediaticData.h"
 #include "common/MediaProcessors/MediaProcessUnit.h"
-#include "common/XMLConfigurationFiles/xmlConfigurationFileParser.h"
-#include "common/Data/strwstrtools.h"
-#include "common/time/traceUtils.h"
-#include "common/tools/FileUtils.h"
+#include "common/ProcessUnitFramework/AnalysisContent.h"
 #include "common/QsLog/QsLog.h"
 #include "common/QsLog/QsLogDest.h"
 #include "common/QsLog/QsLogCategories.h"
 #include "common/QsLog/QsDebugOutput.h"
-#include "common/AbstractFactoryPattern/AmosePluginsManager.h"
+#include "common/XMLConfigurationFiles/xmlConfigurationFileParser.h"
+#include "common/time/traceUtils.h"
+#include "common/tools/FileUtils.h"
+#include "common/tools/LimaMainTaskRunner.h"
 
 #include "linguisticProcessing/common/linguisticData/languageData.h"
 #include "linguisticProcessing/client/LinguisticProcessingClientFactory.h"
@@ -79,11 +80,15 @@
 #include "linguisticProcessing/core/LinguisticResources/AbstractResource.h"
 #include "linguisticProcessing/core/LinguisticResources/LinguisticResources.h"
 
-#include <string>
-#include <vector>
+#include <deque>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <fstream>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QString>
@@ -125,6 +130,10 @@ public:
                                 const std::string& lang,
                                 const std::string& pipeline,
                                 const std::string& meta);
+  std::shared_ptr<Lima::AnalysisContent> operator()(const std::string& text,
+                                                    const std::string& lang="eng",
+                                                    const std::string& pipeline="main",
+                                                    const std::string& meta="") const;
 
   std::shared_ptr< AbstractLinguisticProcessingClient > m_client;
   std::map<std::string,std::string> metaData;
@@ -364,15 +373,30 @@ LimaAnalyzer LimaAnalyzer::operator=(const LimaAnalyzer&_a)
   return *this;
 }
 
-LimaAnalyzer *LimaAnalyzer::clone()
-{
-    return new LimaAnalyzer(*this);
-}
+// LimaAnalyzer *LimaAnalyzer::clone()
+// {
+//     return new LimaAnalyzer(*this);
+// }
 
-const std::string LimaAnalyzer::analyzeText(const std::string& text,
+std::shared_ptr<Lima::AnalysisContent> LimaAnalyzer::operator()(const std::string& text,
                                     const std::string& lang,
                                     const std::string& pipeline,
-                                    const std::string& meta)
+                                    const std::string& meta) const
+{
+//   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
+  try {
+  return (*m_d)(text, lang, pipeline, meta);
+  }
+  catch (const Lima::LinguisticProcessing::LinguisticProcessingException& e) {
+    std::cerr << "LIMA internal error: " << e.what() << std::endl;
+    return std::make_shared<Lima::AnalysisContent>();
+  }
+}
+
+std::string LimaAnalyzer::analyzeText(const std::string& text,
+                                    const std::string& lang,
+                                    const std::string& pipeline,
+                                    const std::string& meta) const
 {
 //   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
   try {
@@ -382,6 +406,72 @@ const std::string LimaAnalyzer::analyzeText(const std::string& text,
     std::cerr << "LIMA internal error: " << e.what() << std::endl;
   }
   return "";
+}
+
+std::shared_ptr<Lima::AnalysisContent> LimaAnalyzerPrivate::operator()(
+    const std::string& text,
+    const std::string& lang,
+    const std::string& pipeline,
+    const std::string& meta) const
+{
+//   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
+//     ("output,o",
+//    po::value< std::vector<std::string> >(&outputsv),
+//    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")
+  std::vector<std::string> outputsv;
+  QMap< QString, QString > outputs;
+  for(std::vector<std::string>::const_iterator outputsIt = outputsv.begin();
+      outputsIt != outputsv.end(); outputsIt++)
+  {
+    QStringList output = QString::fromUtf8((*outputsIt).c_str()).split(":");
+    if (output.size()==2)
+    {
+      outputs[output[0]] = output[1];
+    }
+    else
+    {
+      // Option syntax  error
+      std::cerr << "syntax error in output setting:" << *outputsIt << std::endl;
+    }
+  }
+
+
+//   auto bowofs  = openHandlerOutputString(bowTextWriter, os, dumpers, "bow");
+  auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
+//   *txtofs << "hello";
+//   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
+
+  auto localMetaData = metaData;
+  localMetaData["FileName"]="param";
+  auto qmeta = QString::fromStdString(meta).split(",");
+  for (const auto& m: qmeta)
+  {
+    auto kv = m.split(":");
+    if (kv.size() == 2)
+      localMetaData[kv[0].toStdString()] = kv[1].toStdString();
+  }
+
+  localMetaData["Lang"]=lang;
+
+  QString contentText = QString::fromUtf8(text.c_str());
+  if (contentText.isEmpty())
+  {
+    std::cerr << "Empty input ! " << std::endl;
+  }
+  else
+  {
+    // analyze it
+//       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
+    try
+    {
+      return m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
+    }
+    catch (const Lima::LimaException& e)
+    {
+      std::cerr << "Lima internal error: " << e.what() << std::endl;
+      return std::make_shared<AnalysisContent>();
+    }
+  }
 }
 
 const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
