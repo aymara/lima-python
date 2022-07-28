@@ -57,15 +57,16 @@
     <primitive-type name="std::string"/>
     <primitive-type name="std::vector"/>
 
-    <object-type name="Lima::AnalysiContent">
-    </value-type>
+<!--    <namespace-type name="Lima">
+        <object-type name="AnalysiContent">
+        </object-type>
+    </namespace-type>-->
     <value-type name="LimaAnalyzer">
     </value-type>
-    <value-type name="Doc">
-    </value-type>
+<!--    <value-type name="Doc">
+    </value-type>-->
 <!--    <value-type name="Span">
     </value-type>-->
-    <value-type name="Token">
-    </value-type>
-
+<!--    <value-type name="Token">
+    </value-type>-->
 </typesystem>
