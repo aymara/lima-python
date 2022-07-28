@@ -1,3 +1,7 @@
+## 0.4.1 - 20220728
+
+* abi3-based wheel usable on all python >= 3.7, < 4
+
 ## 0.4.0 - 20220720
 
 * Switch to MIT license

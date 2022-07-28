@@ -11,7 +11,7 @@ For more information, detailed installation instructions and documentation, plea
 
 ## Installation
 
-LIMA python bindings are currently available for python >= 3.7 and <= 3.9, under Linux. Install with:
+LIMA python bindings are currently available for python >= 3.7 and < 4, under Linux. Install with:
 
 ```bash
 $ pip install --upgrade pip # IMPORTANT: LIMA needs a recent pip
@@ -75,30 +75,14 @@ You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline
 To configure finely LIMA for your needs, follow the same instructions as for the native C++ tools, available here: [[https://github.com/aymara/lima/wiki/LIMA-User-Manual]].
 
 
-
-# LIMA poetry package build instructions
-
-Build, install and deploy this Pypi package using poetry
-
-```bash
-$ pip install poetry
-$ poetry build
-$ poetry install
-$ poetry publish
-```
-
-More information: https://python-poetry.org/
-
-
-
-# PySide2 LIMA python bindings build instructions
+# PySide LIMA python bindings build and deploy instructions
 
 ## Building the wheel
-Use docker using the `gbuild.sh` script, after selecting the correct version by editing `python_env.sh`.
+
+Use docker using the `gbuild-manylinux_2_28.sh` script:
 
 ```bash
-vi python_env.sh
-./gbuild.sh
+./gbuild-manylinux_2_28.sh.sh
 ```
 
 ## Deploying the wheel
@@ -106,5 +90,5 @@ vi python_env.sh
 Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the `deploy.sh` script.
 
 ```bash
-./deploy.sh
+./deploy-manylinux_2_28.sh
 ```
