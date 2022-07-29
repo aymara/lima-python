@@ -5,7 +5,6 @@
 ARG PYTHON_VERSION=3.8
 ARG QT_VERSION=5.15
 FROM aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}:latest
-# as aymara_lima-manylinux_2_28-qt-python
 
 # FROM quay.io/pypa/manylinux_2_28_x86_64
 
@@ -19,43 +18,42 @@ ARG PYTHON_WHEEL_VERSION="cp38-abi3"
 ARG PYTHON_FULL_VERSION="3.8.12"
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN yum install -y wget gcc-toolset-10.x86_64 ninja-build libicu-devel.x86_64  "qt5-*.x86_64" qt5-devel.noarch \
-    clang.x86_64 python3-clang.x86_64 llvm-devel.x86_64 clang-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 \
+RUN yum install -y wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3-clang.x86_64 \
+    llvm-devel.x86_64 clang-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 \
     python3-sphinx.noarch
-RUN ln -s /usr/bin/uic-qt5 /usr/bin/uic && \
-    ln -s /usr/bin/rcc-qt5 /usr/bin/rcc && \
-    ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
+RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
 RUN python${PYTHON_VERSION} -m pip install scikit-build
-ENV PATH="/opt/_internal/cpython-${PYTHON_FULL_VERSION}/bin:/opt/python/${PYTHON_SHORT_VERSION}/bin:${PATH}"
+RUN python${PYTHON_VERSION} -m pip install \
+    --index-url=http://download.qt.io/official_releases/QtForPython/ \
+    --trusted-host download.qt.io \
+    shiboken6 pyside6 shiboken6_generator
 
-ENV NLTK_PTB_DP_FILE=/nltk_data/corpora/dependency_treebank/nltk-ptb.dp \
-    LIMA_DISABLE_FSW_TESTING=true \
-    LIMA_DISABLE_CPACK_DEBIAN_PACKAGE_SHLIBDEPS=true \
+
+ENV PATH=/opt/_internal/cpython-${PYTHON_FULL_VERSION}/bin:/opt/python/${PYTHON_SHORT_VERSION}/bin:/opt/qt6/bin:/opt/llvm/bin:/opt/lima/bin:${PATH} \
     LIMA_DIST=/opt/lima \
     LIMA_CONF=/opt/lima/share/config/lima \
     LIMA_RESOURCES=/opt/lima/share/apps/lima/resources \
-    PATH=/opt/llvm/bin:/opt/lima/bin:${PATH} \
-    LD_LIBRARY_PATH=/opt/lima/lib:/opt/lima/lib64:${LD_LIBRARY_PATH} \
+    LD_LIBRARY_PATH=/opt/qt6/lib:/usr/lib:/opt/lima/lib:/opt/lima/lib64:${LD_LIBRARY_PATH} \
     PYTHON_VERSION=$PYTHON_VERSION \
     PYTHON_SHORT_VERSION=$PYTHON_SHORT_VERSION \
     PYTHON_FULL_VERSION=$PYTHON_FULL_VERSION \
     PYTHON_WHEEL_VERSION=$PYTHON_WHEEL_VERSION \
-    LIMA_PYTHON_VERSION=$LIMA_PYTHON_VERSION
+    LIMA_PYTHON_VERSION=$LIMA_PYTHON_VERSION \
+    CLANG_INSTALL_DIR=/usr/lib \
+    Qt_INSTALL_DIR=/opt/qt6
 
 # Build LIMA wheel
-RUN install -d /lima-python/scripts
+RUN install -d /lima-python/scripts /lima-python/clib/lib /lima-python/aymaralima \
+                /lima-python/aymaralima/config /lima-python/aymara
 COPY scripts/linuxdeploy.py /lima-python/scripts
 WORKDIR /lima-python
-RUN install -d clib/lib
-RUN install -d /lima-python/aymaralima
 RUN cp -R /opt/lima/share/apps/lima/resources /lima-python/aymaralima
-RUN install -d /lima-python/aymaralima/config
 RUN cp -R /opt/lima/share/config/lima/* /lima-python/aymaralima/config
+
 RUN python${PYTHON_VERSION} /lima-python/scripts/linuxdeploy.py /opt/lima/lib/liblima*.so -d clib -o clib/libs.json
 RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
-COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp macros.h manageQt5.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
-RUN install -d /lima-python/aymara
+COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
 COPY aymara/* /lima-python/aymara
 
 RUN python${PYTHON_VERSION} setup.py bdist_wheel

@@ -92,7 +92,6 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QString>
-#include <QtCore/QStringRef>
 
 #include <QtCore>
 
