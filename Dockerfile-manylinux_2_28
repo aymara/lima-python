@@ -54,7 +54,9 @@ RUN install -d /lima-python/aymaralima/config
 RUN cp -R /opt/lima/share/config/lima/* /lima-python/aymaralima/config
 RUN python${PYTHON_VERSION} /lima-python/scripts/linuxdeploy.py /opt/lima/lib/liblima*.so -d clib -o clib/libs.json
 RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
-COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp macros.h manageQt5.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
+COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp \
+     Doc.h Doc.cpp Token.h Token.cpp macros.h manageQt5.cmake MANIFEST.in python_env.sh README.md setup.py \
+     /lima-python/
 RUN install -d /lima-python/aymara
 COPY aymara/* /lima-python/aymara
 

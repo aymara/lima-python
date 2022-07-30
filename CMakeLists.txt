@@ -118,75 +118,75 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH ${shiboken2_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${QtCore_libdir})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set(${sample_library}_sources lima.cpp)
+set(${sample_library}_sources lima.cpp Doc.cpp Token.cpp)
 add_library(${sample_library} SHARED ${${sample_library}_sources})
 target_link_libraries(${sample_library}
-  lima-lp-analysishandlers
-  lima-lp-client
-  lima-linguisticprocessing
-fasttext-lima
-lima-common-datahandler
-lima-common-data
-lima-common-factory
-lima-common-fsaaccess
-lima-common-mediaprocessors
-lima-common-mediaticdata
-lima-common-misc
-lima-common-processunitframework
-lima-common
-lima-common-time
-lima-common-tools
-lima-common-xmlconfigurationfiles
-lima-linguisticprocessing
-lima-lp-analysisdict
-lima-lp-analysisdumpers
-lima-lp-analysishandlers
-lima-lp-annotationgraph
-lima-lp-applyrecognizer
-lima-lp-automatoncompiler
-lima-lp-automaton
-lima-lp-bagofwords
-lima-lp-client
-lima-lp-compounds
-lima-lp-conllureader
-lima-lp-corefsolver
-lima-lp-dictionary
-lima-lp-entitytracker
-lima-lp-eventanalyzer
-lima-lp-flattokenizer
-lima-lp-helpers
-lima-lp-langdetector
-lima-lp-lineartextrepresentation
-lima-lp-linguisticanalysisstructure
-lima-lp-linguisticdata
-lima-lp-linguisticprocessing-core
-lima-lp-linguisticprocessors
-lima-lp-linguisticresources
-lima-lp-misc
-lima-lp-morphologicanalysis
-lima-lp-postagger
-lima-lp-propertycode
-lima-lp-regexmatcher
-lima-lp-se-datetime
-lima-lp-semanticanalysis
-lima-lp-se-number
-lima-lp-se-person
-lima-lp-specificentities
-lima-lp-syntacticanalysis
-lima-lp-tensorflowlemmatizer
-lima-lp-tensorflowmorphosyntax
-lima-lp-tensorflowspecificentities
-lima-lp-tensorflowtokenizer
-lima-lp-textsegmentation
-lima-lp-tgv
-lima-lp-wordsensetagger
-lima-xp-client
-lima-xp-core
-lima-xp-documentsreader
-lima-xp-qtsgmlentities
-tensorflow-for-lima
+    lima-lp-analysishandlers
+    lima-lp-client
+    lima-linguisticprocessing
+    fasttext-lima
+    lima-common-datahandler
+    lima-common-data
+    lima-common-factory
+    lima-common-fsaaccess
+    lima-common-mediaprocessors
+    lima-common-mediaticdata
+    lima-common-misc
+    lima-common-processunitframework
+    lima-common
+    lima-common-time
+    lima-common-tools
+    lima-common-xmlconfigurationfiles
+    lima-linguisticprocessing
+    lima-lp-analysisdict
+    lima-lp-analysisdumpers
+    lima-lp-analysishandlers
+    lima-lp-annotationgraph
+    lima-lp-applyrecognizer
+    lima-lp-automatoncompiler
+    lima-lp-automaton
+    lima-lp-bagofwords
+    lima-lp-client
+    lima-lp-compounds
+    lima-lp-conllureader
+    lima-lp-corefsolver
+    lima-lp-dictionary
+    lima-lp-entitytracker
+    lima-lp-eventanalyzer
+    lima-lp-flattokenizer
+    lima-lp-helpers
+    lima-lp-langdetector
+    lima-lp-lineartextrepresentation
+    lima-lp-linguisticanalysisstructure
+    lima-lp-linguisticdata
+    lima-lp-linguisticprocessing-core
+    lima-lp-linguisticprocessors
+    lima-lp-linguisticresources
+    lima-lp-misc
+    lima-lp-morphologicanalysis
+    lima-lp-postagger
+    lima-lp-propertycode
+    lima-lp-regexmatcher
+    lima-lp-se-datetime
+    lima-lp-semanticanalysis
+    lima-lp-se-number
+    lima-lp-se-person
+    lima-lp-specificentities
+    lima-lp-syntacticanalysis
+    lima-lp-tensorflowlemmatizer
+    lima-lp-tensorflowmorphosyntax
+    lima-lp-tensorflowspecificentities
+    lima-lp-tensorflowtokenizer
+    lima-lp-textsegmentation
+    lima-lp-tgv
+    lima-lp-wordsensetagger
+    lima-xp-client
+    lima-xp-core
+    lima-xp-documentsreader
+    lima-xp-qtsgmlentities
+    tensorflow-for-lima
 
-Qt5::Core
+    Qt5::Core
 )
 set_property(TARGET ${sample_library} PROPERTY PREFIX "")
 

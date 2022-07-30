@@ -53,44 +53,50 @@
 **
 ****************************************************************************/
 
-#ifndef LIMAANALYZER_H
-#define LIMAANALYZER_H
+#ifndef TOKEN_H
+#define TOKEN_H
 
 #include "macros.h"
-#include "Doc.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-class LimaAnalyzerPrivate;
-class BINDINGS_API LimaAnalyzer
-{
-  friend class LimaAnalyzerPrivate;
-public:
-  LimaAnalyzer(const std::string& langs,
-               const std::string& pipelines,
-               const std::string& modulePath,
-               const std::string& user_config_path="",
-               const std::string& user_resources_path="",
-               const std::string& meta="");
+// class Doc;
 
-  virtual ~LimaAnalyzer();
-  LimaAnalyzer(const LimaAnalyzer&_a);
-  LimaAnalyzer operator=(const LimaAnalyzer&_a);
-//   virtual LimaAnalyzer *clone();
-  std::string analyzeText(const std::string& text,
-                          const std::string& lang="eng",
-                          const std::string& pipeline="main",
-                          const std::string& meta="") const;
-  Doc functor(
-    const std::string& text,
-                 const std::string& lang="eng",
-                 const std::string& pipeline="main",
-                 const std::string& meta="") const;
+class TokenPrivate;
+class BINDINGS_API Token
+{
+  friend class TokenPrivate;
+public:
+  Token();
+  Token(int len,
+        const std::string& text,
+        const std::string& lemma,
+        int i,
+        int pos,
+        const std::string& tag,
+        const std::string& dep);
+  ~Token();
+  Token(const Token& a);
+  Token& operator=(const Token& a);
+//   virtual Token* clone();
+  int len();
+  std::string text();
+//   std::vector<Token> children();
+//   Doc& doc();
+//   Token head();
+  int i();
+  std::string lemma();
+  int pos();
+  std::string tag();
+  std::string dep();
+
 
 private:
-  LimaAnalyzerPrivate* m_d;
+  TokenPrivate* m_d;
 };
 
-#endif // LIMAANALYZER_H
+
+
+#endif // TOKEN_H

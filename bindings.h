@@ -57,5 +57,7 @@
 #define BINDINGS_H
 
 #include "lima.h"
+#include "Doc.h"
+#include "Token.h"
 
 #endif // BINDINGS_H

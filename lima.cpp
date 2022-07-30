@@ -54,6 +54,8 @@
 ****************************************************************************/
 
 #include "lima.h"
+// #include "Doc.h"
+#include "Token.h"
 #include "common/AbstractFactoryPattern/AmosePluginsManager.h"
 #include "common/LimaCommon.h"
 #include "common/LimaVersion.h"
@@ -131,10 +133,10 @@ public:
                                 const std::string& pipeline,
                                 const std::string& meta);
 
-//   std::shared_ptr<Lima::AnalysisContent> operator()(const std::string& text,
-//                                                     const std::string& lang="eng",
-//                                                     const std::string& pipeline="main",
-//                                                     const std::string& meta="") const;
+  Doc operator()(const std::string& text,
+                 const std::string& lang="eng",
+                 const std::string& pipeline="main",
+                 const std::string& meta="") const;
 
   std::shared_ptr< AbstractLinguisticProcessingClient > m_client;
   std::map<std::string,std::string> metaData;
@@ -379,20 +381,21 @@ LimaAnalyzer LimaAnalyzer::operator=(const LimaAnalyzer&_a)
 //     return new LimaAnalyzer(*this);
 // }
 
-// std::shared_ptr<Lima::AnalysisContent> LimaAnalyzer::operator()(const std::string& text,
-//                                     const std::string& lang,
-//                                     const std::string& pipeline,
-//                                     const std::string& meta) const
-// {
-// //   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
-//   try {
-//   return (*m_d)(text, lang, pipeline, meta);
-//   }
-//   catch (const Lima::LinguisticProcessing::LinguisticProcessingException& e) {
-//     std::cerr << "LIMA internal error: " << e.what() << std::endl;
-//     return std::make_shared<Lima::AnalysisContent>();
-//   }
-// }
+Doc LimaAnalyzer::functor(const std::string& text,
+                                     const std::string& lang,
+                                     const std::string& pipeline,
+                                     const std::string& meta) const
+{
+  try
+  {
+    return (*m_d)(text, lang, pipeline, meta);
+  }
+  catch (const Lima::LinguisticProcessing::LinguisticProcessingException& e)
+  {
+    std::cerr << "LIMA internal error: " << e.what() << std::endl;
+    return Doc();
+  }
+}
 
 std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& lang,
@@ -409,72 +412,74 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
   return "";
 }
 
-// std::shared_ptr<Lima::AnalysisContent> LimaAnalyzerPrivate::operator()(
-//     const std::string& text,
-//     const std::string& lang,
-//     const std::string& pipeline,
-//     const std::string& meta) const
-// {
-// //   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
-// //     ("output,o",
-// //    po::value< std::vector<std::string> >(&outputsv),
-// //    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")
-//   std::vector<std::string> outputsv;
-//   QMap< QString, QString > outputs;
-//   for(std::vector<std::string>::const_iterator outputsIt = outputsv.begin();
-//       outputsIt != outputsv.end(); outputsIt++)
-//   {
-//     QStringList output = QString::fromUtf8((*outputsIt).c_str()).split(":");
-//     if (output.size()==2)
-//     {
-//       outputs[output[0]] = output[1];
-//     }
-//     else
-//     {
-//       // Option syntax  error
-//       std::cerr << "syntax error in output setting:" << *outputsIt << std::endl;
-//     }
-//   }
-//
-//
-// //   auto bowofs  = openHandlerOutputString(bowTextWriter, os, dumpers, "bow");
-//   auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
-// //   *txtofs << "hello";
-// //   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
-//
-//   auto localMetaData = metaData;
-//   localMetaData["FileName"]="param";
-//   auto qmeta = QString::fromStdString(meta).split(",");
-//   for (const auto& m: qmeta)
-//   {
-//     auto kv = m.split(":");
-//     if (kv.size() == 2)
-//       localMetaData[kv[0].toStdString()] = kv[1].toStdString();
-//   }
-//
-//   localMetaData["Lang"]=lang;
-//
-//   QString contentText = QString::fromUtf8(text.c_str());
-//   if (contentText.isEmpty())
-//   {
-//     std::cerr << "Empty input ! " << std::endl;
-//     return std::make_shared<AnalysisContent>();
-//   }
-//   else
-//   {
-//     // analyze it
-// //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-//     try
-//     {
-//       return m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
-//     }
-//     catch (const Lima::LimaException& e)
-//     {
-//       std::cerr << "Lima internal error: " << e.what() << std::endl;
-//       return std::make_shared<AnalysisContent>();
-//     }
-//   }
-// }
+Doc LimaAnalyzerPrivate::operator()(
+    const std::string& text,
+    const std::string& lang,
+    const std::string& pipeline,
+    const std::string& meta) const
+{
+  Doc document;
+//   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
+//     ("output,o",
+//    po::value< std::vector<std::string> >(&outputsv),
+//    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")
+  std::vector<std::string> outputsv;
+  QMap< QString, QString > outputs;
+  for(std::vector<std::string>::const_iterator outputsIt = outputsv.begin();
+      outputsIt != outputsv.end(); outputsIt++)
+  {
+    QStringList output = QString::fromUtf8((*outputsIt).c_str()).split(":");
+    if (output.size()==2)
+    {
+      outputs[output[0]] = output[1];
+    }
+    else
+    {
+      // Option syntax  error
+      std::cerr << "syntax error in output setting:" << *outputsIt << std::endl;
+    }
+  }
+
+
+//   auto bowofs  = openHandlerOutputString(bowTextWriter, os, dumpers, "bow");
+  auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
+//   *txtofs << "hello";
+//   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
+
+  auto localMetaData = metaData;
+  localMetaData["FileName"]="param";
+  auto qmeta = QString::fromStdString(meta).split(",");
+  for (const auto& m: qmeta)
+  {
+    auto kv = m.split(":");
+    if (kv.size() == 2)
+      localMetaData[kv[0].toStdString()] = kv[1].toStdString();
+  }
+
+  localMetaData["Lang"]=lang;
+
+  QString contentText = QString::fromUtf8(text.c_str());
+  if (contentText.isEmpty())
+  {
+    std::cerr << "Empty input ! " << std::endl;
+    return Doc();
+  }
+  else
+  {
+    // analyze it
+//       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
+    try
+    {
+      return Doc(m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits));
+    }
+    catch (const Lima::LimaException& e)
+    {
+      std::cerr << "Lima internal error: " << e.what() << std::endl;
+      return Doc();
+    }
+  }
+  return document;
+}
 
 const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                                     const std::string& lang,

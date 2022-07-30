@@ -64,9 +64,37 @@ class Lima:
         self.langs = langs
         self.pipes = pipes
 
-    def __call__(self, text: str, *args, **kwargs) -> pyconll.unit.conll.Conll:
-        analyze = self.analyzeText(text=text, *args, **kwargs)
-        return pyconll.load.load_from_string(analyze)
+    def __call__(self,
+                 text: str,
+                 lang: str = None,
+                 pipeline: str = None,
+                 meta: Dict[str, str] = {}) -> aymaralima.lima.Doc:
+        if lang is None:
+            lang = self.langs.split(",")[0] if self.langs else "eng"
+        if pipeline is None:
+            pipeline = self.pipes.split(",")[0] if self.pipes else "main"
+        if not isinstance(text, str):
+            raise TypeError(f"Lima.analyzeText text parameter must be str, "
+                            f"not {type(text)}")
+        if not isinstance(lang, str):
+            raise TypeError(f"Lima.analyzeText lang parameter must be str, "
+                            f"not {type(lang)}")
+        if not isinstance(pipeline, str):
+            raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
+                            f"not {type(pipeline)}")
+        try:
+            parse_obj_as(Dict[str, str], meta)
+        except ValidationError as e:
+            raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
+                            f"not {type(meta)}")
+        if pipeline is None:
+            if lang.startswith("ud-"):
+                pipeline = "deepud"
+            else:
+                pipeline = "main"
+        return self.analyzer.functor(
+            text, lang=lang, pipeline=pipeline,
+            meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
 
     def analyzeText(self,
                     text: str,

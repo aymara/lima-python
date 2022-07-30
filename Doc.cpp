@@ -53,44 +53,105 @@
 **
 ****************************************************************************/
 
-#ifndef LIMAANALYZER_H
-#define LIMAANALYZER_H
-
-#include "macros.h"
 #include "Doc.h"
+#include "Token.h"
 
-#include <memory>
-#include <string>
+#include "common/MediaticData/mediaticData.h"
+#include <common/ProcessUnitFramework/AnalysisContent.h>
+#include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
+
+#include <iostream>
 #include <vector>
 
-class LimaAnalyzerPrivate;
-class BINDINGS_API LimaAnalyzer
+using namespace Lima::LinguisticProcessing;
+using MedData = Lima::Common::MediaticData::MediaticData ;
+
+class DocPrivate
 {
-  friend class LimaAnalyzerPrivate;
+  friend class Doc;
 public:
-  LimaAnalyzer(const std::string& langs,
-               const std::string& pipelines,
-               const std::string& modulePath,
-               const std::string& user_config_path="",
-               const std::string& user_resources_path="",
-               const std::string& meta="");
+  DocPrivate();
+  ~DocPrivate() = default;
+  DocPrivate(const DocPrivate& a) = delete;
+  DocPrivate& operator=(const DocPrivate& a) = delete;
 
-  virtual ~LimaAnalyzer();
-  LimaAnalyzer(const LimaAnalyzer&_a);
-  LimaAnalyzer operator=(const LimaAnalyzer&_a);
-//   virtual LimaAnalyzer *clone();
-  std::string analyzeText(const std::string& text,
-                          const std::string& lang="eng",
-                          const std::string& pipeline="main",
-                          const std::string& meta="") const;
-  Doc functor(
-    const std::string& text,
-                 const std::string& lang="eng",
-                 const std::string& pipeline="main",
-                 const std::string& meta="") const;
+  Token& operator[](int i);
 
-private:
-  LimaAnalyzerPrivate* m_d;
+  std::vector<Token> tokens;
+  std::shared_ptr<Lima::AnalysisContent> analysis;
+
 };
 
-#endif // LIMAANALYZER_H
+
+DocPrivate::DocPrivate()
+{
+}
+
+Token& DocPrivate::operator[](int i)
+{
+  return tokens.at(i);
+}
+
+Doc::Doc()
+{
+  m_d = new DocPrivate();
+}
+
+Doc::Doc(std::shared_ptr<Lima::AnalysisContent> analysis)
+{
+  auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
+
+  m_d = new DocPrivate();
+  m_d->analysis = analysis;
+  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+  auto posGraph = posGraphData->getGraph();
+  auto firstVertex = posGraphData->firstVertex();
+  auto lastVertex = posGraphData->lastVertex();
+  auto v = firstVertex;
+  auto i = 0;
+  while (v != lastVertex)
+  {
+    auto ft = get(vertex_token, *posGraph, v);
+    auto morphoData = get(vertex_data, *posGraph, v);
+
+    auto inflectedToken = ft->stringForm().toStdString();
+    auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
+
+    auto pos = ft->position();
+    auto len = ft->length();
+
+    Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
+    m_d->tokens.push_back(t);
+  }
+}
+
+Doc::~Doc()
+{
+  delete m_d;
+}
+
+Doc::Doc(const Doc& a)
+{
+  std::cerr << "AAAaaaahh!" << std::endl;
+}
+
+Doc& Doc::operator=(const Doc& a)
+{
+  std::cerr << "BAAAaaaahh!" << std::endl;
+  return *this;
+}
+
+Token& Doc::operator[](int i)
+{
+  return (*m_d)[i];
+}
+
+int Doc::len()
+{
+  return 0;
+}
+
+std::string Doc::text()
+{
+  return "none";
+}

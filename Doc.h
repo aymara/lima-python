@@ -53,44 +53,40 @@
 **
 ****************************************************************************/
 
-#ifndef LIMAANALYZER_H
-#define LIMAANALYZER_H
+#ifndef DOC_H
+#define DOC_H
 
 #include "macros.h"
-#include "Doc.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-class LimaAnalyzerPrivate;
-class BINDINGS_API LimaAnalyzer
-{
-  friend class LimaAnalyzerPrivate;
-public:
-  LimaAnalyzer(const std::string& langs,
-               const std::string& pipelines,
-               const std::string& modulePath,
-               const std::string& user_config_path="",
-               const std::string& user_resources_path="",
-               const std::string& meta="");
+namespace Lima {
+  class AnalysisContent;
+}
 
-  virtual ~LimaAnalyzer();
-  LimaAnalyzer(const LimaAnalyzer&_a);
-  LimaAnalyzer operator=(const LimaAnalyzer&_a);
-//   virtual LimaAnalyzer *clone();
-  std::string analyzeText(const std::string& text,
-                          const std::string& lang="eng",
-                          const std::string& pipeline="main",
-                          const std::string& meta="") const;
-  Doc functor(
-    const std::string& text,
-                 const std::string& lang="eng",
-                 const std::string& pipeline="main",
-                 const std::string& meta="") const;
+class Token;
+
+class DocPrivate;
+class BINDINGS_API Doc
+{
+  friend class DocPrivate;
+public:
+  Doc();
+  Doc(std::shared_ptr<Lima::AnalysisContent> analysis);
+  virtual ~Doc();
+  Doc(const Doc& a);
+  Doc& operator=(const Doc& a);
+//   virtual Doc* clone();
+  Token& operator[](int i);
+  int len();
+  std::string text();
+//   std::vector<Token> span(int i, int j);
 
 private:
-  LimaAnalyzerPrivate* m_d;
+  DocPrivate* m_d;
 };
 
-#endif // LIMAANALYZER_H
+
+#endif // DOC_H
