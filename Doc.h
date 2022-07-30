@@ -1,5 +1,8 @@
-<?xml version="1.0"?>
-<!--
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -49,22 +52,41 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
--->
-<typesystem package="lima">
 
-    <primitive-type name="int"/>
-    <primitive-type name="bool"/>
-    <primitive-type name="std::map"/>
-    <primitive-type name="std::string"/>
-    <primitive-type name="std::vector"/>
+#ifndef DOC_H
+#define DOC_H
 
-<    <value-type name="LimaAnalyzer">
-<!--         <modify-function signature="operator()(const std::string,const std::string,const std::string,const std::string)"/> -->
-    </value-type>
-    <value-type name="Doc">
-    </value-type>
-<!--    <value-type name="Span">
-    </value-type>-->
-    <value-type name="Token">
-    </value-type>
-</typesystem>
+#include "macros.h"
+
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace Lima {
+  class AnalysisContent;
+}
+
+class Token;
+
+class DocPrivate;
+class BINDINGS_API Doc
+{
+  friend class DocPrivate;
+public:
+  Doc();
+  Doc(std::shared_ptr<Lima::AnalysisContent> analysis);
+  virtual ~Doc();
+  Doc(const Doc& a);
+  Doc& operator=(const Doc& a);
+//   virtual Doc* clone();
+  Token& operator[](int i);
+  int len();
+  std::string text();
+//   std::vector<Token> span(int i, int j);
+
+private:
+  DocPrivate* m_d;
+};
+
+
+#endif // DOC_H

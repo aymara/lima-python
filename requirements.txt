@@ -1,0 +1,4 @@
+importlib-metadata
+colorama
+twine
+

@@ -1,5 +1,8 @@
-<?xml version="1.0"?>
-<!--
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -49,22 +52,106 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
--->
-<typesystem package="lima">
 
-    <primitive-type name="int"/>
-    <primitive-type name="bool"/>
-    <primitive-type name="std::map"/>
-    <primitive-type name="std::string"/>
-    <primitive-type name="std::vector"/>
+#include "Doc.h"
+#include "Token.h"
 
-<    <value-type name="LimaAnalyzer">
-<!--         <modify-function signature="operator()(const std::string,const std::string,const std::string,const std::string)"/> -->
-    </value-type>
-    <value-type name="Doc">
-    </value-type>
-<!--    <value-type name="Span">
-    </value-type>-->
-    <value-type name="Token">
-    </value-type>
-</typesystem>
+#include "common/MediaticData/mediaticData.h"
+#include <common/ProcessUnitFramework/AnalysisContent.h>
+#include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
+
+#include <iostream>
+#include <vector>
+
+using namespace Lima::LinguisticProcessing;
+using MedData = Lima::Common::MediaticData::MediaticData ;
+
+class DocPrivate
+{
+  friend class Doc;
+public:
+  DocPrivate();
+  ~DocPrivate() = default;
+  DocPrivate(const DocPrivate& a) = delete;
+  DocPrivate& operator=(const DocPrivate& a) = delete;
+
+  Token& operator[](int i);
+
+  std::vector<Token> tokens;
+  std::shared_ptr<Lima::AnalysisContent> analysis;
+
+};
+
+
+DocPrivate::DocPrivate()
+{
+}
+
+Token& DocPrivate::operator[](int i)
+{
+  return tokens.at(i);
+}
+
+Doc::Doc()
+{
+  m_d = new DocPrivate();
+}
+
+Doc::Doc(std::shared_ptr<Lima::AnalysisContent> analysis)
+{
+  auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
+
+  m_d = new DocPrivate();
+  m_d->analysis = analysis;
+  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+  auto posGraph = posGraphData->getGraph();
+  auto firstVertex = posGraphData->firstVertex();
+  auto lastVertex = posGraphData->lastVertex();
+  auto v = firstVertex;
+  auto i = 0;
+  while (v != lastVertex)
+  {
+    auto ft = get(vertex_token, *posGraph, v);
+    auto morphoData = get(vertex_data, *posGraph, v);
+
+    auto inflectedToken = ft->stringForm().toStdString();
+    auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
+
+    auto pos = ft->position();
+    auto len = ft->length();
+
+    Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
+    m_d->tokens.push_back(t);
+  }
+}
+
+Doc::~Doc()
+{
+  delete m_d;
+}
+
+Doc::Doc(const Doc& a)
+{
+  std::cerr << "AAAaaaahh!" << std::endl;
+}
+
+Doc& Doc::operator=(const Doc& a)
+{
+  std::cerr << "BAAAaaaahh!" << std::endl;
+  return *this;
+}
+
+Token& Doc::operator[](int i)
+{
+  return (*m_d)[i];
+}
+
+int Doc::len()
+{
+  return 0;
+}
+
+std::string Doc::text()
+{
+  return "none";
+}

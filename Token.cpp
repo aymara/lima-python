@@ -1,5 +1,8 @@
-<?xml version="1.0"?>
-<!--
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -49,22 +52,109 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
--->
-<typesystem package="lima">
 
-    <primitive-type name="int"/>
-    <primitive-type name="bool"/>
-    <primitive-type name="std::map"/>
-    <primitive-type name="std::string"/>
-    <primitive-type name="std::vector"/>
+#include "Token.h"
 
-<    <value-type name="LimaAnalyzer">
-<!--         <modify-function signature="operator()(const std::string,const std::string,const std::string,const std::string)"/> -->
-    </value-type>
-    <value-type name="Doc">
-    </value-type>
-<!--    <value-type name="Span">
-    </value-type>-->
-    <value-type name="Token">
-    </value-type>
-</typesystem>
+#include <iostream>
+
+class TokenPrivate
+{
+  friend class Token;
+
+  TokenPrivate();
+  ~TokenPrivate() = default;
+  TokenPrivate(const Token& a) = delete;
+  Token& operator=(const Token& a) = delete;
+
+  int len;
+  std::string text;
+  std::string lemma;
+  int i;
+  int pos;
+  std::string tag;
+  std::string dep;
+};
+
+
+TokenPrivate::TokenPrivate()
+{
+}
+
+Token::Token()
+{
+  m_d = new TokenPrivate();
+}
+
+Token::Token(int len,
+      const std::string& text,
+      const std::string& lemma,
+      int i,
+      int pos,
+      const std::string& tag,
+      const std::string& dep)
+{
+  m_d = new TokenPrivate();
+  m_d->len = len;
+  m_d->text = text;
+  m_d->lemma = lemma;
+  m_d->i = i;
+  m_d->pos = pos;
+  m_d->tag = tag;
+  m_d->dep = dep;
+
+}
+
+
+Token::~Token()
+{
+  delete m_d;
+}
+
+Token::Token(const Token& a)
+{
+  std::cerr << "AAAaaaahh!" << std::endl;
+}
+
+Token& Token::operator=(const Token& a)
+{
+  std::cerr << "BAAAaaaahh!" << std::endl;
+  return *this;
+}
+
+int Token::len()
+{
+  return m_d->len;
+}
+std::string Token::text()
+{
+  return m_d->text;
+}
+
+// std::vector<Token> Token::children()
+// Doc& Token::doc()
+// Token Token::head()
+int Token::i()
+{
+  return m_d->i;
+}
+
+std::string Token::lemma()
+{
+  return m_d->lemma;
+}
+
+int Token::pos()
+{
+  return m_d->pos;
+}
+
+std::string Token::tag()
+{
+  return m_d->tag;
+}
+
+std::string Token::dep()
+{
+  return m_d->dep;
+}
+

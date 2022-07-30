@@ -118,12 +118,9 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH ${shiboken_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${QtCore_libdir})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set(${sample_library}_sources lima.cpp)
+set(${sample_library}_sources lima.cpp Doc.cpp Token.cpp)
 add_library(${sample_library} SHARED ${${sample_library}_sources})
 target_link_libraries(${sample_library}
-  lima-lp-analysishandlers
-  lima-lp-client
-  lima-linguisticprocessing
     fasttext-lima
     lima-common-datahandler
     lima-common-data
