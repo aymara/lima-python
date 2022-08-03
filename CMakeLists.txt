@@ -138,7 +138,6 @@ target_link_libraries(${sample_library}
     lima-lp-analysisdict
     lima-lp-analysisdumpers
     lima-lp-analysishandlers
-    lima-lp-annotationgraph
     lima-lp-applyrecognizer
     lima-lp-automatoncompiler
     lima-lp-automaton
@@ -194,12 +193,20 @@ set(lib_includes "-I${lib_includes}")
 target_compile_definitions(${sample_library} PRIVATE BINDINGS_BUILD)
 
 
-set(shiboken_options --generator-set=shiboken --enable-parent-ctor-heuristic
-    --enable-return-value-heuristic --use-isnull-as-nb_nonzero
+set(shiboken_options --generator-set=shiboken
+    --enable-parent-ctor-heuristic
+    --enable-return-value-heuristic
+    --use-isnull-as-nb_nonzero
     --avoid-protected-hack
     --enable-pyside-extensions
+    --language-level=c++17
+    --no-suppress-warnings
+    --debug-level=full
     ${lib_includes}
     -I${CMAKE_SOURCE_DIR}
+    -I/opt/lima/include/
+    -I/opt/qt6/include/
+    -I/opt/qt6/include/QtCore
     -T${CMAKE_SOURCE_DIR}
     -T${PYSIDE6_DIR}/typesystems/
     --output-directory=${CMAKE_CURRENT_BINARY_DIR}
@@ -229,7 +236,7 @@ target_include_directories(${bindings_library} PRIVATE ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(${bindings_library} PRIVATE ${shiboken_shared_libraries})
 target_link_libraries(${bindings_library} PRIVATE ${sample_library})
-target_link_libraries(${bindings_library} PRIVATE ${pyside6_link})
+target_link_libraries(${bindings_library} PRIVATE ${pyside_link})
 target_link_libraries(${bindings_library} PRIVATE fasttext-lima
     lima-common-datahandler
     lima-common-data
@@ -247,7 +254,6 @@ target_link_libraries(${bindings_library} PRIVATE fasttext-lima
     lima-lp-analysisdict
     lima-lp-analysisdumpers
     lima-lp-analysishandlers
-    lima-lp-annotationgraph
     lima-lp-applyrecognizer
     lima-lp-automatoncompiler
     lima-lp-automaton

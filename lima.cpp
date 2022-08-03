@@ -54,7 +54,8 @@
 ****************************************************************************/
 
 #include "lima.h"
-// #include "Doc.h"
+#include "Doc.h"
+#include "Doc_private.h"
 #include "Token.h"
 #include "common/AbstractFactoryPattern/AmosePluginsManager.h"
 #include "common/LimaCommon.h"
@@ -62,7 +63,6 @@
 #include "common/Data/strwstrtools.h"
 #include "common/MediaticData/mediaticData.h"
 #include "common/MediaProcessors/MediaProcessUnit.h"
-#include "common/ProcessUnitFramework/AnalysisContent.h"
 #include "common/QsLog/QsLog.h"
 #include "common/QsLog/QsLogDest.h"
 #include "common/QsLog/QsLogCategories.h"
@@ -369,7 +369,7 @@ LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
   std::cerr << "AAAaaaahh!" << std::endl;
 }
 
-LimaAnalyzer LimaAnalyzer::operator=(const LimaAnalyzer&_a)
+LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer&_a)
 {
   std::cerr << "BAAAaaaahh!" << std::endl;
   return *this;
@@ -469,7 +469,10 @@ Doc LimaAnalyzerPrivate::operator()(
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
     try
     {
-      return Doc(m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits));
+      Doc doc;
+      auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
+      doc.m_d->analysis = analysis;
+      return doc;
     }
     catch (const Lima::LimaException& e)
     {

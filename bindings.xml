@@ -50,7 +50,26 @@
 **
 ****************************************************************************/
 -->
+
 <typesystem package="lima">
+<!--    <system-include file-name="memory"/>
+    <system-include file-name="shared_ptr.h"/>
+    <system-include file-name="common/ProcessUnitFramework/AnalysisContent.h"/>
+
+    <namespace-type name="std">
+        <include file-name="memory" location="global"/>
+        <custom-type name="__shared_ptr"/>
+        <smart-pointer-type name="shared_ptr" type="shared" getter="get"
+                            ref-count-method="use_count">
+            <include file-name="memory" location="global"/>
+        </smart-pointer-type>
+    </namespace-type>-->
+
+<!--    <namespace-type name="Lima">
+        <value-type name="AnalysisContent" disable-wrapper="yes">
+            <include file-name="common/ProcessUnitFramework/AnalysisContent.h" location="global"/>
+        </value-type>
+    </namespace-type>-->
 
     <primitive-type name="int"/>
     <primitive-type name="bool"/>
@@ -58,13 +77,12 @@
     <primitive-type name="std::string"/>
     <primitive-type name="std::vector"/>
 
-<    <value-type name="LimaAnalyzer">
-<!--         <modify-function signature="operator()(const std::string,const std::string,const std::string,const std::string)"/> -->
+
+    <value-type name="Token">
     </value-type>
+    <rejection class="Doc" field-name="m_d" />
     <value-type name="Doc">
     </value-type>
-<!--    <value-type name="Span">
-    </value-type>-->
-    <value-type name="Token">
+    <value-type name="LimaAnalyzer">
     </value-type>
 </typesystem>

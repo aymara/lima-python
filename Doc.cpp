@@ -54,6 +54,7 @@
 ****************************************************************************/
 
 #include "Doc.h"
+#include "Doc_private.h"
 #include "Token.h"
 
 #include "common/MediaticData/mediaticData.h"
@@ -66,21 +67,6 @@
 using namespace Lima::LinguisticProcessing;
 using MedData = Lima::Common::MediaticData::MediaticData ;
 
-class DocPrivate
-{
-  friend class Doc;
-public:
-  DocPrivate();
-  ~DocPrivate() = default;
-  DocPrivate(const DocPrivate& a) = delete;
-  DocPrivate& operator=(const DocPrivate& a) = delete;
-
-  Token& operator[](int i);
-
-  std::vector<Token> tokens;
-  std::shared_ptr<Lima::AnalysisContent> analysis;
-
-};
 
 
 DocPrivate::DocPrivate()
@@ -97,33 +83,34 @@ Doc::Doc()
   m_d = new DocPrivate();
 }
 
-Doc::Doc(std::shared_ptr<Lima::AnalysisContent> analysis)
-{
-  auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
-
-  m_d = new DocPrivate();
-  m_d->analysis = analysis;
-  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
-  auto posGraph = posGraphData->getGraph();
-  auto firstVertex = posGraphData->firstVertex();
-  auto lastVertex = posGraphData->lastVertex();
-  auto v = firstVertex;
-  auto i = 0;
-  while (v != lastVertex)
-  {
-    auto ft = get(vertex_token, *posGraph, v);
-    auto morphoData = get(vertex_data, *posGraph, v);
-
-    auto inflectedToken = ft->stringForm().toStdString();
-    auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
-
-    auto pos = ft->position();
-    auto len = ft->length();
-
-    Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
-    m_d->tokens.push_back(t);
-  }
-}
+// Doc Doc::from_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
+// {
+//   Doc doc;
+//   auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
+//
+//   doc.m_d->analysis = analysis;
+//   auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+//   auto posGraph = posGraphData->getGraph();
+//   auto firstVertex = posGraphData->firstVertex();
+//   auto lastVertex = posGraphData->lastVertex();
+//   auto v = firstVertex;
+//   auto i = 0;
+//   while (v != lastVertex)
+//   {
+//     auto ft = get(vertex_token, *posGraph, v);
+//     auto morphoData = get(vertex_data, *posGraph, v);
+//
+//     auto inflectedToken = ft->stringForm().toStdString();
+//     auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
+//
+//     auto pos = ft->position();
+//     auto len = ft->length();
+//
+//     Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
+//     doc.m_d->tokens.push_back(t);
+//   }
+//   return doc;
+// }
 
 Doc::~Doc()
 {

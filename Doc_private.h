@@ -53,36 +53,27 @@
 **
 ****************************************************************************/
 
-#ifndef DOC_H
-#define DOC_H
-
-#include "macros.h"
-
-#include <string>
+#include <iostream>
+#include <memory>
 #include <vector>
 
+namespace Lima {
+  class AnalysisContent;
+}
 
-class Token;
-class LimaAnalyzer;
-class DocPrivate;
-class BINDINGS_API Doc
+class Doc;
+class DocPrivate
 {
-  friend class LimaAnalyzer;
-  friend class DocPrivate;
+  friend class Doc;
 public:
-  Doc();
-  ~Doc();
-  Doc(const Doc& a);
-  Doc& operator=(const Doc& a);
-//   virtual Doc* clone();
+  DocPrivate();
+  ~DocPrivate() = default;
+  DocPrivate(const DocPrivate& a) = delete;
+  DocPrivate& operator=(const DocPrivate& a) = delete;
+
   Token& operator[](int i);
-  int len();
-  std::string text();
-//   std::vector<Token> span(int i, int j);
 
-  DocPrivate* m_d;
-private:
+  std::vector<Token> tokens;
+  std::shared_ptr<Lima::AnalysisContent> analysis;
+
 };
-
-
-#endif // DOC_H

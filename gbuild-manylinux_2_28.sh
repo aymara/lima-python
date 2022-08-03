@@ -20,6 +20,7 @@ echo "PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION}"
 echo "PYTHON_WHEEL_VERSION=${PYTHON_WHEEL_VERSION}"
 
 # --no-cache
+#     --build-arg CACHE_BUST="$(date)" \
 docker build --progress=plain \
     --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" \
     --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
@@ -32,7 +33,7 @@ docker build --progress=plain \
     --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" \
     --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" \
     --build-arg QT_VERSION="${QT_VERSION}" \
-    -f Dockerfile-manylinux_2_28 -t lima-python${PYTHON_VERSION}:latest .
+    -f Dockerfile-manylinux_2_28 -t lima-python${PYTHON_VERSION}:latest . 2>&1 | tee output.log
 
 docker create -ti --name dummy lima-python${PYTHON_VERSION}:latest bash
 docker cp dummy:/lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl .

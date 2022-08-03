@@ -75,9 +75,9 @@ public:
                const std::string& user_resources_path="",
                const std::string& meta="");
 
-  virtual ~LimaAnalyzer();
-  LimaAnalyzer(const LimaAnalyzer&_a);
-  LimaAnalyzer operator=(const LimaAnalyzer&_a);
+  ~LimaAnalyzer();
+  LimaAnalyzer(const LimaAnalyzer& a);
+  LimaAnalyzer& operator=(const LimaAnalyzer& a);
 //   virtual LimaAnalyzer *clone();
   std::string analyzeText(const std::string& text,
                           const std::string& lang="eng",
