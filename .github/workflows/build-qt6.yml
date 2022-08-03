@@ -7,7 +7,6 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  BRANCH: "port-to-qt6"
   IMAGE_NAME: ${{ github.repository }}
   PYTHON_VERSION: "3.7"
   PYTHON_SHORT_VERSION: "cp37-cp37m"
@@ -21,7 +20,7 @@ env:
   QT_FULL_VERSION: "6.3.1"
   GCC_VERSION: "11.2.1"
   LLVM_VERSION: "13.0.1"
-
+  LIMA_PYTHON_VERSION: "0.4.2"
 
 jobs:
 
@@ -34,7 +33,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: "Build image"
-        run: docker build --progress=plain --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_SHORT_VERSION=${PYTHON_SHORT_VERSION} --build-arg PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION} --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg BRANCH="${BRANCH}" --build-arg QT_FULL_VERSION="${QT_FULL_VERSION}" --build-arg QT_VERSION_MAJOR="${QT_VERSION_MAJOR}" --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" --build-arg QT_VERSION="${QT_VERSION}" -f Dockerfile-manylinux_2_28 -t aymara/lima-python${PYTHON_VERSION}:latest .
+        run: docker build --progress=plain --build-arg PYSIDE_VERSION="${PYSIDE_VERSION}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_SHORT_VERSION=${PYTHON_SHORT_VERSION} --build-arg PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION} --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg BRANCH="${{ github.ref_name }}" --build-arg QT_FULL_VERSION="${QT_FULL_VERSION}" --build-arg QT_VERSION_MAJOR="${QT_VERSION_MAJOR}" --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" --build-arg QT_VERSION="${QT_VERSION}" -f Dockerfile-manylinux_2_28 -t aymara/lima-python${PYTHON_VERSION}:latest .
 
       - name: "Push image"
         run: docker push aymara/lima-python${PYTHON_VERSION}:latest
