@@ -102,15 +102,10 @@ using namespace Lima::Common::MediaticData;
 using namespace Lima::Common::Misc;
 using namespace Lima;
 
-std::ostream* openHandlerOutputFile(AbstractTextualAnalysisHandler* handler,
-                                    const std::string& fileName,
-                                    const std::set< std::string >& dumpers,
-                                    const std::string& dumperId);
 std::shared_ptr< std::ostringstream > openHandlerOutputString(
     AbstractTextualAnalysisHandler* handler,
     const std::set<std::string>&dumpers,
     const std::string& dumperId);
-void closeHandlerOutputFile(std::ostream* ofs);
 int run(int aargc,char** aargv);
 
 class LimaAnalyzerPrivate
@@ -371,7 +366,7 @@ LimaAnalyzer::~LimaAnalyzer()
 
 LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
 {
-  std::cerr << "AAAaaaahh!" << std::endl;
+  std::cerr << "LimaAnalyzer::LimaAnalyzer!" << std::endl;
 }
 
 LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer&_a)
@@ -385,7 +380,7 @@ LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer&_a)
 //     return new LimaAnalyzer(*this);
 // }
 
-Doc LimaAnalyzer::functor(const std::string& text,
+Doc LimaAnalyzer::operator()(const std::string& text,
                                      const std::string& lang,
                                      const std::string& pipeline,
                                      const std::string& meta) const
@@ -584,38 +579,6 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
   return txtofs->str();
 }
 
-std::ostream* openHandlerOutputFile(AbstractTextualAnalysisHandler* handler,
-                                    const std::string& fileName,
-                                    const std::set<std::string>&dumpers,
-                                    const std::string& dumperId)
-{
-  std::ostream* ofs = nullptr;
-  if (dumpers.find(dumperId)!=dumpers.end())
-  {
-    if (fileName==std::string("stdout"))
-    {
-      ofs = &std::cout;
-    }
-    else
-    {
-      ofs = new std::ofstream(fileName.c_str(),
-                              std::ios_base::out
-                                | std::ios_base::binary
-                                | std::ios_base::trunc);
-    }
-    if (ofs->good())
-    {
-      handler->setOut(ofs);
-    }
-    else
-    {
-      std::cerr << "failed to open file " << fileName << std::endl;
-      delete ofs; ofs = 0;
-    }
-  }
-  return ofs;
-}
-
 std::shared_ptr< std::ostringstream > openHandlerOutputString(
     AbstractTextualAnalysisHandler* handler,
     const std::set<std::string>&dumpers,
@@ -629,12 +592,3 @@ std::shared_ptr< std::ostringstream > openHandlerOutputString(
   return ofs;
 }
 
-void closeHandlerOutputFile(std::ostream* ofs)
-{
-  if (ofs != 0 && dynamic_cast<std::ofstream*>(ofs)!=0)
-  {
-    dynamic_cast<std::ofstream*>(ofs)->close();
-    delete ofs;
-    ofs = nullptr;
-  }
-}

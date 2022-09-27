@@ -76,14 +76,14 @@ public:
                const std::string& meta="");
 
   ~LimaAnalyzer();
-  LimaAnalyzer(const LimaAnalyzer& a);
-  LimaAnalyzer& operator=(const LimaAnalyzer& a);
+  LimaAnalyzer(const LimaAnalyzer& a) ;
+  LimaAnalyzer& operator=(const LimaAnalyzer& a) ;
 //   virtual LimaAnalyzer *clone();
   std::string analyzeText(const std::string& text,
                           const std::string& lang="eng",
                           const std::string& pipeline="main",
                           const std::string& meta="") const;
-  Doc functor(
+  Doc operator()(
     const std::string& text,
                  const std::string& lang="eng",
                  const std::string& pipeline="main",

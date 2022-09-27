@@ -92,7 +92,7 @@ class Lima:
                 pipeline = "deepud"
             else:
                 pipeline = "main"
-        return self.analyzer.functor(
+        return self.analyzer(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
 

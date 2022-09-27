@@ -61,7 +61,7 @@
 #include <string>
 #include <vector>
 
-// class Doc;
+class Doc;
 
 class TokenPrivate;
 class BINDINGS_API Token
