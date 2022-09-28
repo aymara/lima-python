@@ -198,7 +198,7 @@ def download_binary_file(url, dir):
                 if chunk:
                     totalbytes += chunk_size
                     f.write(chunk)
-    progress_bar.close()
+        progress_bar.close()
 
 
 def find_lang_code(lang_str):

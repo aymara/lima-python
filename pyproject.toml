@@ -52,8 +52,19 @@ exclude = '''
 '''
 
 [build-system]
-requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
+requires = [
+  "setuptools>=42",
+  "scikit-build",
+  "cmake",
+  "ninja; platform_system!='Windows'",
+  "wheel"
+]
+build-backend = "setuptools.build_meta"
 
-#[build-system]
-#requires = ["poetry>=0.12"]
-#build-backend = "poetry.masonry.api"
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+log_cli_level = "info"
+testpaths = ["tests"]

@@ -23,7 +23,8 @@ RUN yum install -y wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3
     python3-sphinx.noarch
 RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
-RUN python${PYTHON_VERSION} -m pip install scikit-build
+RUN python${PYTHON_VERSION} -m pip install scikit-build pytest pyconll pydantic requests
+
 RUN python${PYTHON_VERSION} -m pip install \
     --index-url=http://download.qt.io/official_releases/QtForPython/ \
     --trusted-host download.qt.io \
@@ -52,15 +53,21 @@ RUN cp -R /opt/lima/share/config/lima/* /lima-python/aymaralima/config
 
 RUN python${PYTHON_VERSION} /lima-python/scripts/linuxdeploy.py /opt/lima/lib/liblima*.so -d clib -o clib/libs.json
 RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
-COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
-
-COPY aymara/* /lima-python/aymara/
 ARG CACHE_BUST=1
+COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
+RUN install -d /lima-python/tests
+COPY tests/* /lima-python/tests
+COPY aymara/* /lima-python/aymara/
 RUN python${PYTHON_VERSION} setup.py bdist_wheel
 ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-build:$LD_LIBRARY_PATH
+# RUN python${PYTHON_VERSION} setup.py test
 # RUN auditwheel show /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 # RUN pip install auditwheel-symbols
 # RUN auditwheel-symbols -m 2_28 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+RUN python${PYTHON_VERSION} -m pip install unix_ar
+RUN python${PYTHON_VERSION} -m pip install /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+WORKDIR /lima-python
+RUN python${PYTHON_VERSION} -m pytest
 RUN auditwheel repair --plat manylinux_2_28_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
