@@ -83,6 +83,9 @@
     <rejection class="Doc" field-name="m_d" />
     <value-type name="Doc">
     </value-type>
+<!--    <container-type name="Doc"
+                    type="list">
+    </container-type>-->
     <value-type name="LimaAnalyzer">
     </value-type>
 </typesystem>

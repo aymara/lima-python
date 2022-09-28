@@ -66,10 +66,10 @@ class DocPrivate
 {
   friend class Doc;
 public:
-  DocPrivate();
+  DocPrivate() = default;
   ~DocPrivate() = default;
-  DocPrivate(const DocPrivate& a) = delete;
-  DocPrivate& operator=(const DocPrivate& a) = delete;
+  DocPrivate(const DocPrivate& a) = default;
+  DocPrivate& operator=(const DocPrivate& a) = default;
 
   Token& operator[](int i);
 

@@ -110,14 +110,16 @@ Token::~Token()
   delete m_d;
 }
 
-Token::Token(const Token& a)
+Token::Token(const Token& a) : m_d(new TokenPrivate())
 {
-  std::cerr << "AAAaaaahh!" << std::endl;
+  std::cerr << "Token::Token copy constructor" << std::endl;
 }
 
 Token& Token::operator=(const Token& a)
 {
-  std::cerr << "BAAAaaaahh!" << std::endl;
+  std::cerr << "Token::operator=" << std::endl;
+  delete m_d;
+  m_d = new TokenPrivate();
   return *this;
 }
 

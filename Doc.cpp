@@ -59,6 +59,7 @@
 
 #include "common/MediaticData/mediaticData.h"
 #include <common/ProcessUnitFramework/AnalysisContent.h>
+#include <linguisticProcessing/common/linguisticData/LimaStringText.h>
 #include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
 
 #include <iostream>
@@ -67,11 +68,6 @@
 using namespace Lima::LinguisticProcessing;
 using MedData = Lima::Common::MediaticData::MediaticData ;
 
-
-
-DocPrivate::DocPrivate()
-{
-}
 
 Token& DocPrivate::operator[](int i)
 {
@@ -117,14 +113,15 @@ Doc::~Doc()
   delete m_d;
 }
 
-Doc::Doc(const Doc& a)
+Doc::Doc(const Doc& a) : m_d(new DocPrivate(*a.m_d))
 {
-  std::cerr << "AAAaaaahh!" << std::endl;
+  std::cerr << "Doc::Doc copy constructor" << std::endl;
 }
 
 Doc& Doc::operator=(const Doc& a)
 {
-  std::cerr << "BAAAaaaahh!" << std::endl;
+  std::cerr << "Doc::operator=" << std::endl;
+  *m_d = *a.m_d;
   return *this;
 }
 
@@ -135,10 +132,12 @@ Token& Doc::operator[](int i)
 
 int Doc::len()
 {
-  return 0;
+  return m_d->tokens.size();
 }
 
 std::string Doc::text()
 {
-  return "none";
+  auto originalText = static_cast<LimaStringText*>(m_d->analysis->getData("Text"));
+
+  return originalText->toStdString();
 }

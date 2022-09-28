@@ -154,15 +154,24 @@ public:
 
   std::set<std::string> dumpers = {"text"};
 
+  // Store constructor parameters to be able to implement copy constructor
+  QStringList qlangs;
+  QStringList qpipelines;
+  QString modulePath;
+  QString user_config_path;
+  QString user_resources_path;
+  QString meta;
 };
 
 
-LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& qlangs,
-                                         const QStringList& qpipelines,
-                                         const QString& modulePath,
-                                         const QString& user_config_path,
-                                         const QString& user_resources_path,
-                                         const QString& meta)
+LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
+                                         const QStringList& iqpipelines,
+                                         const QString& imodulePath,
+                                         const QString& iuser_config_path,
+                                         const QString& iuser_resources_path,
+                                         const QString& imeta) :
+    qlangs(iqlangs), qpipelines(iqpipelines), modulePath(imodulePath),
+    user_config_path(iuser_config_path), user_resources_path(iuser_resources_path), meta(imeta)
 {
   int argc = 1;
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
@@ -364,14 +373,25 @@ LimaAnalyzer::~LimaAnalyzer()
   delete m_d;
 }
 
-LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
+LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a) :
+    m_d(new LimaAnalyzerPrivate(a.m_d->qlangs, a.m_d->qpipelines,
+                                a.m_d->modulePath,
+                                a.m_d->user_config_path,
+                                a.m_d->user_resources_path,
+                                a.m_d->meta))
 {
-  std::cerr << "LimaAnalyzer::LimaAnalyzer!" << std::endl;
+  std::cerr << "LimaAnalyzer::LimaAnalyzer copy constructor" << std::endl;
 }
 
-LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer&_a)
+LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer& a)
 {
-  std::cerr << "BAAAaaaahh!" << std::endl;
+  std::cerr << "LimaAnalyzer::operator=" << std::endl;
+  delete m_d;
+  m_d = new LimaAnalyzerPrivate(a.m_d->qlangs, a.m_d->qpipelines,
+                                a.m_d->modulePath,
+                                a.m_d->user_config_path,
+                                a.m_d->user_resources_path,
+                                a.m_d->meta);
   return *this;
 }
 
