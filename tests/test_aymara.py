@@ -30,18 +30,18 @@ def test_functor():
     assert result is not None and type(result) == aymaralima.lima.Doc
 
 
-def test_doc_size():
-    lima = aymara.lima.Lima("eng")
-    result = lima("This is a text on 02/05/2022.")
-    assert result.len() > 0
-
-
-def test_install_model():
-    assert aymara.lima_models.install_language("end", force=True)
-
-
-def test_installed_model():
-    lima = aymara.lima.Lima("ud-eng")
-    result = lima("This is a text on 02/05/2022.")
-    assert result.len() > 0
+# def test_doc_size():
+#     lima = aymara.lima.Lima("eng")
+#     result = lima("This is a text on 02/05/2022.")
+#     assert result.len() > 0
+#
+#
+# def test_install_model():
+#     assert aymara.lima_models.install_language("end", force=True)
+#
+#
+# def test_installed_model():
+#     lima = aymara.lima.Lima("ud-eng")
+#     result = lima("This is a text on 02/05/2022.")
+#     assert result.len() > 0
 
