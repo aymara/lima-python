@@ -63,11 +63,8 @@
 
 class Doc;
 
-class TokenPrivate;
-class BINDINGS_API Token
+struct BINDINGS_API Token
 {
-  friend class TokenPrivate;
-public:
   Token();
   Token(int len,
         const std::string& text,
@@ -76,24 +73,20 @@ public:
         int pos,
         const std::string& tag,
         const std::string& dep);
-  ~Token();
+  ~Token() = default;
   Token(const Token& a);
   Token& operator=(const Token& a);
-//   virtual Token* clone();
-  int len();
-  std::string text();
+
+  int len;
+  std::string text;
 //   std::vector<Token> children();
 //   Doc& doc();
 //   Token head();
-  int i();
-  std::string lemma();
-  int pos();
-  std::string tag();
-  std::string dep();
-
-
-private:
-  TokenPrivate* m_d;
+  int i;
+  std::string lemma;
+  int pos;
+  std::string tag;
+  std::string dep;
 };
 
 

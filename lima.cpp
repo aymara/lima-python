@@ -63,6 +63,7 @@
 #include "common/Data/strwstrtools.h"
 #include "common/MediaticData/mediaticData.h"
 #include "common/MediaProcessors/MediaProcessUnit.h"
+#include <common/ProcessUnitFramework/AnalysisContent.h>
 #include "common/QsLog/QsLog.h"
 #include "common/QsLog/QsLogDest.h"
 #include "common/QsLog/QsLogCategories.h"
@@ -73,12 +74,14 @@
 #include "common/tools/LimaMainTaskRunner.h"
 
 #include "linguisticProcessing/common/linguisticData/languageData.h"
+#include <linguisticProcessing/common/linguisticData/LimaStringText.h>
 #include "linguisticProcessing/client/LinguisticProcessingClientFactory.h"
 #include "linguisticProcessing/client/AnalysisHandlers/BowTextWriter.h"
 #include "linguisticProcessing/client/AnalysisHandlers/BowTextHandler.h"
 #include "linguisticProcessing/client/AnalysisHandlers/SimpleStreamHandler.h"
 #include "linguisticProcessing/client/AnalysisHandlers/LTRTextHandler.h"
 #include "linguisticProcessing/core/EventAnalysis/EventHandler.h"
+#include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
 #include "linguisticProcessing/core/LinguisticResources/AbstractResource.h"
 #include "linguisticProcessing/core/LinguisticResources/LinguisticResources.h"
 
@@ -99,13 +102,16 @@
 
 using namespace Lima::LinguisticProcessing;
 using namespace Lima::Common::MediaticData;
+using MedData = Lima::Common::MediaticData::MediaticData ;
 using namespace Lima::Common::Misc;
 using namespace Lima;
+
 
 std::shared_ptr< std::ostringstream > openHandlerOutputString(
     AbstractTextualAnalysisHandler* handler,
     const std::set<std::string>&dumpers,
     const std::string& dumperId);
+Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis);
 int run(int aargc,char** aargv);
 
 class LimaAnalyzerPrivate
@@ -437,34 +443,6 @@ Doc LimaAnalyzerPrivate::operator()(
     const std::string& pipeline,
     const std::string& meta) const
 {
-  Doc document;
-//   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
-//     ("output,o",
-//    po::value< std::vector<std::string> >(&outputsv),
-//    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")
-  std::vector<std::string> outputsv;
-  QMap< QString, QString > outputs;
-  for(std::vector<std::string>::const_iterator outputsIt = outputsv.begin();
-      outputsIt != outputsv.end(); outputsIt++)
-  {
-    QStringList output = QString::fromUtf8((*outputsIt).c_str()).split(":");
-    if (output.size()==2)
-    {
-      outputs[output[0]] = output[1];
-    }
-    else
-    {
-      // Option syntax  error
-      std::cerr << "syntax error in output setting:" << *outputsIt << std::endl;
-    }
-  }
-
-
-//   auto bowofs  = openHandlerOutputString(bowTextWriter, os, dumpers, "bow");
-  auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
-//   *txtofs << "hello";
-//   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
-
   auto localMetaData = metaData;
   localMetaData["FileName"]="param";
   auto qmeta = QString::fromStdString(meta).split(",");
@@ -489,10 +467,8 @@ Doc LimaAnalyzerPrivate::operator()(
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
     try
     {
-      Doc doc;
       auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
-      doc.m_d->analysis = analysis;
-      return doc;
+      return docFrom_analysis(analysis);
     }
     catch (const Lima::LimaException& e)
     {
@@ -500,7 +476,6 @@ Doc LimaAnalyzerPrivate::operator()(
       return Doc();
     }
   }
-  return document;
 }
 
 const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
@@ -508,32 +483,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                                     const std::string& pipeline,
                                     const std::string& meta)
 {
-//   qDebug() << "LimaAnalyzerPrivate::analyzeText" << text << lang << pipeline;
-//     ("output,o",
-//    po::value< std::vector<std::string> >(&outputsv),
-//    "where to write dumpers output. By default, each dumper writes its results on a file whose name is the input file with a predefined suffix  appended. This option allows to chose another suffix or to write on standard output. Its syntax  is the following: <dumper>:<destination> with <dumper> a  dumper name and destination, either the value 'stdout' or a suffix.")
-  std::vector<std::string> outputsv;
-  QMap< QString, QString > outputs;
-  for(std::vector<std::string>::const_iterator outputsIt = outputsv.begin();
-      outputsIt != outputsv.end(); outputsIt++)
-  {
-    QStringList output = QString::fromUtf8((*outputsIt).c_str()).split(":");
-    if (output.size()==2)
-    {
-      outputs[output[0]] = output[1];
-    }
-    else
-    {
-      // Option syntax  error
-      std::cerr << "syntax error in output setting:" << *outputsIt << std::endl;
-    }
-  }
-
-
-//   auto bowofs  = openHandlerOutputString(bowTextWriter, os, dumpers, "bow");
   auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
-//   *txtofs << "hello";
-//   auto fullxmlofs  = openHandlerOutputString(fullXmlSimpleStreamHandler, os, dumpers, "fullxml");
 
   auto localMetaData = metaData;
   localMetaData["FileName"]="param";
@@ -612,3 +562,61 @@ std::shared_ptr< std::ostringstream > openHandlerOutputString(
   return ofs;
 }
 
+
+Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
+{
+  std::cerr << "docFrom_analysis" << std::endl;
+  Doc doc;
+  auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
+
+  doc.m_d->analysis = analysis;
+  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+  auto posGraph = posGraphData->getGraph();
+  auto firstVertex = posGraphData->firstVertex();
+  auto lastVertex = posGraphData->lastVertex();
+  auto v = firstVertex;
+  auto [it, it_end] = boost::out_edges(v, *posGraph);
+  if (it != it_end)
+  {
+      v = boost::target(*it, *posGraph);
+  }
+  else
+  {
+      v = lastVertex;
+  }
+  auto i = 0;
+  auto tokens = get(vertex_token, *posGraph);
+  auto morphoDatas = get(vertex_data, *posGraph);
+  std::cerr << "docFrom_analysis before while" << std::endl;
+  while (v != lastVertex)
+  {
+    std::cerr << "docFrom_analysis on vertex " << v << posGraph << std::endl;
+    auto ft = tokens[v];
+    auto morphoData = morphoDatas[v];
+
+    auto inflectedToken = ft->stringForm().toStdString();
+    auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
+    std::cerr << "docFrom_analysis token/lemma are " << inflectedToken << "/" << lemmatizedToken << std::endl;
+
+    auto pos = ft->position();
+    auto len = ft->length();
+    std::cerr << "docFrom_analysis pos/len are " << pos << "/" << len << std::endl;
+
+    Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
+    std::cerr << "docFrom_analysis pushing token" << std::endl;
+    doc.m_d->tokens.push_back(t);
+
+    auto [it, it_end] = boost::out_edges(v, *posGraph);
+    if (it != it_end)
+    {
+        v = boost::target(*it, *posGraph);
+    }
+    else
+    {
+        v = lastVertex;
+    }
+
+  }
+  std::cerr << "docFrom_analysis before return" << std::endl;
+  return doc;
+}

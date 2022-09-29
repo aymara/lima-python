@@ -69,44 +69,10 @@ using namespace Lima::LinguisticProcessing;
 using MedData = Lima::Common::MediaticData::MediaticData ;
 
 
-Token& DocPrivate::operator[](int i)
-{
-  return tokens.at(i);
-}
-
 Doc::Doc()
 {
   m_d = new DocPrivate();
 }
-
-// Doc Doc::from_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
-// {
-//   Doc doc;
-//   auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
-//
-//   doc.m_d->analysis = analysis;
-//   auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
-//   auto posGraph = posGraphData->getGraph();
-//   auto firstVertex = posGraphData->firstVertex();
-//   auto lastVertex = posGraphData->lastVertex();
-//   auto v = firstVertex;
-//   auto i = 0;
-//   while (v != lastVertex)
-//   {
-//     auto ft = get(vertex_token, *posGraph, v);
-//     auto morphoData = get(vertex_data, *posGraph, v);
-//
-//     auto inflectedToken = ft->stringForm().toStdString();
-//     auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
-//
-//     auto pos = ft->position();
-//     auto len = ft->length();
-//
-//     Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
-//     doc.m_d->tokens.push_back(t);
-//   }
-//   return doc;
-// }
 
 Doc::~Doc()
 {
@@ -115,7 +81,7 @@ Doc::~Doc()
 
 Doc::Doc(const Doc& a) : m_d(new DocPrivate(*a.m_d))
 {
-  std::cerr << "Doc::Doc copy constructor" << std::endl;
+  // std::cerr << "Doc::Doc copy constructor" << std::endl;
 }
 
 Doc& Doc::operator=(const Doc& a)
@@ -127,7 +93,12 @@ Doc& Doc::operator=(const Doc& a)
 
 Token& Doc::operator[](int i)
 {
-  return (*m_d)[i];
+  return m_d->tokens[i];
+}
+
+Token& Doc::at(int i)
+{
+  return m_d->tokens[i];
 }
 
 int Doc::len()

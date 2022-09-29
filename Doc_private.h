@@ -71,8 +71,6 @@ public:
   DocPrivate(const DocPrivate& a) = default;
   DocPrivate& operator=(const DocPrivate& a) = default;
 
-  Token& operator[](int i);
-
   std::vector<Token> tokens;
   std::shared_ptr<Lima::AnalysisContent> analysis;
 

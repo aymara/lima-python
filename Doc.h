@@ -56,32 +56,27 @@
 #ifndef DOC_H
 #define DOC_H
 
+#include "Token.h"
+
 #include "macros.h"
 
 #include <string>
-#include <vector>
 
-
-class Token;
 class LimaAnalyzer;
 class DocPrivate;
 class BINDINGS_API Doc
 {
-  friend class LimaAnalyzer;
-  friend class DocPrivate;
 public:
   Doc();
   ~Doc();
   Doc(const Doc& a);
   Doc& operator=(const Doc& a);
-//   virtual Doc* clone();
-  Token& operator[](int i);
-  int len();
   std::string text();
-//   std::vector<Token> span(int i, int j);
-
+  Token& operator[](int i);
+  Token& at(int i);
+  int len();
+  friend class LimaAnalyzer;
   DocPrivate* m_d;
-private:
 };
 
 

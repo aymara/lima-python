@@ -19,8 +19,8 @@ echo "PYTHON_SHORT_VERSION=${PYTHON_SHORT_VERSION}"
 echo "PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION}"
 echo "PYTHON_WHEEL_VERSION=${PYTHON_WHEEL_VERSION}"
 
-# --no-cache
 #     --build-arg CACHE_BUST="$(date)" \
+#     --no-cache\
 docker build --progress=plain \
     --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" \
     --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
