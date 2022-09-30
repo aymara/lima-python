@@ -67,6 +67,7 @@ Token::Token(int len,
       int i,
       int pos,
       const std::string& tag,
+      const int head,
       const std::string& dep)
 {
   this->len = len;
@@ -75,31 +76,34 @@ Token::Token(int len,
   this->i = i;
   this->pos = pos;
   this->tag = tag;
+  this->head = head;
   this->dep = dep;
 
 }
 
 Token::Token(const Token& a)
 {
-  std::cerr << "Token::Token copy constructor" << std::endl;
+  // std::cerr << "Token::Token copy constructor" << std::endl;
   len = a.len;
   text = a.text;
   lemma = a.lemma;
   i = a.i;
   pos = a.pos;
   tag = a.tag;
+  head = a.head;
   dep = a.dep;
 }
 
 Token& Token::operator=(const Token& a)
 {
-  std::cerr << "Token::operator=" << std::endl;
+  // std::cerr << "Token::operator=" << std::endl;
   len = a.len;
   text = a.text;
   lemma = a.lemma;
   i = a.i;
   pos = a.pos;
   tag = a.tag;
+  head = a.head;
   dep = a.dep;
   return *this;
 }

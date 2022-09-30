@@ -86,7 +86,7 @@ Doc::Doc(const Doc& a) : m_d(new DocPrivate(*a.m_d))
 
 Doc& Doc::operator=(const Doc& a)
 {
-  std::cerr << "Doc::operator=" << std::endl;
+  // std::cerr << "Doc::operator=" << std::endl;
   *m_d = *a.m_d;
   return *this;
 }

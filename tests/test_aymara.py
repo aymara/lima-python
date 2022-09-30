@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 import aymara.lima
-import aymaralima.lima
 import aymara.lima_models
 import sys
 
@@ -27,13 +26,13 @@ def test_analyzeText_init_with_lang():
 def test_functor():
     lima = aymara.lima.Lima("eng")
     result = lima("This is a text on 02/05/2022.")
-    assert result is not None and type(result) == aymaralima.lima.Doc
+    assert result is not None and type(result) == aymara.lima.Doc
 
 
 def test_doc_size():
     lima = aymara.lima.Lima("eng")
     result = lima("This is a text on 02/05/2022.")
-    assert result.len() > 0
+    assert len(result) > 0
 
 
 # def test_install_model():

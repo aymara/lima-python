@@ -82,6 +82,7 @@
 #include "linguisticProcessing/client/AnalysisHandlers/LTRTextHandler.h"
 #include "linguisticProcessing/core/EventAnalysis/EventHandler.h"
 #include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
+#include "linguisticProcessing/core/LinguisticProcessors/LinguisticMetaData.h"
 #include "linguisticProcessing/core/LinguisticResources/AbstractResource.h"
 #include "linguisticProcessing/core/LinguisticResources/LinguisticResources.h"
 
@@ -195,9 +196,6 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   auto configDirs = buildConfigurationDirectoriesList(QStringList({"lima"}),
                                                       additionalPaths);
   auto configPath = configDirs.join(LIMA_PATH_SEPARATOR);
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate configPath: "
-            << configPath << std::endl;
-
 
   QStringList additionalResourcePaths({modulePath+"/resources"});
   // Add here LIMA_RESOURCES content in front, otherwise it will be ignored
@@ -565,11 +563,20 @@ std::shared_ptr< std::ostringstream > openHandlerOutputString(
 
 Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
 {
-  std::cerr << "docFrom_analysis" << std::endl;
+  auto metadataholder = static_cast<LinguisticMetaData*>(analysis->getData("LinguisticMetaData"));
+  const auto& lang = metadataholder->getMetaData("Lang");
+  auto medId = MedData::single().media(lang);
+  const auto& languageData = static_cast<const LanguageData&>(MedData::single().mediaData(medId));
+  const auto& propertyCodeManager = languageData.getPropertyCodeManager();
+  const auto& propertyAccessor = propertyCodeManager.getPropertyAccessor("MICRO");
+
+  // std::cerr << "docFrom_analysis" << std::endl;
   Doc doc;
-  auto sp = &MedData::single().stringsPool(MedData::single().media("eng"));
+  auto sp = &MedData::single().stringsPool(MedData::single().media(lang));
 
   doc.m_d->analysis = analysis;
+  auto anaGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("AnalysisGraph"));
+  auto anaGraph = anaGraphData->getGraph();
   auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
   auto posGraph = posGraphData->getGraph();
   auto firstVertex = posGraphData->firstVertex();
@@ -587,23 +594,26 @@ Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
   auto i = 0;
   auto tokens = get(vertex_token, *posGraph);
   auto morphoDatas = get(vertex_data, *posGraph);
-  std::cerr << "docFrom_analysis before while" << std::endl;
+  // std::cerr << "docFrom_analysis before while" << std::endl;
   while (v != lastVertex)
   {
-    std::cerr << "docFrom_analysis on vertex " << v << posGraph << std::endl;
+    // std::cerr << "docFrom_analysis on vertex " << v << posGraph << std::endl;
     auto ft = tokens[v];
     auto morphoData = morphoDatas[v];
 
     auto inflectedToken = ft->stringForm().toStdString();
     auto lemmatizedToken = (*sp)[(*morphoData)[0].lemma].toStdString();
-    std::cerr << "docFrom_analysis token/lemma are " << inflectedToken << "/" << lemmatizedToken << std::endl;
+    // std::cerr << "docFrom_analysis token/lemma are " << inflectedToken << "/" << lemmatizedToken << std::endl;
 
     auto pos = ft->position();
     auto len = ft->length();
-    std::cerr << "docFrom_analysis pos/len are " << pos << "/" << len << std::endl;
+    // std::cerr << "docFrom_analysis pos/len are " << pos << "/" << len << std::endl;
+    auto micro = languageData.getPropertyCodeManager()
+                    .getPropertyManager("MICRO")
+                    .getPropertySymbolicValue(morphoData->firstValue(propertyAccessor));
 
-    Token t(len, inflectedToken, lemmatizedToken, i++, pos, "","");
-    std::cerr << "docFrom_analysis pushing token" << std::endl;
+    Token t(len, inflectedToken, lemmatizedToken, i++, pos, micro, 0, "");
+    // std::cerr << "docFrom_analysis pushing token" << std::endl;
     doc.m_d->tokens.push_back(t);
 
     auto [it, it_end] = boost::out_edges(v, *posGraph);
@@ -617,6 +627,6 @@ Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
     }
 
   }
-  std::cerr << "docFrom_analysis before return" << std::endl;
+  // std::cerr << "docFrom_analysis before return" << std::endl;
   return doc;
 }

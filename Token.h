@@ -72,6 +72,7 @@ struct BINDINGS_API Token
         int i,
         int pos,
         const std::string& tag,
+        int head,
         const std::string& dep);
   ~Token() = default;
   Token(const Token& a);
@@ -86,6 +87,7 @@ struct BINDINGS_API Token
   std::string lemma;
   int pos;
   std::string tag;
+  int head;
   std::string dep;
 };
 

@@ -89,6 +89,10 @@ def install_language(language, dest=None, select=None, force=False):
     Path(target_dir).mkdir(parents=True, exist_ok=True)
 
     code, lang = find_lang_code(language.lower())
+    if code is None or lang is None:
+        print(f"There is no such language: {language}", file=sys.stderr)
+        print(f"You can check available ones with lima_models.info()", file=sys.stderr)
+        return False
     deb_url = URL_DEB % (code, lang)
 
     prefix_list = ["tokenizer", "morphosyntax", "lemmatizer"]

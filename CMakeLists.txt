@@ -51,7 +51,7 @@ set(sample_library "liblimabinding")
 
 # The name of the generated bindings module (as imported in Python). You can change the name
 # to something relevant for your project.
-set(bindings_library "lima")
+set(bindings_library "cpplima")
 
 # The header file with all the types and functions for which bindings will be generated.
 # Usually it simply includes other headers of the library you are creating bindings for.
@@ -312,7 +312,7 @@ set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
 #set(site_packages "${Python3_SITELIB}")
 #message("site_packages ${Python3_SITELIB}")
 #install(FILES aymaralima/lima_analyzer.py aymaralima/lima_models.py DESTINATION ${site_packages}/aymaralima)
-install(FILES aymara/lima.py aymara/lima_models.py DESTINATION aymara)
+install(FILES aymara/lima.py aymara/doc.py aymara/lima_models.py DESTINATION aymara)
 
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
 install(FILES ${LIB_FILES} DESTINATION aymaralima)

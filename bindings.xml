@@ -51,7 +51,7 @@
 ****************************************************************************/
 -->
 
-<typesystem package="lima">
+<typesystem package="cpplima">
 <!--     <load-typesystem name="typesystem_core.xml" generate="no"/> -->
 
     <primitive-type name="int"/>
