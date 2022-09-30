@@ -112,6 +112,11 @@ class DocIterator:
 
 
 class Doc:
+    """
+    A document.
+
+    This is mainly an iterable of tokens.
+    """
     def __init__(self, doc: aymaralima.cpplima.Doc):
         self.doc = doc
 
@@ -124,6 +129,7 @@ class Doc:
         return self.doc.len()
 
     def __getitem__(self, i: Union[int, slice]):
+        """Returns the token at position i or a contiguous slice of tokens."""
         if isinstance(i, slice):
             return Span(self, i.start, i.stop)
         if i < 0:
@@ -131,9 +137,16 @@ class Doc:
         return Token(self.doc.at(i))
 
     def __repr__(self):
+        """
+        The representation of a document is one line for each token represented in the
+        CoNLL-U format.
+        """
         return "\n".join([token.__repr__() for token in self])
 
     def __str__(self):
+        """
+        The string of a document is its original text.
+        """
         return self.text
 
     text = property(
@@ -144,13 +157,13 @@ class Doc:
 class SpanIterator:
     """Doc Iterator class"""
     def __init__(self, span):
-        # Doc object reference
+        # Span object reference
         self._span = span
         # index variable to keep track
         self._index = 0
 
     def __next__(self):
-        """'Returns the next value from doc object's lists"""
+        """'Returns the next value from span object's lists"""
         if self._index < self._span.len():
             result = self._span.at(self._index)
             self._index += 1
@@ -160,6 +173,7 @@ class SpanIterator:
 
 
 class Span:
+    """Represents a continuous span of tokens in a Doc."""
     def __init__(self, doc: Doc, begin: int, end: int):
         self.doc = doc
         self.begin = begin
@@ -171,19 +185,23 @@ class Span:
         return DocIterator(self)
 
     def __len__(self):
-        """'Returns the number of tokens of this document"""
+        """'Returns the number of tokens of this span"""
         return self.end - self.begin
 
     def __getitem__(self, i: Union[int, slice]):
-        # if isinstance(i, slice):
-        #     start, stop = util.normalize_slice(len(self), i.start, i.stop, i.step)
-        #     return Span(self, start, stop, label=0)
+        """
+        Returns either the Token at position i in the span or the subspan defined by
+        the slice i.
+        """
+        if isinstance(i, slice):
+            return Span(self.doc, self.begin+i.start, self.begin+i.stop)
         if i < 0:
             i = len(self) + i
         return self.doc[self.begin+i]
 
 
 def get_data_dir(appname):
+    """Return the path suitable to store user data depending on the OS."""
     if sys.platform == "win32":
         import winreg
         key = winreg.OpenKey(
@@ -200,12 +218,31 @@ def get_data_dir(appname):
 
 
 class Lima:
+    """
+    A text-processing pipeline
+
+    Usually you’ll load this once per process as nlp and pass the instance around your
+    application. The Lima class is a wrapper around the LimaAnalyzer class which is
+    itself a binding around the C++ classes necessary to analyze text.
+    """
     def __init__(self,
                  langs: str = "fre,eng",
                  pipes: str = "main,deepud",
                  user_config_path: str = "",
                  user_resources_path: str = "",
                  meta: Dict[str, str] = {}):
+        """
+        Initialize the Lima analyzer
+
+        langs: a comma-separated list of language trigrams to initialize
+        pipes: a comma-separated list of Lima pipelines to analyze
+        user_config_path: a path where Lima configuration files will be searched for.
+            This allows to override default configurations
+        user_resources_path: a path where Lima resource files will be searched for.
+            This allows to override default configurations
+        meta: a list of named metadata values that will be used for each analysis.They
+            can be completed or overriden at analysis time
+        """
         self.analyzer = aymaralima.cpplima.LimaAnalyzer(
             langs,
             pipes,
@@ -222,6 +259,19 @@ class Lima:
                  lang: str = None,
                  pipeline: str = None,
                  meta: Dict[str, str] = {}) -> Doc:
+        """
+        Just 'call' your Lima instance to analyze the given text in the given language.
+        The lang language must have been initialized when instantiating this object.
+
+        text: the text to analyze
+        lang: the language of the text. If none, will backup to the first element of the
+        langs member or to eng if empty.
+        pipeline: the Lima pipeline to use for analysis. If none, will backup to the
+        first element of the pipelines member or to main if empty.
+        meta: a list of named metadata values
+
+        return a Doc object representing the result of the analysis.
+        """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
         if pipeline is None:
@@ -254,6 +304,19 @@ class Lima:
                     lang: str = None,
                     pipeline: str = None,
                     meta: Dict[str, str] = {}) -> str:
+        """
+        Analyze the given text in the given language. The lang language must have been
+        initialized when instantiating this object.
+
+        text: the text to analyze
+        lang: the language of the text. If none, will backup to the first element of the
+        langs member or to eng if empty.
+        pipeline: the Lima pipeline to use for analysis. If none, will backup to the
+        first element of the pipelines member or to main if empty.
+        meta: a list of named metadata values
+
+        return a Doc object representing the result of the analysis.
+        """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
         if pipeline is None:
@@ -282,7 +345,7 @@ class Lima:
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
 
     @staticmethod
-    def ExportSystemConf(dir: pathlib.Path = None, lang: str = None) -> bool:
+    def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:
         """
         Export LIMA configuration files from the module system path to the given
         @ref dir in order to be able to easily change configuration files.
@@ -307,7 +370,7 @@ class Lima:
         return True
 
     @staticmethod
-    def GetSystemPaths() -> Tuple[str, str]:
+    def get_system_paths() -> Tuple[str, str]:
         """
         @return LIMA config and resources paths from the aymara module
         """
