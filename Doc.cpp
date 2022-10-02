@@ -112,3 +112,8 @@ std::string Doc::text()
 
   return originalText->toStdString();
 }
+
+const std::vector<Span>& Doc::sentences() const
+{
+  return m_d->sentences;
+}

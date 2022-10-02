@@ -53,26 +53,26 @@
 **
 ****************************************************************************/
 
-#include <iostream>
-#include <memory>
+#ifndef SPAN_H
+#define SPAN_H
+
+#include "macros.h"
+
+#include <string>
 #include <vector>
 
-namespace Lima {
-  class AnalysisContent;
-}
-
-class Doc;
-class Span;
-class DocPrivate
+struct BINDINGS_API Span
 {
-  friend class Doc;
-public:
-  DocPrivate() = default;
-  ~DocPrivate() = default;
-  DocPrivate(const DocPrivate& a) = default;
-  DocPrivate& operator=(const DocPrivate& a) = default;
+  Span();
+  Span(int start, int end);
+  ~Span() = default;
+  Span(const Span& a);
+  Span& operator=(const Span& a);
 
-  std::vector<Token> tokens;
-  std::shared_ptr<Lima::AnalysisContent> analysis;
-  std::vector<Span> sentences;
+  int start;
+  int end;
 };
+
+
+
+#endif // SPAN_H

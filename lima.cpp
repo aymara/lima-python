@@ -56,6 +56,7 @@
 #include "lima.h"
 #include "Doc.h"
 #include "Doc_private.h"
+#include "Span.h"
 #include "Token.h"
 #include "common/AbstractFactoryPattern/AmosePluginsManager.h"
 #include "common/LimaCommon.h"
@@ -85,6 +86,7 @@
 #include "linguisticProcessing/core/LinguisticProcessors/LinguisticMetaData.h"
 #include "linguisticProcessing/core/LinguisticResources/AbstractResource.h"
 #include "linguisticProcessing/core/LinguisticResources/LinguisticResources.h"
+#include "linguisticProcessing/core/TextSegmentation/SegmentationData.h"
 
 #include <deque>
 #include <fstream>
@@ -595,6 +597,7 @@ Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
   auto tokens = get(vertex_token, *posGraph);
   auto morphoDatas = get(vertex_data, *posGraph);
   // std::cerr << "docFrom_analysis before while" << std::endl;
+  std::map<LinguisticGraphVertex, int> vertexToToken;
   while (v != lastVertex)
   {
     // std::cerr << "docFrom_analysis on vertex " << v << posGraph << std::endl;
@@ -613,6 +616,7 @@ Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
                     .getPropertySymbolicValue(morphoData->firstValue(propertyAccessor));
 
     Token t(len, inflectedToken, lemmatizedToken, i++, pos, micro, 0, "");
+    vertexToToken[v] = i;
     // std::cerr << "docFrom_analysis pushing token" << std::endl;
     doc.m_d->tokens.push_back(t);
 
@@ -625,7 +629,32 @@ Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis)
     {
         v = lastVertex;
     }
+  }
+  auto tmp = analysis->getData("SentenceBoundaries");
+  if (tmp != 0)
+  {
+    auto sb = static_cast<SegmentationData*>(tmp);
+    // if (sb->getGraphId() != "PosGraph") {
+    //   LERROR << "SentenceBounds have been computed on " << sb->getGraphId() << " !";
+    //   LERROR << "SyntacticAnalyzer-deps needs SentenceBounds on PosGraph";
+    //   return INVALID_CONFIGURATION;
+    // }
+    for (auto bound: sb->getSegments())
+    {
+      auto sentenceBegin = bound.getFirstVertex();
+      auto sentenceEnd = bound.getLastVertex();
+      doc.m_d->sentences.push_back(Span(vertexToToken[sentenceBegin], vertexToToken[sentenceEnd]));
 
+      auto [it, it_end] = boost::out_edges(v, *posGraph);
+      if (it != it_end)
+      {
+          v = boost::target(*it, *posGraph);
+      }
+      else
+      {
+          v = lastVertex;
+      }
+    }
   }
   // std::cerr << "docFrom_analysis before return" << std::endl;
   return doc;

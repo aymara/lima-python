@@ -58,6 +58,7 @@
 
 #include "lima.h"
 #include "Doc.h"
+#include "Span.h"
 #include "Token.h"
 
 #endif // BINDINGS_H

@@ -56,7 +56,7 @@ RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
 
 FROM aymara_lima_manylinux_2_28_qt_python
 
-COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
+COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Span.h Span.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
 RUN install -d /lima-python/tests
 COPY tests/* /lima-python/tests/
 COPY aymara/* /lima-python/aymara/

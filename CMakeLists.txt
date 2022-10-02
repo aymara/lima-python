@@ -71,6 +71,7 @@ set(generated_sources
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/${bindings_library}_module_wrapper.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/limaanalyzer_wrapper.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/doc_wrapper.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/span_wrapper.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/token_wrapper.cpp
 )
 
@@ -123,7 +124,7 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH ${shiboken_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${QtCore_libdir})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set(${sample_library}_sources lima.cpp Doc.cpp Token.cpp)
+set(${sample_library}_sources lima.cpp Doc.cpp Span.cpp Token.cpp)
 add_library(${sample_library} SHARED ${${sample_library}_sources})
 target_link_libraries(${sample_library}
     fasttext-lima
@@ -312,7 +313,7 @@ set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
 #set(site_packages "${Python3_SITELIB}")
 #message("site_packages ${Python3_SITELIB}")
 #install(FILES aymaralima/lima_analyzer.py aymaralima/lima_models.py DESTINATION ${site_packages}/aymaralima)
-install(FILES aymara/lima.py aymara/doc.py aymara/lima_models.py DESTINATION aymara)
+install(FILES aymara/lima.py aymara/lima_models.py DESTINATION aymara)
 
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
 install(FILES ${LIB_FILES} DESTINATION aymaralima)

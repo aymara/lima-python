@@ -60,6 +60,7 @@
     <primitive-type name="std::string"/>
 
 
+    <value-type name="Span"/>
     <value-type name="Token"/>
     <value-type name="Doc"/>
 

@@ -6,32 +6,79 @@
 
 # -*- coding: utf-8 -*-
 
-import sys
 import os
-import re
-import argparse
-import pyconll
-import tempfile
 import pathlib
-import requests
 import sys
-import tarfile
-import unix_ar
-import urllib.request
 
 from distutils.dir_util import copy_tree
-from tqdm import tqdm
-from os import listdir
-from os.path import isfile, join
 from pydantic import (parse_obj_as, ValidationError)
 from typing import (Dict, Tuple, Union)
 
 import aymaralima.cpplima
 
+"""
+The LIMA python bindings.
+
+This python API gives access to the major features of the LIMA linguistic analyzer. To
+make it easier to handle, it largely reproduces that of spaCy, including parts of the
+documentation.
+"""
+
+
+def get_data_dir(appname):
+    """Return the path suitable to store user data depending on the OS."""
+    if sys.platform == "win32":
+        import winreg
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+        )
+        dir_, _ = winreg.QueryValueEx(key, "Local AppData")
+        ans = pathlib.Path(dir_).resolve(strict=False)
+    elif sys.platform == 'darwin':
+        ans = pathlib.Path('~/Library/Application Support/').expanduser()
+    else:
+        ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
+    return ans.joinpath(appname)
+
 
 class Token:
     """
     A token
+
+    TODO
+    Some parts of the API are still not implemented
+    sent     The sentence span that this token is a part of.
+    Span
+    ent_type    Named entity type.
+    str
+    ent_iob    IOB code of named entity tag. “B” means the token begins an entity, “I”
+    means it is inside an entity, “O” means it is outside an entity, and "" means no
+    entity tag is set.
+    str
+    is_alpha    Does the token consist of alphabetic characters? Equivalent to
+    token.text.isalpha().
+    bool
+    is_digit    Does the token consist of digits? Equivalent to token.text.isdigit().
+    bool
+    is_lower    Is the token in lowercase? Equivalent to token.text.islower().
+    bool
+    is_upper    Is the token in uppercase? Equivalent to token.text.isupper().
+    bool
+    is_punct    Is the token punctuation?
+    bool
+    is_sent_start    Does the token start a sentence? bool or None if unknown. Defaults
+    to True for the first token in the Doc.
+    is_sent_end    Does the token end a sentence? bool or None if unknown.
+    is_space    Does the token consist of whitespace characters? Equivalent to
+    token.text.isspace().
+    bool
+    is_bracket    Is the token a bracket?
+    bool
+    is_quote    Is the token a quotation mark?
+    bool
+    lang    Language of the parent document’s vocabulary.
+    int
     """
     def __init__(self, token: aymaralima.cpplima.Token):
         assert type(token) == aymaralima.cpplima.Token
@@ -89,8 +136,166 @@ class Token:
             doc="Syntactic dependency relation.")
 
     idx = property(
-            fget=lambda self: self.token.pos,
-            doc="Syntactic dependency relation.")
+            fget=lambda self: self.token.pos-1,
+            doc="Position of this token in its document text.")
+
+
+class SentencesIterator:
+    """Doc Sentences Iterator class"""
+    def __init__(self, doc):
+        # Doc object reference
+        self._doc = doc
+        # index variable to keep track
+        self._index = 0
+
+    def __iter__(self):
+        """Returns Iterator object"""
+        return self
+
+    def __next__(self):
+        """'Returns the next value from doc object's lists"""
+        if self._index < len(self._doc.limadoc.sentences()):
+            result = Span(self._doc,
+                          self._doc.limadoc.sentences()[self._index].start,
+                          self._doc.limadoc.sentences()[self._index].end)
+            self._index += 1
+            return result
+        # Iteration ends
+        raise StopIteration
+
+
+class SpanIterator:
+    """Span Iterator class"""
+    def __init__(self, span):
+        # Span object reference
+        self._span = span
+        # index variable to keep track
+        self._index = 0
+
+    def __next__(self):
+        """'Returns the next value from span object's lists"""
+        if self._index < len(self._span):
+            result = self._span.at(self._index)
+            self._index += 1
+            return result
+        # Iteration ends
+        raise StopIteration
+
+
+class Span:
+    """
+    Represents a continuous span of tokens in a Doc.
+
+    TODO
+    Some parts of the API are still not implemented
+
+    ents    The named entities that fall completely within the span. Returns a tuple of
+        Span objects.
+        Example
+
+        doc = nlp("Mr. Best flew to New York on Saturday morning.")
+        span = doc[0:6]
+        ents = list(span.ents)
+        assert ents[0].label == 346
+        assert ents[0].label_ == "PERSON"
+        assert ents[0].text == "Mr. Best"
+
+        Name	Description
+        RETURNS	Entities in the span, one Span per entity.
+        Tuple[Span, …]
+
+    sent    The sentence span that this span is a part of.
+        This property is only available when sentence boundaries have been set on the
+        document by the pipeline. It will raise an error otherwise.
+
+        If the span happens to cross sentence boundaries, only the first sentence will be returned. If it is required that the sentence always includes the full span, the result can be adjusted as such:
+
+        sent = span.sent
+        sent = doc[sent.start : max(sent.end, span.end)]
+
+        Example
+
+        doc = nlp("Give it back! He pleaded.")
+        span = doc[1:3]
+        assert span.sent.text == "Give it back!"
+    Span
+
+    sents   Returns a generator over the sentences the span belongs to.
+        This property is only available when sentence boundaries have been set on the
+        document by the pipeline. It will raise an error otherwise.
+
+        If the span happens to cross sentence boundaries, all sentences the span overlaps with will be returned.
+        Example
+
+        doc = nlp("Give it back! He pleaded.")
+        span = doc[2:4]
+        assert len(span.sents) == 2
+    Iterable[Span]
+
+    """
+    def __init__(self, doc, start: int, end: int):
+        self._doc = doc
+        self._start = start
+        self._end = end
+
+
+    def __iter__(self):
+        """Returns Iterator object"""
+        return SpanIterator(self)
+
+    def __len__(self):
+        """
+        Returns the number of tokens of this span
+
+        Example
+
+        doc = nlp("Give it back! He pleaded.")
+        span = doc[1:4]
+        assert len(span) == 3
+        """
+        return self._end - self._start
+
+    def __getitem__(self, i: Union[int, slice]):
+        """
+        Returns either the Token at position i in the span or the subspan defined by
+        the slice i.
+
+        doc = nlp("Give it back! He pleaded.")
+        span = doc[1:4]
+        assert span[1].text == "back"
+        assert span[1:3].text == "back!"
+
+        """
+        if isinstance(i, slice):
+            return Span(self._doc, self._start+i.start, self._start+i.stop)
+        if i < 0:
+            i = len(self) + i
+        return self._doc[self._start+i]
+
+    text = property(
+            fget=lambda self: (self._doc.text[
+                self[self._start].idx:self[self._end-1].idx+len(self[self._end-1])]),
+            doc="A string representation of the span text.")
+
+    doc = property(
+            fget=lambda self: self._doc,
+            doc="The parent document.")
+
+    start = property(
+            fget=lambda self: self._start,
+            doc="The token offset for the start of the span.")
+
+    end = property(
+            fget=lambda self: self._end,
+            doc="The token offset for the end of the span.")
+
+    start_char = property(
+            fget=lambda self: self[0].idx,
+            doc="The character offset for the start of the span.")
+
+    end_char = property(
+            fget=lambda self: self[-1].idx+len(self[-1]),
+            doc="The character offset for the end of the span.")
 
 
 class DocIterator:
@@ -116,9 +321,22 @@ class Doc:
     A document.
 
     This is mainly an iterable of tokens.
+
+    TODO
+    Some parts of the API are still not implemented
+
+    ents    The named entities in the document. Returns a tuple of named entity Span objects, if the entity recognizer has been applied.
+    Tuple[Span]
+
+    compounds   The compounds found into the document text by the
+        CompoundsBuilderFromSyntacticData LIMA pipeline unit
+    List[Compound]
+
+    lang 	Language of the document’s vocabulary.
+    str
     """
     def __init__(self, doc: aymaralima.cpplima.Doc):
-        self.doc = doc
+        self.limadoc = doc
 
     def __iter__(self):
         """Returns Iterator object"""
@@ -126,7 +344,7 @@ class Doc:
 
     def __len__(self):
         """'Returns the number of tokens of this document"""
-        return self.doc.len()
+        return self.limadoc.len()
 
     def __getitem__(self, i: Union[int, slice]):
         """Returns the token at position i or a contiguous slice of tokens."""
@@ -134,7 +352,7 @@ class Doc:
             return Span(self, i.start, i.stop)
         if i < 0:
             i = self.length + i
-        return Token(self.doc.at(i))
+        return Token(self.limadoc.at(i))
 
     def __repr__(self):
         """
@@ -150,71 +368,26 @@ class Doc:
         return self.text
 
     text = property(
-            fget=lambda self: self.doc.text(),
+            fget=lambda self: self.limadoc.text(),
             doc="The original text.")
 
+    sents = property(
+            fget=lambda self: SentencesIterator(self),
+            doc=("    sents   Iterate over the sentences in the document.\n"
+                 "        This property is only available when sentence boundaries have"
+                 " been set on the\n"
+                 "        document by the pipeline. It will raise an error otherwise.\n"
+                 "        Example\n"
+                 "\n"
+                 "        doc = nlp(\"This is a sentence. Here's another...\")\n"
+                 "        sents = list(doc.sents)\n"
+                 "        assert len(sents) == 2\n"
+                 "        assert [s.root.text for s in sents] == [\"is\", \"'s\"]\n"
+                 "\n"
+                 "        Name	Description\n"
+                 "        YIELDS	Sentences in the document.\n"
+                 "        Span\n"))
 
-class SpanIterator:
-    """Doc Iterator class"""
-    def __init__(self, span):
-        # Span object reference
-        self._span = span
-        # index variable to keep track
-        self._index = 0
-
-    def __next__(self):
-        """'Returns the next value from span object's lists"""
-        if self._index < self._span.len():
-            result = self._span.at(self._index)
-            self._index += 1
-            return result
-        # Iteration ends
-        raise StopIteration
-
-
-class Span:
-    """Represents a continuous span of tokens in a Doc."""
-    def __init__(self, doc: Doc, begin: int, end: int):
-        self.doc = doc
-        self.begin = begin
-        self.end = end
-
-
-    def __iter__(self):
-        """Returns Iterator object"""
-        return DocIterator(self)
-
-    def __len__(self):
-        """'Returns the number of tokens of this span"""
-        return self.end - self.begin
-
-    def __getitem__(self, i: Union[int, slice]):
-        """
-        Returns either the Token at position i in the span or the subspan defined by
-        the slice i.
-        """
-        if isinstance(i, slice):
-            return Span(self.doc, self.begin+i.start, self.begin+i.stop)
-        if i < 0:
-            i = len(self) + i
-        return self.doc[self.begin+i]
-
-
-def get_data_dir(appname):
-    """Return the path suitable to store user data depending on the OS."""
-    if sys.platform == "win32":
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
-        )
-        dir_, _ = winreg.QueryValueEx(key, "Local AppData")
-        ans = pathlib.Path(dir_).resolve(strict=False)
-    elif sys.platform == 'darwin':
-        ans = pathlib.Path('~/Library/Application Support/').expanduser()
-    else:
-        ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
-    return ans.joinpath(appname)
 
 
 class Lima:
@@ -376,3 +549,7 @@ class Lima:
         """
         return (str(pathlib.Path(list(aymaralima.__path__)[-1]) / "config"),
                 str(pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"))
+
+
+
+

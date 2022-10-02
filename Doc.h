@@ -56,6 +56,7 @@
 #ifndef DOC_H
 #define DOC_H
 
+#include "Span.h"
 #include "Token.h"
 
 #include "macros.h"
@@ -74,6 +75,7 @@ public:
   std::string text();
   Token& operator[](int i);
   Token& at(int i);
+  const std::vector<Span>& sentences() const;
   int len();
   friend class LimaAnalyzer;
   DocPrivate* m_d;

@@ -53,26 +53,31 @@
 **
 ****************************************************************************/
 
-#include <iostream>
-#include <memory>
-#include <vector>
+#include "Span.h"
 
-namespace Lima {
-  class AnalysisContent;
+#include <iostream>
+
+Span::Span()
+{
 }
 
-class Doc;
-class Span;
-class DocPrivate
+Span::Span(int start, int end)
 {
-  friend class Doc;
-public:
-  DocPrivate() = default;
-  ~DocPrivate() = default;
-  DocPrivate(const DocPrivate& a) = default;
-  DocPrivate& operator=(const DocPrivate& a) = default;
+  this->start = start;
+  this->end = end;
+}
 
-  std::vector<Token> tokens;
-  std::shared_ptr<Lima::AnalysisContent> analysis;
-  std::vector<Span> sentences;
-};
+Span::Span(const Span& a)
+{
+  // std::cerr << "Span::Span copy constructor" << std::endl;
+  start = a.start;
+  end = a.end;
+}
+
+Span& Span::operator=(const Span& a)
+{
+  // std::cerr << "Span::operator=" << std::endl;
+  start = a.start;
+  end = a.end;
+  return *this;
+}
