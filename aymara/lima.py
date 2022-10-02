@@ -48,35 +48,48 @@ class Token:
 
     TODO
     Some parts of the API are still not implemented
+
     sent     The sentence span that this token is a part of.
     Span
+
     ent_type    Named entity type.
     str
+
     ent_iob    IOB code of named entity tag. “B” means the token begins an entity, “I”
     means it is inside an entity, “O” means it is outside an entity, and "" means no
     entity tag is set.
     str
+
     is_alpha    Does the token consist of alphabetic characters? Equivalent to
     token.text.isalpha().
     bool
+
     is_digit    Does the token consist of digits? Equivalent to token.text.isdigit().
     bool
     is_lower    Is the token in lowercase? Equivalent to token.text.islower().
     bool
+
     is_upper    Is the token in uppercase? Equivalent to token.text.isupper().
     bool
+
     is_punct    Is the token punctuation?
     bool
+
     is_sent_start    Does the token start a sentence? bool or None if unknown. Defaults
     to True for the first token in the Doc.
+
     is_sent_end    Does the token end a sentence? bool or None if unknown.
+
     is_space    Does the token consist of whitespace characters? Equivalent to
     token.text.isspace().
     bool
+
     is_bracket    Is the token a bracket?
     bool
+
     is_quote    Is the token a quotation mark?
     bool
+
     lang    Language of the parent document’s vocabulary.
     int
     """
@@ -103,7 +116,9 @@ class Token:
         DEPS: Enhanced dependency graph in the form of a list of head-deprel pairs.
         MISC: Any other annotation.
         """
-        return (f"{self.i}\t{self}\t{self.lemma}\t{self.pos}\t_\t_\t"
+        return (f"{self.i}\t{self}\t{self.lemma}\t{self.pos}\t_\t"
+                + "|".join([f'{k}:{v}' for k, v in self.features.items()])
+                + "\t"
                 f"{self.head if self.head > 0 else '_'}\t{self.dep}\t_\t"
                 f"Pos={self.idx}|Len={len(self)}")
 
@@ -139,9 +154,16 @@ class Token:
             fget=lambda self: self.token.pos-1,
             doc="Position of this token in its document text.")
 
+    features = property(
+            fget=lambda self:  ("_" if self.token.features == "_"
+                                else dict(x.split("=")
+                                          for x in self.token.features.split("|"))),
+            doc="Morphlogical features of this token .")
+
 
 class SentencesIterator:
     """Doc Sentences Iterator class"""
+
     def __init__(self, doc):
         # Doc object reference
         self._doc = doc
@@ -166,6 +188,7 @@ class SentencesIterator:
 
 class SpanIterator:
     """Span Iterator class"""
+
     def __init__(self, span):
         # Span object reference
         self._span = span
@@ -247,11 +270,10 @@ class Span:
         """
         Returns the number of tokens of this span
 
-        Example
-
-        doc = nlp("Give it back! He pleaded.")
-        span = doc[1:4]
-        assert len(span) == 3
+        EXAMPLE:
+            doc = nlp("Give it back! He pleaded.")
+            span = doc[1:4]
+            assert len(span) == 3
         """
         return self._end - self._start
 
@@ -260,10 +282,11 @@ class Span:
         Returns either the Token at position i in the span or the subspan defined by
         the slice i.
 
-        doc = nlp("Give it back! He pleaded.")
-        span = doc[1:4]
-        assert span[1].text == "back"
-        assert span[1:3].text == "back!"
+        EXAMPLE
+            doc = nlp("Give it back! He pleaded.")
+            span = doc[1:4]
+            assert span[1].text == "back"
+            assert span[1:3].text == "back!"
 
         """
         if isinstance(i, slice):
@@ -300,6 +323,7 @@ class Span:
 
 class DocIterator:
     """Doc Iterator class"""
+
     def __init__(self, doc):
         # Doc object reference
         self._doc = doc
@@ -332,7 +356,7 @@ class Doc:
         CompoundsBuilderFromSyntacticData LIMA pipeline unit
     List[Compound]
 
-    lang 	Language of the document’s vocabulary.
+    lang 	Language of the document.
     str
     """
     def __init__(self, doc: aymaralima.cpplima.Doc):

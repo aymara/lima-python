@@ -73,10 +73,13 @@ struct BINDINGS_API Token
         int pos,
         const std::string& tag,
         int head,
-        const std::string& dep);
+        const std::string& dep,
+        const std::string& feats,
+        const std::string& neIOB,
+        const std::string& neType);
   ~Token() = default;
-  Token(const Token& a);
-  Token& operator=(const Token& a);
+  Token(const Token& a) = default;
+  Token& operator=(const Token& a) = default;
 
   int len;
   std::string text;
@@ -89,6 +92,9 @@ struct BINDINGS_API Token
   std::string tag;
   int head;
   std::string dep;
+  std::string features;
+  std::string neIOB;
+  std::string neType;
 };
 
 

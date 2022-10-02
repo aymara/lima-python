@@ -87,7 +87,7 @@ public:
     const std::string& text,
                  const std::string& lang="eng",
                  const std::string& pipeline="main",
-                 const std::string& meta="") const;
+                 const std::string& meta="");
 
 private:
   LimaAnalyzerPrivate* m_d;

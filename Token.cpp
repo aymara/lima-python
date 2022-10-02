@@ -57,7 +57,7 @@
 
 #include <iostream>
 
-Token::Token()
+Token::Token() : neIOB("O"), neType("_")
 {
 }
 
@@ -68,7 +68,10 @@ Token::Token(int len,
       int pos,
       const std::string& tag,
       const int head,
-      const std::string& dep)
+      const std::string& dep,
+      const std::string& feats,
+      const std::string& neIOB,
+      const std::string& neType)
 {
   this->len = len;
   this->text = text;
@@ -78,32 +81,7 @@ Token::Token(int len,
   this->tag = tag;
   this->head = head;
   this->dep = dep;
-
-}
-
-Token::Token(const Token& a)
-{
-  // std::cerr << "Token::Token copy constructor" << std::endl;
-  len = a.len;
-  text = a.text;
-  lemma = a.lemma;
-  i = a.i;
-  pos = a.pos;
-  tag = a.tag;
-  head = a.head;
-  dep = a.dep;
-}
-
-Token& Token::operator=(const Token& a)
-{
-  // std::cerr << "Token::operator=" << std::endl;
-  len = a.len;
-  text = a.text;
-  lemma = a.lemma;
-  i = a.i;
-  pos = a.pos;
-  tag = a.tag;
-  head = a.head;
-  dep = a.dep;
-  return *this;
+  this->features = feats;
+  this->neIOB = neIOB;
+  this->neType = neType;
 }
