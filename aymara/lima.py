@@ -644,8 +644,8 @@ class Lima:
         account the configuration in the new path, you will have to add it in front of
         the LIMA_CONF environment variable (or define it if it does not exist).
 
-        Please refer to the `LIMA documentation
-        <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`
+        Please refer to the
+        `LIMA documentation <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`_
         for how to configure the analysis:
         """
         # Verify thar dir exists and is writable or create it
