@@ -25,6 +25,8 @@ MOCK_MODULES = ['numpy', 'scipy', 'scipy.linalg', 'scipy.signal',
                 'aymaralima', 'aymaralima.cpplima', 'skbuild']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
+sys.path.insert(0, os.path.abspath('./'))
+sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
