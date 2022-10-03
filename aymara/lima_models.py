@@ -33,7 +33,7 @@ C2LC = {"lang2code": {}, "code2lang": {}}
 #############################################
 # Private functions
 
-def yesnoconfirm(msg):
+def __yesnoconfirm(msg):
     """
     Asks the user to input y or n. Return True if the input is exactly 'y' and False
     otherwise.
@@ -52,7 +52,7 @@ def yesnoconfirm(msg):
             return False
 
 
-def remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
+def _remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
     """
     Remove a model.
     This function is private. It should not be used directly.
@@ -69,7 +69,7 @@ def remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
     return removed
 
 
-def get_target_dir(dest=None):
+def _get_target_dir(dest=None):
     """
     Return the directory containing models: dest if given and a default one otherwise
     This function is private. It should not be used directly.
@@ -85,7 +85,7 @@ def get_target_dir(dest=None):
         return dest
 
 
-def install_model(dir, fn, code, prefix_list):
+def _install_model(dir, fn, code, prefix_list):
     """
     Install an individual model to its destination. This function is private. It should
     not be used directly.
@@ -135,7 +135,7 @@ def install_model(dir, fn, code, prefix_list):
                             os.symlink(src_name, symlink_name)
 
 
-def download_binary_file(url, dir):
+def _download_binary_file(url, dir):
     """
     Download the file at the given url to the give directory. This function is private.
     It should not be used directly.
@@ -158,7 +158,7 @@ def download_binary_file(url, dir):
         progress_bar.close()
 
 
-def find_lang_code(lang_str):
+def _find_lang_code(lang_str):
     """
     Return a tuple made of a language code and its language name. lang_str can be
     either the code or the name.
@@ -183,20 +183,20 @@ def find_lang_code(lang_str):
     return None, None
 
 
-def list_installed_languages(target_dir):
+def _list_installed_languages(target_dir):
     """
     List the models currently available in target_dir.
     This function is private. It should not be used directly.
     """
     Path(target_dir).mkdir(parents=True, exist_ok=True)
     langs = {
-        "tok": list_installed_languages_per_module(
+        "tok": _list_installed_languages_per_module(
             join(target_dir, "TensorFlowTokenizer", "ud"), ["tokenizer"]
         ),
-        "lemm": list_installed_languages_per_module(
+        "lemm": _list_installed_languages_per_module(
             join(target_dir, "TensorFlowLemmatizer", "ud"), ["lemmatizer"]
         ),
-        "ms": list_installed_languages_per_module(
+        "ms": _list_installed_languages_per_module(
             join(target_dir, "TensorFlowMorphoSyntax", "ud"),
             ["morphosyntax", "fasttext"],
         ),
@@ -204,7 +204,7 @@ def list_installed_languages(target_dir):
     return langs
 
 
-def list_installed_languages_per_module(target_dir, prefix_list):
+def _list_installed_languages_per_module(target_dir, prefix_list):
     """
     List the installation status of the models from prefix_list for all languages in
     target_dir. Allows also to check the correct installation of the models.
@@ -271,7 +271,7 @@ def info():
     """
     Print the mapping between language codes and language names
     """
-    find_lang_code("eng")
+    _find_lang_code("eng")
     for code in C2LC["code2lang"]:
         print("%-10s\t%s" % (code, C2LC["code2lang"][code]))
     return
@@ -282,10 +282,10 @@ def list_installed_models(dest: str = None):
     Print the list of the models currently available in dest or in a default directory
     if dest is None.
     """
-    target_dir = get_target_dir(dest)
+    target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-    langs = list_installed_languages(target_dir)
+    langs = _list_installed_languages(target_dir)
 
     all_installed = []
     for k in langs:
@@ -297,8 +297,8 @@ def list_installed_models(dest: str = None):
     max_lang_len = 0
     for code in all_installed:
         lang = "Unknown"
-        if find_lang_code(code)[0] is not None:
-            lang = find_lang_code(code)[1]
+        if _find_lang_code(code)[0] is not None:
+            lang = _find_lang_code(code)[1]
             max_lang_len = max(len(lang), max_lang_len)
 
     print(
@@ -308,8 +308,8 @@ def list_installed_models(dest: str = None):
     print("---")
     for code in all_installed:
         lang = "Unknown"
-        if find_lang_code(code)[0] is not None:
-            lang = find_lang_code(code)[1]
+        if _find_lang_code(code)[0] is not None:
+            lang = _find_lang_code(code)[1]
         lang = lang + " " * (max_lang_len - len(lang) + 1)
         marks = {
             "tok": langs["tok"][code] if code in langs["tok"] else "   ---   ",
@@ -331,10 +331,10 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
     If force is False (the default), only models not already present are installed.
     Otherwise, they are replaced by new ones.
     """
-    target_dir = get_target_dir(dest)
+    target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-    code, lang = find_lang_code(language.lower())
+    code, lang = _find_lang_code(language.lower())
     if code is None or lang is None:
         print(f"There is no such language: {language}", file=sys.stderr)
         print(f"You can check available ones with lima_models.info()", file=sys.stderr)
@@ -349,7 +349,7 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
 
     if not force:
         new_prefix_list = []
-        installed = list_installed_languages(target_dir)
+        installed = _list_installed_languages(target_dir)
         if "tokenizer" in prefix_list and code not in installed["tok"]:
             new_prefix_list.append("tokenizer")
         if "lemmatizer" in prefix_list and code not in installed["lemm"]:
@@ -368,8 +368,8 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
             print("Installing only: %s" % (", ".join(prefix_list)))
 
         with tempfile.TemporaryDirectory() as tmpdirname:
-            download_binary_file(deb_url, tmpdirname)
-            install_model(
+            _download_binary_file(deb_url, tmpdirname)
+            _install_model(
                 target_dir,
                 os.path.join(tmpdirname, deb_url.split("/")[-1]),
                 code,
@@ -388,15 +388,15 @@ def remove_language(language: str, dest: str = None) -> bool:
 
     Confirmation is asked before removing anything.
     """
-    if not yesnoconfirm(f"Do you really want to remove language {language} ?"):
+    if not __yesnoconfirm(f"Do you really want to remove language {language} ?"):
         return
-    target_dir = get_target_dir(dest)
-    code, lang = find_lang_code(language.lower())
+    target_dir = _get_target_dir(dest)
+    code, lang = _find_lang_code(language.lower())
     if not lang:
         print(f"There is no such language {language}")
         sys.exit(1)
     prefix_list = ["Tokenizer", "MorphoSyntax", "Lemmatizer"]
-    return remove_model(target_dir, code, prefix_list)
+    return _remove_model(target_dir, code, prefix_list)
 
 
 if __name__ == "__main__":
@@ -444,7 +444,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    dest = get_target_dir(args.dest)
+    dest = _get_target_dir(args.dest)
     Path(dest).mkdir(parents=True, exist_ok=True)
     if args.avail:
         info()
