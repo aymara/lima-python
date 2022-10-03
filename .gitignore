@@ -1,5 +1,3 @@
-docs/build
-
 *.whl.md5
 *.kate-swp
 
@@ -76,6 +74,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/_static/
+docs/_templates/
 
 # PyBuilder
 target/
