@@ -4,4 +4,4 @@ requests
 shiboken6
 tqdm
 unix_ar
-
+scikit-build

@@ -633,10 +633,20 @@ class Lima:
     def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:
         """
         Export LIMA configuration files from the module system path to the given
-        @ref dir in order to be able to easily change configuration files.
-        If @ref lang is given, only the configuration files concerning this language
+        dir in order to be able to easily change configuration files.
+
+        If lang is given, only the configuration files concerning this language
         are exported (NOT IMPLEMENTED).
-        @return True if the export is succesful and False otherwise.
+
+        Return True if the export is succesful and False otherwise.
+
+        Use this function to initiate a user configuration. For LIMA to take into
+        account the configuration in the new path, you will have to add it in front of
+        the LIMA_CONF environment variable (or define it if it does not exist).
+
+        Please refer to the `LIMA documentation
+        <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`
+        for how to configure the analysis:
         """
         # Verify thar dir exists and is writable or create it
         if not dir:
@@ -657,7 +667,11 @@ class Lima:
     @staticmethod
     def get_system_paths() -> Tuple[str, str]:
         """
-        @return LIMA config and resources paths from the aymara module
+        Return a tuple with LIMA config and resources paths from the aymara module. Each
+        path is a colon (; under Windows) separated list of the paths that are searched
+        by LIMA to load its configuration files and linguistic resources.
+        This function is useful to understand from which dirs data are loaded to debug
+        configuration errors. It can also be used to know where to put or edit files.
         """
         return (str(pathlib.Path(list(aymaralima.__path__)[-1]) / "config"),
                 str(pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"))
