@@ -1,10 +1,9 @@
 import aymara.lima
 import sys
 
-
 lima = aymara.lima.Lima()
-result = lima("This is a text on 02/05/2022.", lang="eng", pipeline="main")
-for token in result:
-    print(token.lemma)
-print(result, file=sys.stderr)
+doc = lima("I like to read books. And you, Jane Doe? I went to Paris last year.")
+for token in doc:
+    print(repr(token))
+print(doc, file=sys.stderr)
 

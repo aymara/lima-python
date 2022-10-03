@@ -52,14 +52,6 @@ class Token:
     sent     The sentence span that this token is a part of.
     Span
 
-    ent_type    Named entity type.
-    str
-
-    ent_iob    IOB code of named entity tag. “B” means the token begins an entity, “I”
-    means it is inside an entity, “O” means it is outside an entity, and "" means no
-    entity tag is set.
-    str
-
     is_alpha    Does the token consist of alphabetic characters? Equivalent to
     token.text.isalpha().
     bool
@@ -116,11 +108,15 @@ class Token:
         DEPS: Enhanced dependency graph in the form of a list of head-deprel pairs.
         MISC: Any other annotation.
         """
-        return (f"{self.i}\t{self}\t{self.lemma}\t{self.pos}\t_\t"
-                + "|".join([f'{k}:{v}' for k, v in self.features.items()])
+        return (f"{self.i}\t{self.token.text}\t{self.lemma}\t{self.pos}\t_\t"
+                + ("|".join([f'{k}:{v}' for k, v in self.features.items()])
+                   if self.features else "_")
                 + "\t"
-                f"{self.head if self.head > 0 else '_'}\t{self.dep}\t_\t"
-                f"Pos={self.idx}|Len={len(self)}")
+                + f"{self.head if self.head > 0 else '_'}\t"
+                + f"{self.dep if self.dep else '_'}\t_\t"
+                + f"Pos={self.idx}|Len={len(self)}"
+                + (f"" if self.token.neIOB == 'O'
+                   else f"NE={self.token.neIOB}-{self.token.neType}"))
 
     def __len__(self):
         """Return the length of the token in UTF-8 code points"""
@@ -155,10 +151,20 @@ class Token:
             doc="Position of this token in its document text.")
 
     features = property(
-            fget=lambda self:  ("_" if self.token.features == "_"
+            fget=lambda self:  ({} if self.token.features == "_"
                                 else dict(x.split("=")
                                           for x in self.token.features.split("|"))),
             doc="Morphlogical features of this token .")
+
+    ent_type = property(
+            fget=lambda self: self.token.neType,
+            doc="Named entity type.")
+
+    ent_iob = property(
+            fget=lambda self: self.token.neIOB,
+            doc=("IOB code of named entity tag. “B” means the token begins an entity, "
+                 "“I” means it is inside an entity, “O” means it is outside an entity, "
+                 "and \"\" means no entity tag is set."))
 
 
 class SentencesIterator:
