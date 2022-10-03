@@ -1,3 +1,5 @@
+docs/build
+
 *.whl.md5
 *.kate-swp
 
