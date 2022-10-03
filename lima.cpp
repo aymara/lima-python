@@ -708,6 +708,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
 
   std::cerr << "docFrom_analysis get stringsPool" << std::endl;
   Doc doc;
+  doc.m_d->language = lang;
   sp = &MedData::single().stringsPool(MedData::single().media(lang));
 
 
@@ -925,10 +926,11 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(
 
       auto pos = ft->position();
       auto len = ft->length();
+      auto tStatus = ft->status().defaultKey();
 
       Token t(len, inflectedToken, lemmatizedToken.toStdString(),
               tokenId++, pos, micro.toStdString(), 0, "", features.toStdString(),
-              neIOB.toStdString(), neType.toStdString());
+              neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
       vertexToToken[v] = tokenId;
       // std::cerr << "docFrom_analysis pushing token" << std::endl;
       doc.m_d->tokens.push_back(t);
@@ -1130,10 +1132,11 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
     // }
     auto pos = ft->position();
     auto len = ft->length();
+    auto tStatus = ft->status().defaultKey();
     auto features = getFeats(*propertyCodeManager, *morphoData);
     Token t(len, inflectedToken, lemmatizedToken.toStdString(), tokenId++, pos,
             micro.toStdString(), 0, "", features.toStdString(),
-            neIOB.toStdString(), neType.toStdString());
+            neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
     vertexToToken[v] = tokenId;
     std::cerr << "docFrom_analysis pushing token" << std::endl;
     doc.m_d->tokens.push_back(t);

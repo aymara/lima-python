@@ -76,6 +76,7 @@ public:
   Token& operator[](int i);
   Token& at(int i);
   const std::vector<Span>& sentences() const;
+  const std::string& language() const;
   int len();
   friend class LimaAnalyzer;
   DocPrivate* m_d;

@@ -52,38 +52,8 @@ class Token:
     sent     The sentence span that this token is a part of.
     Span
 
-    is_alpha    Does the token consist of alphabetic characters? Equivalent to
-    token.text.isalpha().
-    bool
-
-    is_digit    Does the token consist of digits? Equivalent to token.text.isdigit().
-    bool
-    is_lower    Is the token in lowercase? Equivalent to token.text.islower().
-    bool
-
-    is_upper    Is the token in uppercase? Equivalent to token.text.isupper().
-    bool
-
-    is_punct    Is the token punctuation?
-    bool
-
-    is_sent_start    Does the token start a sentence? bool or None if unknown. Defaults
-    to True for the first token in the Doc.
-
-    is_sent_end    Does the token end a sentence? bool or None if unknown.
-
-    is_space    Does the token consist of whitespace characters? Equivalent to
-    token.text.isspace().
-    bool
-
-    is_bracket    Is the token a bracket?
-    bool
-
-    is_quote    Is the token a quotation mark?
-    bool
-
     lang    Language of the parent document’s vocabulary.
-    int
+    str
     """
     def __init__(self, token: aymaralima.cpplima.Token):
         assert type(token) == aymaralima.cpplima.Token
@@ -116,7 +86,7 @@ class Token:
                 + f"{self.dep if self.dep else '_'}\t_\t"
                 + f"Pos={self.idx}|Len={len(self)}"
                 + (f"" if self.token.neIOB == 'O'
-                   else f"NE={self.token.neIOB}-{self.token.neType}"))
+                   else f"|NE={self.token.neIOB}-{self.token.neType}"))
 
     def __len__(self):
         """Return the length of the token in UTF-8 code points"""
@@ -165,6 +135,77 @@ class Token:
             doc=("IOB code of named entity tag. “B” means the token begins an entity, "
                  "“I” means it is inside an entity, “O” means it is outside an entity, "
                  "and \"\" means no entity tag is set."))
+
+    t_status = property(
+            fget=lambda self: self.token.tStatus,
+            doc=("The tokenization status of this token. Can also be explored with the "
+                 "is_* properties. The possible values are:\n"
+                 "  t_alphanumeric\n"
+                 "  t_abbrev\n"
+                 "  t_acronym\n"
+                 "  t_capital\n"
+                 "  t_capital_1st\n"
+                 "  t_capital_small\n"
+                 "  t_cardinal_roman\n"
+                 "  t_comma_number\n"
+                 "  t_dot_number\n"
+                 "  t_fraction\n"
+                 "  t_integer\n"
+                 "  t_ordinal_integer\n"
+                 "  t_ordinal_roman\n"
+                 "  t_sentence_brk\n"
+                 "  t_small\n"
+                 "  t_word_brk"))
+
+    is_alpha = property(
+        fget=lambda self: self.token.tStatus in ["t_alphanumeric", "t_capital",
+                                                 "t_capital_1st", "t_capital_small",
+                                                 "t_small"],
+        doc=("Does the token consist of alphabetic characters? "
+             "Equivalent to token.text.isalpha()."))
+
+    is_digit = property(
+        fget=lambda self: self.token.tStatus == "t_integer",
+        doc=("Does the token consist of digits? "
+            "Equivalent to token.text.isdigit()."))
+
+    is_lower = property(
+        fget=lambda self: self.token.text.islower(),
+        doc=("Is the token in lowercase? Equivalent to token.text.islower()."))
+
+    is_upper = property(
+        fget=lambda self: self.token.text.isupper(),
+        doc=("Is the token in lowercase? Equivalent to token.text.isupper()."))
+
+    is_punct = property(
+        fget=lambda self: self.token.tStatus in ["t_sentence_brk", "t_word_brk"],
+        doc=("Is the token punctuation?"))
+
+    is_sent_start = property(
+        fget=lambda self: self.token.i == 0,
+        # TODO give access to the document to be able to implemnt that:
+        # or self.token.i in [s[0].i for s in self.doc.sents],
+        doc=("Does the token start a sentence? bool or None if unknown. "
+             "Defaults to True for the first token in the Doc."
+             "\nTODO: implement for sentences other than the first one."))
+
+    is_sent_end = property(
+        fget=lambda self: self.token.tStatus == "t_sentence_brk",
+        doc=("Does the token end a sentence? bool or None if unknown."))
+
+    is_space = property(
+        fget=lambda self: self.token.text.isspace(),
+        doc=("Does the token consist of whitespace characters? "
+            "Equivalent to token.text.isspace(). "
+            "Should always be False in LIMA as there is no space tokens"))
+
+    is_bracket = property(
+        fget=lambda self: self.token.text in "()[]{}",
+        doc=("Is the token a bracket?"))
+
+    is_quote = property(
+        fget=lambda self: self.token.text in "\"'«»`",
+        doc=("Is the token a quotation mark?"))
 
 
 class SentencesIterator:
@@ -262,11 +303,11 @@ class Span:
     Iterable[Span]
 
     """
-    def __init__(self, doc, start: int, end: int):
+    def __init__(self, doc, start: int, end: int, label: str = ""):
         self._doc = doc
         self._start = start
         self._end = end
-
+        self._label = label
 
     def __iter__(self):
         """Returns Iterator object"""
@@ -326,6 +367,45 @@ class Span:
             fget=lambda self: self[-1].idx+len(self[-1]),
             doc="The character offset for the end of the span.")
 
+    label = property(
+            fget=lambda self: self._label,
+            doc="A label to attach to the span, e.g. for named entities.")
+
+
+class DocEntitiesIterator:
+    """Doc Entities Iterator class"""
+
+    def __init__(self, doc):
+        # Doc object reference
+        self._doc = doc
+        # index variable to keep track
+        self._index = 0
+
+    def __iter__(self):
+        """Returns Iterator object"""
+        return self
+
+    def __next__(self):
+        """'Returns the next Span defining an entity in the document"""
+        while self._index < len(self._doc):
+            if self._doc[self._index].ent_iob == "B":
+                start = self._doc[self._index].i
+                end = start
+                label = self._doc[self._index].ent_type
+                while self._index < len(self._doc):
+                    self._index += 1
+                    if self._index < len(self._doc):
+                        if self._doc[self._index].ent_iob == "I":
+                            end = self._index
+                        else:
+                            return Span(self._doc, start, end, label=label)
+
+                # Iteration ends
+                raise StopIteration
+            self._index += 1
+        # Iteration ends
+        raise StopIteration
+
 
 class DocIterator:
     """Doc Iterator class"""
@@ -353,17 +433,11 @@ class Doc:
     This is mainly an iterable of tokens.
 
     TODO
-    Some parts of the API are still not implemented
-
-    ents    The named entities in the document. Returns a tuple of named entity Span objects, if the entity recognizer has been applied.
-    Tuple[Span]
+    Some parts of the API are still not implemented:
 
     compounds   The compounds found into the document text by the
         CompoundsBuilderFromSyntacticData LIMA pipeline unit
     List[Compound]
-
-    lang 	Language of the document.
-    str
     """
     def __init__(self, doc: aymaralima.cpplima.Doc):
         self.limadoc = doc
@@ -418,6 +492,14 @@ class Doc:
                  "        YIELDS	Sentences in the document.\n"
                  "        Span\n"))
 
+    lang = property(
+            fget=lambda self: self.limadoc.language(),
+            doc="Language of the document.")
+
+    ents = property(
+            fget=lambda self: DocEntitiesIterator(self),
+            doc=("Iterate over the entites in the document. Returns an iterator yielding"
+                 "named entity Span objects.\n"))
 
 
 class Lima:

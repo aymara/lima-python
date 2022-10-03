@@ -71,7 +71,8 @@ Token::Token(int len,
       const std::string& dep,
       const std::string& feats,
       const std::string& neIOB,
-      const std::string& neType)
+      const std::string& neType,
+      const std::string& tStatus)
 {
   this->len = len;
   this->text = text;
@@ -84,4 +85,5 @@ Token::Token(int len,
   this->features = feats;
   this->neIOB = neIOB;
   this->neType = neType;
+  this->tStatus = tStatus;
 }

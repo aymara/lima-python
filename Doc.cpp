@@ -117,3 +117,8 @@ const std::vector<Span>& Doc::sentences() const
 {
   return m_d->sentences;
 }
+
+const std::string& Doc::language() const
+{
+  return m_d->language;
+}

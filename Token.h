@@ -76,7 +76,8 @@ struct BINDINGS_API Token
         const std::string& dep,
         const std::string& feats,
         const std::string& neIOB,
-        const std::string& neType);
+        const std::string& neType,
+        const std::string& tStatus);
   ~Token() = default;
   Token(const Token& a) = default;
   Token& operator=(const Token& a) = default;
@@ -95,6 +96,7 @@ struct BINDINGS_API Token
   std::string features;
   std::string neIOB;
   std::string neType;
+  std::string tStatus;
 };
 
 

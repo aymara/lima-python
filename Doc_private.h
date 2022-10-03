@@ -75,4 +75,5 @@ public:
   std::vector<Token> tokens;
   std::shared_ptr<Lima::AnalysisContent> analysis;
   std::vector<Span> sentences;
+  std::string language;
 };
