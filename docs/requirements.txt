@@ -1,0 +1,8 @@
+pyconll
+pydantic
+requests
+shiboken6
+tqdm
+unix_ar
+skbuild
+
