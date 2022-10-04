@@ -730,7 +730,7 @@ class Lima:
         lima_doc = self.analyzer(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
-        if self.analyzer.error or lima_doc.error:
+        if self.analyzer.error or lima_doc.error():
             raise LimaInternalError()
         return Doc()
 
