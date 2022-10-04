@@ -7,6 +7,13 @@ import aymara.lima_models
 import pytest
 import sys
 
+def test___yesnoconfirm(monkeypatch):
+    answers = iter(["y", "Y", "n", "other"])
+    monkeypatch.setattr('builtins.input', lambda name: next(answers))
+    assert aymara.lima_models._yesnoconfirm("A test") == True
+    assert aymara.lima_models._yesnoconfirm("A test") == True
+    assert aymara.lima_models._yesnoconfirm("A test") == False
+    assert aymara.lima_models._yesnoconfirm("A test") == False
 
 def test_install_model():
     """Test installation of models for a language. We use Wolof because it is currently

@@ -33,7 +33,7 @@ C2LC = {"lang2code": {}, "code2lang": {}}
 #############################################
 # Private functions
 
-def __yesnoconfirm(msg):
+def _yesnoconfirm(msg):
     """
     Asks the user to input y or n. Return True if the input is exactly 'y' and False
     otherwise.
@@ -419,7 +419,7 @@ def remove_language(language: str, dest: str = None, force: bool = False) -> boo
     language (Default value = False)
 
     """
-    if not force and not __yesnoconfirm(f"Do you really want to remove language {language} ?"):
+    if not force and not _yesnoconfirm(f"Do you really want to remove language {language} ?"):
         return
     target_dir = _get_target_dir(dest)
     code, lang = _find_lang_code(language.lower())
