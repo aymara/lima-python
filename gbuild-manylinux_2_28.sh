@@ -39,3 +39,4 @@ docker create -ti --name dummy lima-python${PYTHON_VERSION}:latest bash
 docker cp dummy:/lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl .
 docker rm -f dummy
 
+docker build -f Dockerfile-tests --build-arg PYTHON_VERSION=3.7 .
