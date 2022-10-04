@@ -16,12 +16,18 @@ import os
 import sys
 from mock import Mock as MagicMock
 
+
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
+    __path__ = property(
+            fget=lambda self: [],
+            doc="")
 
-MOCK_MODULES = ['numpy', 'scipy', 'scipy.linalg', 'scipy.signal', 'skbuild']
+
+MOCK_MODULES = ['numpy', 'scipy', 'scipy.linalg', 'scipy.signal',
+                'aymaralima', 'aymaralima.cpplima', 'skbuild']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 sys.path.insert(0, os.path.abspath('../'))
