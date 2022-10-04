@@ -452,7 +452,7 @@ class DocEntitiesIterator:
 class DocIterator:
     """Doc Iterator class"""
 
-    def __init__(self, doc: Dec):
+    def __init__(self, doc):
         # Doc object reference
         self._doc = doc
         # index variable to keep track
