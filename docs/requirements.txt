@@ -5,3 +5,6 @@ shiboken6
 tqdm
 unix_ar
 scikit-build
+pytest
+pytest-cov
+sphinx-test-reports
