@@ -58,7 +58,7 @@ RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
 
 FROM aymara_lima_manylinux_2_28_qt_python
 
-COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Span.h Span.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
+COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Span.h Span.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py .coveragerc /lima-python/
 RUN install -d /lima-python/tests
 COPY tests/* /lima-python/tests/
 COPY aymara/* /lima-python/aymara/
@@ -71,7 +71,7 @@ ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-b
 RUN python${PYTHON_VERSION} -m pip install unix_ar
 RUN python${PYTHON_VERSION} -m pip install /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python
-RUN python${PYTHON_VERSION} -m pytest --cov=aymara --cov-report term-missing  tests/
+RUN python${PYTHON_VERSION} -m pytest --cov=aymara --cov-config=.coveragerc --cov-report term-missing  tests/
 RUN auditwheel repair --plat manylinux_2_28_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
