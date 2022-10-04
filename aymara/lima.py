@@ -417,7 +417,7 @@ class Span:
 class DocEntitiesIterator:
     """Doc Entities Iterator class"""
 
-    def __init__(self, doc: Doc):
+    def __init__(self, doc):
         # Doc object reference
         self._doc = doc
         # index variable to keep track
