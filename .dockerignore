@@ -1,4 +1,4 @@
-*.whl
+#*.whl
 *.whl.md5
 _skbuild
 __pycache__
