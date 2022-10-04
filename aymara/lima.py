@@ -26,7 +26,11 @@ documentation.
 
 
 def get_data_dir(appname):
-    """Return the path suitable to store user data depending on the OS."""
+    """
+
+    :param appname:
+
+    """
     if sys.platform == "win32":
         import winreg
         key = winreg.OpenKey(
@@ -43,8 +47,7 @@ def get_data_dir(appname):
 
 
 class Token:
-    """
-    A token
+    """A token
 
     TODO
     Some parts of the API are still not implemented
@@ -54,6 +57,8 @@ class Token:
 
     lang    Language of the parent document’s vocabulary.
     str
+
+
     """
     def __init__(self, token: aymaralima.cpplima.Token):
         assert type(token) == aymaralima.cpplima.Token
@@ -253,8 +258,7 @@ class SpanIterator:
 
 
 class Span:
-    """
-    Represents a continuous span of tokens in a Doc.
+    """Represents a continuous span of tokens in a Doc.
 
     TODO
     Some parts of the API are still not implemented
@@ -301,6 +305,7 @@ class Span:
         span = doc[2:4]
         assert len(span.sents) == 2
     Iterable[Span]
+
 
     """
     def __init__(self, doc, start: int, end: int, label: str = ""):
@@ -427,8 +432,7 @@ class DocIterator:
 
 
 class Doc:
-    """
-    A document.
+    """A document.
 
     This is mainly an iterable of tokens.
 
@@ -437,7 +441,9 @@ class Doc:
 
     compounds   The compounds found into the document text by the
         CompoundsBuilderFromSyntacticData LIMA pipeline unit
-    List[Compound]
+        List[Compound]
+
+
     """
     def __init__(self, doc: aymaralima.cpplima.Doc):
         self.limadoc = doc
@@ -503,12 +509,13 @@ class Doc:
 
 
 class Lima:
-    """
-    A text-processing pipeline
+    """A text-processing pipeline
 
     Usually you’ll load this once per process as nlp and pass the instance around your
     application. The Lima class is a wrapper around the LimaAnalyzer class which is
     itself a binding around the C++ classes necessary to analyze text.
+
+
     """
     def __init__(self,
                  langs: str = "fre,eng",
@@ -559,6 +566,8 @@ class Lima:
         """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
+        if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
+            lang = "ud-" + lang
         if pipeline is None:
             pipeline = self.pipes.split(",")[0] if self.pipes else "main"
         if not isinstance(text, str):
@@ -589,8 +598,7 @@ class Lima:
                     lang: str = None,
                     pipeline: str = None,
                     meta: Dict[str, str] = {}) -> str:
-        """
-        Analyze the given text in the given language. The lang language must have been
+        """Analyze the given text in the given language. The lang language must have been
         initialized when instantiating this object.
 
         text: the text to analyze
@@ -600,10 +608,17 @@ class Lima:
         first element of the pipelines member or to main if empty.
         meta: a list of named metadata values
 
-        return a Doc object representing the result of the analysis.
+        :param text: str:
+        :param lang: str:  (Default value = None)
+        :param pipeline: str:  (Default value = None)
+        :param meta: Dict[str:
+        :param str]:  (Default value = {})
+
         """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
+        if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
+            lang = "ud-" + lang
         if pipeline is None:
             pipeline = self.pipes.split(",")[0] if self.pipes else "main"
         if not isinstance(text, str):
@@ -631,22 +646,22 @@ class Lima:
 
     @staticmethod
     def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:
-        """
-        Export LIMA configuration files from the module system path to the given
+        """Export LIMA configuration files from the module system path to the given
         dir in order to be able to easily change configuration files.
 
         If lang is given, only the configuration files concerning this language
         are exported (NOT IMPLEMENTED).
 
-        Return True if the export is succesful and False otherwise.
-
-        Use this function to initiate a user configuration. For LIMA to take into
+        :param dir: pathlib.Path:  (Default value = None)
+        :param lang: str:  (Default value = None)
+        :returns: Use this function to initiate a user configuration. For LIMA to take into
         account the configuration in the new path, you will have to add it in front of
         the LIMA_CONF environment variable (or define it if it does not exist).
 
         Please refer to the
         `LIMA documentation <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`_
         for how to configure the analysis:
+
         """
         # Verify thar dir exists and is writable or create it
         if not dir:
@@ -667,11 +682,13 @@ class Lima:
     @staticmethod
     def get_system_paths() -> Tuple[str, str]:
         """
-        Return a tuple with LIMA config and resources paths from the aymara module. Each
-        path is a colon (; under Windows) separated list of the paths that are searched
+
+
+        :returns: path is a colon (; under Windows) separated list of the paths that are searched
         by LIMA to load its configuration files and linguistic resources.
         This function is useful to understand from which dirs data are loaded to debug
         configuration errors. It can also be used to know where to put or edit files.
+
         """
         return (str(pathlib.Path(list(aymaralima.__path__)[-1]) / "config"),
                 str(pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"))

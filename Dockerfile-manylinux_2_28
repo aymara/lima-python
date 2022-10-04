@@ -24,7 +24,7 @@ RUN yum install -y wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3
 RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
 RUN python${PYTHON_VERSION} -m pip install --upgrade pip
-RUN python${PYTHON_VERSION} -m pip install scikit-build pytest pyconll pydantic requests
+RUN python${PYTHON_VERSION} -m pip install scikit-build pytest pytest-cov pyconll pydantic requests sphinx-test-reports
 
 RUN python${PYTHON_VERSION} -m pip install \
     --index-url=http://download.qt.io/official_releases/QtForPython/ \
@@ -70,7 +70,7 @@ ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-b
 RUN python${PYTHON_VERSION} -m pip install unix_ar
 RUN python${PYTHON_VERSION} -m pip install /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python
-# RUN python${PYTHON_VERSION} -m pytest
+RUN python${PYTHON_VERSION} -m pytest --cov=aymara --cov-report term-missing  tests/
 RUN auditwheel repair --plat manylinux_2_28_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl

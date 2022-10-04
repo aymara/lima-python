@@ -53,9 +53,13 @@ def __yesnoconfirm(msg):
 
 
 def _remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
-    """
-    Remove a model.
+    """Remove a model.
     This function is private. It should not be used directly.
+
+    :param target_dir: str:
+    :param code: str:
+    :param prefix_list: List[str]:
+
     """
     removed = False
     for prefix in prefix_list:
@@ -71,8 +75,10 @@ def _remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
 
 def _get_target_dir(dest=None):
     """
-    Return the directory containing models: dest if given and a default one otherwise
-    This function is private. It should not be used directly.
+
+    :param dest:  (Default value = None)
+    :returns: This function is private. It should not be used directly.
+
     """
     if not dest:
         if "XDG_DATA_HOME" in os.environ and len(os.environ["XDG_DATA_HOME"]) > 0:
@@ -86,10 +92,15 @@ def _get_target_dir(dest=None):
 
 
 def _install_model(dir, fn, code, prefix_list):
-    """
-    Install an individual model to its destination. This function is private. It should
+    """Install an individual model to its destination. This function is private. It should
     not be used directly.
     This function is private. It should not be used directly.
+
+    :param dir:
+    :param fn:
+    :param code:
+    :param prefix_list:
+
     """
     Path(dir).mkdir(parents=True, exist_ok=True)
     ar_file = unix_ar.open(fn)
@@ -136,10 +147,13 @@ def _install_model(dir, fn, code, prefix_list):
 
 
 def _download_binary_file(url, dir):
-    """
-    Download the file at the given url to the give directory. This function is private.
+    """Download the file at the given url to the give directory. This function is private.
     It should not be used directly.
     This function is private. It should not be used directly.
+
+    :param url:
+    :param dir:
+
     """
     Path(dir).mkdir(parents=True, exist_ok=True)
     chunk_size = 4096
@@ -160,11 +174,13 @@ def _download_binary_file(url, dir):
 
 def _find_lang_code(lang_str):
     """
-    Return a tuple made of a language code and its language name. lang_str can be
-    either the code or the name.
+
+    :param lang_str:
+    :returns: either the code or the name.
     On the first call, the mapping is downloaded from an external source. So, you need
     to be able to access the Internet to use this function.
     This function is private. It should not be used directly.
+
     """
     if len(list(C2LC["lang2code"].keys())) == 0:
         with urllib.request.urlopen(URL_C2LC) as f:
@@ -184,9 +200,11 @@ def _find_lang_code(lang_str):
 
 
 def _list_installed_languages(target_dir):
-    """
-    List the models currently available in target_dir.
+    """List the models currently available in target_dir.
     This function is private. It should not be used directly.
+
+    :param target_dir:
+
     """
     Path(target_dir).mkdir(parents=True, exist_ok=True)
     langs = {
@@ -205,10 +223,13 @@ def _list_installed_languages(target_dir):
 
 
 def _list_installed_languages_per_module(target_dir, prefix_list):
-    """
-    List the installation status of the models from prefix_list for all languages in
+    """List the installation status of the models from prefix_list for all languages in
     target_dir. Allows also to check the correct installation of the models.
     This function is private. It should not be used directly.
+
+    :param target_dir:
+    :param prefix_list:
+
     """
     Path(target_dir).mkdir(parents=True, exist_ok=True)
 
@@ -268,19 +289,19 @@ def _list_installed_languages_per_module(target_dir, prefix_list):
 # Public functions
 
 def info():
-    """
-    Print the mapping between language codes and language names
-    """
+    """Print the mapping between language codes and language names"""
     _find_lang_code("eng")
     for code in C2LC["code2lang"]:
         print("%-10s\t%s" % (code, C2LC["code2lang"][code]))
-    return
 
 
 def list_installed_models(dest: str = None):
-    """
-    Print the list of the models currently available in dest or in a default directory
-    if dest is None.
+    """Print the list of the models currently available in dest or in a default
+    directory if dest is None.
+
+    :param dest: str: the directory where to search installed models. a default
+    directory will be used if dest is None. (Default value = None)
+
     """
     target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
@@ -321,8 +342,7 @@ def list_installed_models(dest: str = None):
 
 def install_language(language: str, dest: str = None, select: List[str] = None,
                      force: bool = False):
-    """
-    Install models for the given language, into dest if given or a default directory
+    """Install models for the given language, into dest if given or a default directory
     otherwise.
 
     If select is not None, it is a list of strings from "tokenizer",
@@ -330,6 +350,12 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
 
     If force is False (the default), only models not already present are installed.
     Otherwise, they are replaced by new ones.
+
+    :param language: str:
+    :param dest: str:  (Default value = None)
+    :param select: List[str]:  (Default value = None)
+    :param force: bool:  (Default value = False)
+
     """
     target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
@@ -381,14 +407,19 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
     return False
 
 
-def remove_language(language: str, dest: str = None) -> bool:
-    """
-    Remove all the resources for language from the system. If dest is given, remove from
+def remove_language(language: str, dest: str = None, force: bool = False) -> bool:
+    """Remove all the resources for language from the system. If dest is given, remove from
     this directory. Otherwise, search in default directories.
 
     Confirmation is asked before removing anything.
+
+    :param language: str:
+    :param dest: str:  (Default value = None)
+    :param force: bool: If False, confirmation will be asked before removing the
+    language (Default value = False)
+
     """
-    if not __yesnoconfirm(f"Do you really want to remove language {language} ?"):
+    if not force and not __yesnoconfirm(f"Do you really want to remove language {language} ?"):
         return
     target_dir = _get_target_dir(dest)
     code, lang = _find_lang_code(language.lower())
