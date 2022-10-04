@@ -23,15 +23,16 @@ def test_analyzeText_lang_not_init():
 
 
 def test_analyzeText_pipeline_not_avail():
-    lima = aymara.lima.Lima("ud-eng")
-    result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="main")
-    print(result, file=sys.stderr)
-    assert True
+    with pytest.raises(aymara.lima.LimaInternalError):
+        lima = aymara.lima.Lima("ud-eng")
+        result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="main")
+        print(result, file=sys.stderr)
+        assert True
 
 
 def test_analyzeText():
-    lima = aymara.lima.Lima("ud-eng")
-    result = lima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
+    lima = aymara.lima.Lima()
+    result = lima.analyzeText("This is a text on 02/05/2022.", lang="eng",
                               pipeline="main")
     print(result, file=sys.stderr)
     assert True
@@ -39,25 +40,33 @@ def test_analyzeText():
 
 def test_analyzeText_init_with_lang():
     lima = aymara.lima.Lima("ud-eng")
-    result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="main")
+    result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="deepud")
+    print(result, file=sys.stderr)
+    assert True
+
+
+def test_analyzeText_init_with_lang_and_pipe():
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    result = lima.analyzeText("This is a text on 02/05/2022.")
     print(result, file=sys.stderr)
     assert True
 
 
 def test_functor():
-    lima = aymara.lima.Lima("ud-eng")
-    result = lima("This is a text on 02/05/2022.")
-    assert result is not None and type(result) == aymara.lima.Doc
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("This is a text on 02/05/2022.")
+    assert doc is not None and type(doc) == aymara.lima.Doc
 
 
 def test_doc_size():
-    lima = aymara.lima.Lima("ud-eng")
-    result = lima("This is a text on 02/05/2022.")
-    assert len(result) > 0
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("This is a text on 02/05/2022.")
+    assert len(doc) > 0
 
 
 def test_doc_token_access():
-    doc = nlp("Give it back! He pleaded.")
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("Give it back! He pleaded.")
     assert doc[0].text == "Give"
     assert doc[-1].text == "."
     span = doc[1:3]
@@ -65,8 +74,8 @@ def test_doc_token_access():
 
 
 def test_doc_sents():
-    nlp = aymara.lima.Lima("ud-eng")
-    doc = nlp("This is a sentence. Here's another...")
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("This is a sentence. Here's another...")
     sents = list(doc.sents)
     assert len(sents) == 2
     ## TODO impjement s.root
@@ -74,15 +83,15 @@ def test_doc_sents():
 
 
 def test_span_size():
-    nlp = aymara.lima.Lima("ud-eng")
-    doc = nlp("Give it back! He pleaded.")
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("Give it back! He pleaded.")
     span = doc[1:4]
     assert len(span) == 3
 
 
 def test_span_text():
-    nlp = aymara.lima.Lima("ud-eng")
-    doc = nlp("Give it back! He pleaded.")
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("Give it back! He pleaded.")
     span = doc[1:4]
     assert span[1].text == "back"
     assert span[1:3].text == "back!"
