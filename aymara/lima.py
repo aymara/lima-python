@@ -787,10 +787,10 @@ class Lima:
                 pipeline = "deepud"
             else:
                 pipeline = "main"
-        lima_doc = self.analyzer.analyzeText(
+        result = self.analyzer.analyzeText(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
-        if self.analyzer.error or lima_doc.error():
+        if self.analyzer.error:
             raise LimaInternalError(self.analyzer.errorMessage)
 
     @staticmethod
