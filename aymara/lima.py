@@ -372,7 +372,7 @@ class Span:
         """
         Returns the number of tokens of this span
 
-        EXAMPLE::
+        Example::
 
             import aymara.lima
             nlp = aymara.lima.Lima()
@@ -390,7 +390,7 @@ class Span:
         Returns either the Token at position i in the span or the subspan defined by
         the slice i.
 
-        EXAMPLE::
+        Example::
 
             import aymara.lima
             nlp = aymara.lima.Lima()
@@ -501,7 +501,7 @@ class Doc:
 
     This is mainly an iterable of tokens.
 
-    EXAMPLE::
+    Example::
 
         import aymara.lima
         nlp = aymara.lima.Lima()
@@ -568,16 +568,17 @@ class Doc:
 
     text = property(
             fget=lambda self: self.limadoc.text(),
-            doc="The original text.")
+            doc=("The original text.\n"
+                 ":type: str\n"))
 
     sents = property(
             fget=lambda self: _SentencesIterator(self),
-            doc=("    sents   Iterate over the sentences in the document.\n"
+            doc=("    Iterate over the sentences in the document.\n"
                  "        This property is only available when sentence boundaries have"
                  " been set on the\n"
                  "        document by the pipeline. It will raise an error otherwise.\n"
                  "        Example::\n"
-                 "\n"
+                 "sents = list(doc.sents)\n"
                  "          import aymara.lima\n"
                  "          nlp = aymara.lima.Lima()\n"
                  "          doc = nlp(\"This is a sentence. Here's another...\")\n"
@@ -585,9 +586,8 @@ class Doc:
                  "          assert len(sents) == 2\n"
                  "          assert [s.root.text for s in sents] == [\"is\", \"'s\"]\n"
                  "\n"
-                 "        Name	Description\n"
-                 "        YIELDS	Sentences in the document.\n"
-                 "        Span\n"))
+                 "        :yields:	Sentences in the document.\n"
+                 "        :type: Span\n"))
 
     lang = property(
             fget=lambda self: self.limadoc.language(),
@@ -596,7 +596,18 @@ class Doc:
     ents = property(
             fget=lambda self: _DocEntitiesIterator(self),
             doc=("Iterate over the entites in the document. Returns an iterator yielding"
-                 "named entity Span objects.\n"))
+                 "named entity Span objects.\n"
+                 "        Example::\n"
+                 "\n"
+                 "          import aymara.lima\n"
+                 "          nlp = aymara.lima.Lima()\n"
+                 "          doc = nlp(\"John Doe lives in New York\")\n"
+                 "          ents = list(doc.ents)\n"
+                 "          assert ents[0].label == \"Person.PERSON\"\n"
+                 "          assert ents[0].text == \"John Doe\"\n"
+                 "\n"
+                 "        :yields:	Entities in the document.\n"
+                 "        :type: Span\n"))
 
 
 class Lima:
