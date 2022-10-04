@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
 
+"""
+The LIMA python bindings.
+
+This python API gives access to the major features of the LIMA linguistic analyzer. To
+make it easier to handle, it largely reproduces that of spaCy, including parts of the
+documentation. See the GitHub project for spaCy's copyright notice.
+
+Classes:
+
+    Doc
+    Lima
+    Span
+    Token
+
+"""
+
+
 # SPDX-FileCopyrightText: 2022 CEA LIST <gael.de-chalendar@cea.fr>
 #
 # SPDX-License-Identifier: MIT
@@ -16,20 +33,15 @@ from typing import (Dict, Tuple, Union)
 
 import aymaralima.cpplima
 
-"""
-The LIMA python bindings.
 
-This python API gives access to the major features of the LIMA linguistic analyzer. To
-make it easier to handle, it largely reproduces that of spaCy, including parts of the
-documentation.
-"""
-
-
-def _get_data_dir(appname):
+def _get_data_dir(appname: str):
     """
+    This private function returns the application's data dir as defined by the OS.
 
-    :param appname:
-
+    :param appname: the name of the application.
+    :type appname: str
+    :return: the application's data dir.
+    :rtype: str
     """
     if sys.platform == "win32":
         import winreg
@@ -52,19 +64,24 @@ class Token:
     TODO
     Some parts of the API are still not implemented
 
-    sent     The sentence span that this token is a part of.
-    Span
+        sent     The sentence span that this token is a part of.
+        Span
 
-    lang    Language of the parent document’s vocabulary.
-    str
+        lang    Language of the parent document’s vocabulary.
+        str
 
 
     """
     def __init__(self, token: aymaralima.cpplima.Token):
+        """Token's constructor
+
+        :param token: the C++ binding Token class
+        :type token: aymaralima.cpplima.Token
+        """
         assert type(token) == aymaralima.cpplima.Token
         self.token = token
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         The representation of this token in CoNLL-U format. Tab separated columns:
         ID: Word index, integer starting at 1 for each new sentence; may be a range for
@@ -82,6 +99,9 @@ class Token:
             defined language-specific subtype of one.
         DEPS: Enhanced dependency graph in the form of a list of head-deprel pairs.
         MISC: Any other annotation.
+
+        :return: return the CoNLL-U representation of this token
+        :rtype: str
         """
         return (f"{self.i}\t{self.token.text}\t{self.lemma}\t{self.pos}\t_\t"
                 + ("|".join([f'{k}:{v}' for k, v in self.features.items()])
@@ -93,12 +113,20 @@ class Token:
                 + (f"" if self.token.neIOB == 'O'
                    else f"|NE={self.token.neIOB}-{self.token.neType}"))
 
-    def __len__(self):
-        """Return the length of the token in UTF-8 code points"""
+    def __len__(self) -> int:
+        """Return the length of the token in UTF-8 code points
+
+        :return: the length of the token
+        :rtype: int
+        """
         return self.token.len
 
     def __str__(self):
-        """Return the original text of the token."""
+        """Return the original text of the token.
+
+        :return: the original text of the token
+        :rtype: str
+        """
         return self.token.text
 
     i = property(
@@ -191,7 +219,7 @@ class Token:
         # TODO give access to the document to be able to implemnt that:
         # or self.token.i in [s[0].i for s in self.doc.sents],
         doc=("Does the token start a sentence? bool or None if unknown. "
-             "Defaults to True for the first token in the Doc."
+             "Default value = True for the first token in the Doc."
              "\nTODO: implement for sentences other than the first one."))
 
     is_sent_end = property(
@@ -263,48 +291,48 @@ class Span:
     TODO
     Some parts of the API are still not implemented
 
-    ents    The named entities that fall completely within the span. Returns a tuple of
-        Span objects.
-        Example
+        ents    The named entities that fall completely within the span. Returns a tuple of
+            Span objects.
+            Example
 
-        doc = nlp("Mr. Best flew to New York on Saturday morning.")
-        span = doc[0:6]
-        ents = list(span.ents)
-        assert ents[0].label == 346
-        assert ents[0].label_ == "PERSON"
-        assert ents[0].text == "Mr. Best"
+            doc = nlp("Mr. Best flew to New York on Saturday morning.")
+            span = doc[0:6]
+            ents = list(span.ents)
+            assert ents[0].label == 346
+            assert ents[0].label_ == "PERSON"
+            assert ents[0].text == "Mr. Best"
 
-        Name	Description
-        RETURNS	Entities in the span, one Span per entity.
-        Tuple[Span, …]
+            Name	Description
+            RETURNS	Entities in the span, one Span per entity.
+            Tuple[Span, …]
 
-    sent    The sentence span that this span is a part of.
-        This property is only available when sentence boundaries have been set on the
-        document by the pipeline. It will raise an error otherwise.
+        sent    The sentence span that this span is a part of.
+            This property is only available when sentence boundaries have been set on the
+            document by the pipeline. It will raise an error otherwise.
 
-        If the span happens to cross sentence boundaries, only the first sentence will be returned. If it is required that the sentence always includes the full span, the result can be adjusted as such:
+            If the span happens to cross sentence boundaries, only the first sentence will be returned. If it is required that the sentence always includes the full span, the result can be adjusted as such:
 
-        sent = span.sent
-        sent = doc[sent.start : max(sent.end, span.end)]
+            sent = span.sent
+            sent = doc[sent.start : max(sent.end, span.end)]
 
-        Example
+            Example
 
-        doc = nlp("Give it back! He pleaded.")
-        span = doc[1:3]
-        assert span.sent.text == "Give it back!"
-    Span
+            doc = nlp("Give it back! He pleaded.")
+            span = doc[1:3]
+            assert span.sent.text == "Give it back!"
+        Span
 
-    sents   Returns a generator over the sentences the span belongs to.
-        This property is only available when sentence boundaries have been set on the
-        document by the pipeline. It will raise an error otherwise.
+        sents   Returns a generator over the sentences the span belongs to.
+            This property is only available when sentence boundaries have been set on the
+            document by the pipeline. It will raise an error otherwise.
 
-        If the span happens to cross sentence boundaries, all sentences the span overlaps with will be returned.
-        Example
+            If the span happens to cross sentence boundaries, all sentences the span overlaps with will be returned.
+            Example
 
-        doc = nlp("Give it back! He pleaded.")
-        span = doc[2:4]
-        assert len(span.sents) == 2
-    Iterable[Span]
+            doc = nlp("Give it back! He pleaded.")
+            span = doc[2:4]
+            assert len(span.sents) == 2
+        Iterable[Span]
 
 
     """
@@ -314,18 +342,21 @@ class Span:
         self._end = end
         self._label = label
 
-    def __iter__(self):
+    def __iter__(self) -> SpanIterator:
         """Returns Iterator object"""
         return SpanIterator(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the number of tokens of this span
 
-        EXAMPLE:
+        EXAMPLE::
             doc = nlp("Give it back! He pleaded.")
             span = doc[1:4]
             assert len(span) == 3
+
+        :return: the number of tokens in this span
+        :rtype: int
         """
         return self._end - self._start
 
@@ -334,12 +365,18 @@ class Span:
         Returns either the Token at position i in the span or the subspan defined by
         the slice i.
 
-        EXAMPLE
+        EXAMPLE::
             doc = nlp("Give it back! He pleaded.")
             span = doc[1:4]
             assert span[1].text == "back"
             assert span[1:3].text == "back!"
 
+        :param i: the position in the span of the item to retrieve or a slice defining
+            the subspan to retriev.
+        :type i: int
+        :return: either the Token at position i in the span or the subspan defined by
+        the slice i.
+        :rtype: Union[int, slice]
         """
         if isinstance(i, slice):
             return Span(self._doc, self._start+i.start, self._start+i.stop)
@@ -380,7 +417,7 @@ class Span:
 class DocEntitiesIterator:
     """Doc Entities Iterator class"""
 
-    def __init__(self, doc):
+    def __init__(self, doc: Doc):
         # Doc object reference
         self._doc = doc
         # index variable to keep track
@@ -390,7 +427,7 @@ class DocEntitiesIterator:
         """Returns Iterator object"""
         return self
 
-    def __next__(self):
+    def __next__(self) -> Span:
         """'Returns the next Span defining an entity in the document"""
         while self._index < len(self._doc):
             if self._doc[self._index].ent_iob == "B":
@@ -415,13 +452,13 @@ class DocEntitiesIterator:
 class DocIterator:
     """Doc Iterator class"""
 
-    def __init__(self, doc):
+    def __init__(self, doc: Dec):
         # Doc object reference
         self._doc = doc
         # index variable to keep track
         self._index = 0
 
-    def __next__(self):
+    def __next__(self) -> Token:
         """'Returns the next value from doc object's lists"""
         if self._index < len(self._doc):
             result = self._doc[self._index]
@@ -439,39 +476,49 @@ class Doc:
     TODO
     Some parts of the API are still not implemented:
 
-    compounds   The compounds found into the document text by the
-        CompoundsBuilderFromSyntacticData LIMA pipeline unit
-        List[Compound]
+        compounds   The compounds found into the document text by the
+            CompoundsBuilderFromSyntacticData LIMA pipeline unit
+            List[Compound]
 
 
     """
     def __init__(self, doc: aymaralima.cpplima.Doc):
         self.limadoc = doc
 
-    def __iter__(self):
+    def __iter__(self) -> DocIterator:
         """Returns Iterator object"""
         return DocIterator(self)
 
-    def __len__(self):
-        """'Returns the number of tokens of this document"""
+    def __len__(self) -> int:
+        """'Returns the number of tokens of this document
+
+        :return: the number of tokens of this document.
+        :rtype:int
+        """
         return self.limadoc.len()
 
-    def __getitem__(self, i: Union[int, slice]):
-        """Returns the token at position i or a contiguous slice of tokens."""
+    def __getitem__(self, i: Union[int, slice]) -> Token:
+        """Returns the token at position i or a contiguous slice of tokens.
+
+        :param i: a position i or a contiguous slice of token to retrieve
+        :type i: Union[int, slice]
+        :return: the token at position i or a contiguous slice of tokens.
+        :rtype: Union[int, slice]
+        """
         if isinstance(i, slice):
             return Span(self, i.start, i.stop)
         if i < 0:
             i = self.length + i
         return Token(self.limadoc.at(i))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         The representation of a document is one line for each token represented in the
         CoNLL-U format.
         """
         return "\n".join([token.__repr__() for token in self])
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         The string of a document is its original text.
         """
@@ -526,14 +573,24 @@ class Lima:
         """
         Initialize the Lima analyzer
 
-        langs: a comma-separated list of language trigrams to initialize
-        pipes: a comma-separated list of Lima pipelines to analyze
-        user_config_path: a path where Lima configuration files will be searched for.
-            This allows to override default configurations
-        user_resources_path: a path where Lima resource files will be searched for.
-            This allows to override default configurations
-        meta: a list of named metadata values that will be used for each analysis.They
-            can be completed or overriden at analysis time
+        :param langs: a comma-separated list of language trigrams to initialize
+            (Default value = "fre,eng")
+        :type langs: str
+        :param pipes: a comma-separated list of Lima pipelines to analyze (Default value =
+            "main, deepud")
+        :type pipes: str
+        :param user_config_path: a path where Lima configuration files will be searched
+            for. This allows to override default configurations. (Default value = an empty
+            string)
+        :type user_config_path: str
+        :param user_resources_path: a path where Lima resource files will be searched
+            for. This allows to override default configurations (Default value = an empty
+            string)
+        :type user_resources_path: str
+        :param meta: a list of named metadata values that will be used for each
+            analysis.They can be completed or overriden at analysis time (Default value = an
+            empty dictionary)
+        :type meta:  Dict[str, str]
         """
         self.analyzer = aymaralima.cpplima.LimaAnalyzer(
             langs,
@@ -555,14 +612,20 @@ class Lima:
         Just 'call' your Lima instance to analyze the given text in the given language.
         The lang language must have been initialized when instantiating this object.
 
-        text: the text to analyze
-        lang: the language of the text. If none, will backup to the first element of the
-        langs member or to eng if empty.
-        pipeline: the Lima pipeline to use for analysis. If none, will backup to the
-        first element of the pipelines member or to main if empty.
-        meta: a list of named metadata values
+        :param text: the text to analyze
+        :type text: str
+        :param lang: the language of the text. If none, will backup to the first element
+            of the langs member or to eng if empty (Default value = `None`).
+        :type lang: str
+        :paramm pipeline: the Lima pipeline to use for analysis. If none, will backup to
+            the first element of the pipelines member or to main if empty (Default value =
+            `None`).
+        :type pipeline: str
+        :param meta: a dict of named metadata values (Default value = an empty dictionary).
+        :type meta: Dict[str, str]
 
-        return a Doc object representing the result of the analysis.
+        :return: a Doc object representing the result of the analysis.
+        :rtype: Doc
         """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
@@ -601,19 +664,18 @@ class Lima:
         """Analyze the given text in the given language. The lang language must have been
         initialized when instantiating this object.
 
-        text: the text to analyze
-        lang: the language of the text. If none, will backup to the first element of the
-        langs member or to eng if empty.
-        pipeline: the Lima pipeline to use for analysis. If none, will backup to the
-        first element of the pipelines member or to main if empty.
-        meta: a list of named metadata values
-
-        :param text: str:
-        :param lang: str:  (Default value = None)
-        :param pipeline: str:  (Default value = None)
-        :param meta: Dict[str:
-        :param str]:  (Default value = {})
-
+        :param text: the text to analyze
+        :type text: str
+        :param lang: the language of the text. If none, will backup to the first element
+            of the langs member or to eng if empty (Default value = `None`).
+        :type lang: str
+        :paramm pipeline: the Lima pipeline to use for analysis. If none, will backup to
+            the first element of the pipelines member or to main if empty (Default
+            value = `None`).
+        :type pipeline: str
+        :param meta: a dict of named metadata values (Default value = an empty
+            dictionary).
+        :type meta: Dict[str, str]
         """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
@@ -652,11 +714,18 @@ class Lima:
         If lang is given, only the configuration files concerning this language
         are exported (NOT IMPLEMENTED).
 
-        :param dir: pathlib.Path:  (Default value = None)
-        :param lang: str:  (Default value = None)
-        :returns: Use this function to initiate a user configuration. For LIMA to take into
+        Use this function to initiate a user configuration. For LIMA to take into
         account the configuration in the new path, you will have to add it in front of
         the LIMA_CONF environment variable (or define it if it does not exist).
+
+        :param dir: the directory were to export the configuration (Default value =
+            None)
+        :type dir: pathlib.Path
+        :param lang: the language whose configuration must be exported. If `None`, the
+            whole configuration is exported (Default value = None)
+        :type lang: str
+        :return: True if the configuration is correctly exported and False otherwise.
+        :rtype: boool
 
         Please refer to the
         `LIMA documentation <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`_
@@ -682,17 +751,16 @@ class Lima:
     @staticmethod
     def get_system_paths() -> Tuple[str, str]:
         """
+        Get the system configuration and resoures paths.
 
-
-        :returns: path is a colon (; under Windows) separated list of the paths that are searched
-        by LIMA to load its configuration files and linguistic resources.
-        This function is useful to understand from which dirs data are loaded to debug
-        configuration errors. It can also be used to know where to put or edit files.
+        :return: the colon (; under Windows) -separated list of the paths that are
+            searched by LIMA to load its configuration files and linguistic resources.
+            This function is useful to understand from which dirs data are loaded to
+            debug configuration errors. It can also be used to know where to put or edit
+            files.
+        :rtype: Tuple[str, str]
 
         """
         return (str(pathlib.Path(list(aymaralima.__path__)[-1]) / "config"),
                 str(pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"))
-
-
-
 

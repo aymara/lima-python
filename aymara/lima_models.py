@@ -288,20 +288,21 @@ def _list_installed_languages_per_module(target_dir, prefix_list):
 #############################################
 # Public functions
 
-def info():
+
+def info() -> None:
     """Print the mapping between language codes and language names"""
     _find_lang_code("eng")
     for code in C2LC["code2lang"]:
         print("%-10s\t%s" % (code, C2LC["code2lang"][code]))
 
 
-def list_installed_models(dest: str = None):
+def list_installed_models(dest: str = None) -> None:
     """Print the list of the models currently available in dest or in a default
     directory if dest is None.
 
-    :param dest: str: the directory where to search installed models. a default
+    :param dest: the directory where to search installed models. a default
     directory will be used if dest is None. (Default value = None)
-
+    :type dest: str
     """
     target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
@@ -341,21 +342,19 @@ def list_installed_models(dest: str = None):
 
 
 def install_language(language: str, dest: str = None, select: List[str] = None,
-                     force: bool = False):
-    """Install models for the given language, into dest if given or a default directory
-    otherwise.
+                     force: bool = False) -> bool:
+    """Install models for the given language.
 
-    If select is not None, it is a list of strings from "tokenizer",
-    "morphosyntax" and "lemmatizer" and only these data are installed.
-
-    If force is False (the default), only models not already present are installed.
-    Otherwise, they are replaced by new ones.
-
-    :param language: str:
-    :param dest: str:  (Default value = None)
-    :param select: List[str]:  (Default value = None)
-    :param force: bool:  (Default value = False)
-
+    :param language: str: the language to install
+    :param dest: str: the directory where to save the language data. Use a system
+        default if `None` (Default value = None)
+    :param select: List[str]: the language submodels to install, a list of strings from
+        "tokenizer", "morphosyntax" and "lemmatizer". If `None`, all will be installed
+        (Default value = None)
+    :param force: bool: if False, only models not already present are installed.
+        Otherwise, they are replaced by new ones. (Default value = False)
+    :return: True if installation is successful and Fales otherwise.
+    :rtype: bool
     """
     target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
@@ -408,16 +407,16 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
 
 
 def remove_language(language: str, dest: str = None, force: bool = False) -> bool:
-    """Remove all the resources for language from the system. If dest is given, remove from
-    this directory. Otherwise, search in default directories.
+    """Remove all the resources for a language from the system. Confirmation is asked by
+    default before removing anything.
 
-    Confirmation is asked before removing anything.
-
-    :param language: str:
-    :param dest: str:  (Default value = None)
+    :param language: str: the language to remove
+    :param dest: str: if given, remove from this directory. Otherwise, search in default
+        directories (Default value = None)
     :param force: bool: If False, confirmation will be asked before removing the
     language (Default value = False)
-
+    :return: True if removing is successful and Fales otherwise.
+    :rtype: bool
     """
     if not force and not _yesnoconfirm(f"Do you really want to remove language {language} ?"):
         return
