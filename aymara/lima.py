@@ -7,6 +7,13 @@ This python API gives access to the major features of the LIMA linguistic analyz
 make it easier to handle, it largely reproduces that of spaCy, including parts of the
 documentation. See the GitHub project for spaCy's copyright notice.
 
+Example::
+
+    import aymara.lima
+    nlp = aymara.lima.Lima()
+    doc = nlp("Mr. Best flew to New York on Saturday morning.")
+    print(doc)
+
 Classes:
 
     Doc
@@ -129,6 +136,10 @@ class Token:
         """
         return self.token.text
 
+    text = property(
+            fget=lambda self: self.token.text,
+            doc="The original text of the token.")
+
     i = property(
             fget=lambda self: self.token.i,
             doc="The index of this token in its parent document.")
@@ -172,7 +183,8 @@ class Token:
     t_status = property(
             fget=lambda self: self.token.tStatus,
             doc=("The tokenization status of this token. Can also be explored with the "
-                 "is_* properties. The possible values are:\n"
+                 "is_* properties. The possible values are::\n"
+                 "\n"
                  "  t_alphanumeric\n"
                  "  t_abbrev\n"
                  "  t_acronym\n"
@@ -188,7 +200,9 @@ class Token:
                  "  t_ordinal_roman\n"
                  "  t_sentence_brk\n"
                  "  t_small\n"
-                 "  t_word_brk"))
+                 "  t_word_brk\n"
+                 "\n"
+                 ))
 
     is_alpha = property(
         fget=lambda self: self.token.tStatus in ["t_alphanumeric", "t_capital",
@@ -241,7 +255,7 @@ class Token:
         doc=("Is the token a quotation mark?"))
 
 
-class SentencesIterator:
+class _SentencesIterator:
     """Doc Sentences Iterator class"""
 
     def __init__(self, doc):
@@ -266,7 +280,7 @@ class SentencesIterator:
         raise StopIteration
 
 
-class SpanIterator:
+class _SpanIterator:
     """Span Iterator class"""
 
     def __init__(self, span):
@@ -295,6 +309,8 @@ class Span:
             Span objects.
             Example::
 
+                import aymara.lima
+                nlp = aymara.lima.Lima()
                 doc = nlp("Mr. Best flew to New York on Saturday morning.")
                 span = doc[0:6]
                 ents = list(span.ents)
@@ -317,6 +333,8 @@ class Span:
 
             Example::
 
+                import aymara.lima
+                nlp = aymara.lima.Lima()
                 doc = nlp("Give it back! He pleaded.")
                 span = doc[1:3]
                 assert span.sent.text == "Give it back!"
@@ -330,6 +348,8 @@ class Span:
             If the span happens to cross sentence boundaries, all sentences the span overlaps with will be returned.
             Example::
 
+                import aymara.lima
+                nlp = aymara.lima.Lima()
                 doc = nlp("Give it back! He pleaded.")
                 span = doc[2:4]
                 assert len(span.sents) == 2
@@ -344,9 +364,9 @@ class Span:
         self._end = end
         self._label = label
 
-    def __iter__(self) -> SpanIterator:
+    def __iter__(self) -> _SpanIterator:
         """Returns Iterator object"""
-        return SpanIterator(self)
+        return _SpanIterator(self)
 
     def __len__(self) -> int:
         """
@@ -354,6 +374,8 @@ class Span:
 
         EXAMPLE::
 
+            import aymara.lima
+            nlp = aymara.lima.Lima()
             doc = nlp("Give it back! He pleaded.")
             span = doc[1:4]
             assert len(span) == 3
@@ -370,6 +392,8 @@ class Span:
 
         EXAMPLE::
 
+            import aymara.lima
+            nlp = aymara.lima.Lima()
             doc = nlp("Give it back! He pleaded.")
             span = doc[1:4]
             assert span[1].text == "back"
@@ -418,7 +442,7 @@ class Span:
             doc="A label to attach to the span, e.g. for named entities.")
 
 
-class DocEntitiesIterator:
+class _DocEntitiesIterator:
     """Doc Entities Iterator class"""
 
     def __init__(self, doc):
@@ -453,7 +477,7 @@ class DocEntitiesIterator:
         raise StopIteration
 
 
-class DocIterator:
+class _DocIterator:
     """Doc Iterator class"""
 
     def __init__(self, doc):
@@ -479,6 +503,8 @@ class Doc:
 
     EXAMPLE::
 
+        import aymara.lima
+        nlp = aymara.lima.Lima()
         doc = nlp("Give it back! He pleaded.")
 
     TODO
@@ -493,9 +519,9 @@ class Doc:
     def __init__(self, doc: aymaralima.cpplima.Doc):
         self.limadoc = doc
 
-    def __iter__(self) -> DocIterator:
+    def __iter__(self) -> _DocIterator:
         """Returns Iterator object"""
-        return DocIterator(self)
+        return _DocIterator(self)
 
     def __len__(self) -> int:
         """'Returns the number of tokens of this document
@@ -505,8 +531,16 @@ class Doc:
         """
         return self.limadoc.len()
 
-    def __getitem__(self, i: Union[int, slice]) -> Token:
+    def __getitem__(self, i: Union[int, slice]) -> Union[Token, Span]:
         """Returns the token at position i or a contiguous slice of tokens.
+
+        Example::
+
+            doc = nlp("Give it back! He pleaded.")
+            assert doc[0].text == "Give"
+            assert doc[-1].text == "."
+            span = doc[1:3]
+            assert span.text == "it back"
 
         :param i: a position i or a contiguous slice of token to retrieve
         :type i: Union[int, slice]
@@ -516,7 +550,7 @@ class Doc:
         if isinstance(i, slice):
             return Span(self, i.start, i.stop)
         if i < 0:
-            i = self.length + i
+            i = len(self) + i
         return Token(self.limadoc.at(i))
 
     def __repr__(self) -> str:
@@ -537,13 +571,15 @@ class Doc:
             doc="The original text.")
 
     sents = property(
-            fget=lambda self: SentencesIterator(self),
+            fget=lambda self: _SentencesIterator(self),
             doc=("    sents   Iterate over the sentences in the document.\n"
                  "        This property is only available when sentence boundaries have"
                  " been set on the\n"
                  "        document by the pipeline. It will raise an error otherwise.\n"
                  "        Example::\n"
                  "\n"
+                 "          import aymara.lima\n"
+                 "          nlp = aymara.lima.Lima()\n"
                  "          doc = nlp(\"This is a sentence. Here's another...\")\n"
                  "          sents = list(doc.sents)\n"
                  "          assert len(sents) == 2\n"
@@ -558,7 +594,7 @@ class Doc:
             doc="Language of the document.")
 
     ents = property(
-            fget=lambda self: DocEntitiesIterator(self),
+            fget=lambda self: _DocEntitiesIterator(self),
             doc=("Iterate over the entites in the document. Returns an iterator yielding"
                  "named entity Span objects.\n"))
 
@@ -570,7 +606,7 @@ class Lima:
     application. The Lima class is a wrapper around the LimaAnalyzer class which is
     itself a binding around the C++ classes necessary to analyze text.
 
-    EXAMPLE::
+    Example::
 
                 import aymara.lima
                 nlp = aymara.lima.Lima()
@@ -626,6 +662,13 @@ class Lima:
         Just 'call' your Lima instance to analyze the given text in the given language.
         The lang language must have been initialized when instantiating this object.
 
+        Example::
+
+                    import aymara.lima
+                    nlp = aymara.lima.Lima()
+                    doc = nlp("Give it back! He pleaded.")
+                    print(doc)
+
         :param text: the text to analyze
         :type text: str
         :param lang: the language of the text. If none, will backup to the first element
@@ -677,6 +720,13 @@ class Lima:
                     meta: Dict[str, str] = {}) -> str:
         """Analyze the given text in the given language. The lang language must have been
         initialized when instantiating this object.
+
+        Example::
+
+                    import aymara.lima
+                    nlp = aymara.lima.Lima()
+                    result = nlp.analyzeText("Give it back! He pleaded.")
+                    print(result)
 
         :param text: the text to analyze
         :type text: str
@@ -732,6 +782,15 @@ class Lima:
         account the configuration in the new path, you will have to add it in front of
         the LIMA_CONF environment variable (or define it if it does not exist).
 
+        Please refer to the
+        `LIMA documentation <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`_
+        for how to configure the analysis:
+
+        Example::
+
+            import aymara.lima
+            aymara.lima.Lima.export_system_conf("~/MyLima")
+
         :param dir: the directory were to export the configuration (Default value =
             None)
         :type dir: pathlib.Path
@@ -740,11 +799,6 @@ class Lima:
         :type lang: str
         :return: True if the configuration is correctly exported and False otherwise.
         :rtype: boool
-
-        Please refer to the
-        `LIMA documentation <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`_
-        for how to configure the analysis:
-
         """
         # Verify thar dir exists and is writable or create it
         if not dir:
@@ -766,6 +820,11 @@ class Lima:
     def get_system_paths() -> Tuple[str, str]:
         """
         Get the system configuration and resoures paths.
+
+        Example::
+
+            import aymara.lima
+            aymara.lima.Lima.get_system_paths()
 
         :return: the colon (; under Windows) -separated list of the paths that are
             searched by LIMA to load its configuration files and linguistic resources.
