@@ -610,6 +610,10 @@ class Doc:
                  "        :type: Span\n"))
 
 
+class LimaInternalError(Exception):
+    pass
+
+
 class Lima:
     """A text-processing pipeline
 
@@ -661,6 +665,9 @@ class Lima:
             user_resources_path,
             ",".join([f"{k}:{v}" for k, v in meta.items()])
             )
+        if self.analyzer.error:
+            raise LimaInternalError()
+
         self.langs = langs
         self.pipes = pipes
 
@@ -720,9 +727,12 @@ class Lima:
                 pipeline = "deepud"
             else:
                 pipeline = "main"
-        return Doc(self.analyzer(
+        lima_doc = self.analyzer(
             text, lang=lang, pipeline=pipeline,
-            meta=",".join([f"{k}:{v}" for k, v in meta.items()])))
+            meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
+        if self.analyzer.error or lima_doc.error:
+            raise LimaInternalError()
+        return Doc()
 
     def analyzeText(self,
                     text: str,
@@ -777,9 +787,11 @@ class Lima:
                 pipeline = "deepud"
             else:
                 pipeline = "main"
-        return self.analyzer.analyzeText(
+        lima_doc = self.analyzer.analyzeText(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
+        if self.analyzer.error or lima_doc.error():
+            raise LimaInternalError(self.analyzer.errorMessage)
 
     @staticmethod
     def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:

@@ -450,13 +450,23 @@ LimaAnalyzer::LimaAnalyzer(const std::string& langs,
                            const std::string& user_resources_path,
                            const std::string& meta)
 {
-  QStringList qlangs = QString::fromStdString(langs).split(",");
-  QStringList qpipelines = QString::fromStdString(pipelines).split(",");
-  m_d = new LimaAnalyzerPrivate(qlangs, qpipelines,
-                                QString::fromStdString(modulePath),
-                                QString::fromStdString(user_config_path),
-                                QString::fromStdString(user_resources_path),
-                                QString::fromStdString(meta));
+  try
+  {
+    QStringList qlangs = QString::fromStdString(langs).split(",");
+    QStringList qpipelines = QString::fromStdString(pipelines).split(",");
+    m_d = new LimaAnalyzerPrivate(qlangs, qpipelines,
+                                  QString::fromStdString(modulePath),
+                                  QString::fromStdString(user_config_path),
+                                  QString::fromStdString(user_resources_path),
+                                  QString::fromStdString(meta));
+  }
+  catch (const Lima::LimaException& e)
+  {
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    m_d = nullptr;
+    error = true;
+    errorMessage = e.what();
+  }
 }
 
 LimaAnalyzer::~LimaAnalyzer()
@@ -464,32 +474,47 @@ LimaAnalyzer::~LimaAnalyzer()
   delete m_d;
 }
 
-LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a) :
-    m_d(new LimaAnalyzerPrivate(a.m_d->qlangs, a.m_d->qpipelines,
+LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
+{
+  try
+  {
+    m_d = new LimaAnalyzerPrivate(a.m_d->qlangs, a.m_d->qpipelines,
                                 a.m_d->modulePath,
                                 a.m_d->user_config_path,
                                 a.m_d->user_resources_path,
-                                a.m_d->meta))
-{
+                                a.m_d->meta);
+  }
+  catch (const Lima::LimaException& e)
+  {
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    m_d = nullptr;
+    error = true;
+    errorMessage = e.what();
+  }
   // std::cerr << "LimaAnalyzer::LimaAnalyzer copy constructor" << std::endl;
 }
 
 LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer& a)
 {
-  // std::cerr << "LimaAnalyzer::operator=" << std::endl;
-  delete m_d;
-  m_d = new LimaAnalyzerPrivate(a.m_d->qlangs, a.m_d->qpipelines,
-                                a.m_d->modulePath,
-                                a.m_d->user_config_path,
-                                a.m_d->user_resources_path,
-                                a.m_d->meta);
-  return *this;
+  try
+  {
+    // std::cerr << "LimaAnalyzer::operator=" << std::endl;
+    delete m_d;
+    m_d = new LimaAnalyzerPrivate(a.m_d->qlangs, a.m_d->qpipelines,
+                                  a.m_d->modulePath,
+                                  a.m_d->user_config_path,
+                                  a.m_d->user_resources_path,
+                                  a.m_d->meta);
+    return *this;
+  }
+  catch (const Lima::LimaException& e)
+  {
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    m_d = nullptr;
+    error = true;
+    errorMessage = e.what();
+  }
 }
-
-// LimaAnalyzer *LimaAnalyzer::clone()
-// {
-//     return new LimaAnalyzer(*this);
-// }
 
 Doc LimaAnalyzer::operator()(const std::string& text,
                                      const std::string& lang,
@@ -500,26 +525,32 @@ Doc LimaAnalyzer::operator()(const std::string& text,
   {
     return (*m_d)(text, lang, pipeline, meta);
   }
-  catch (const Lima::LinguisticProcessing::LinguisticProcessingException& e)
+  catch (const Lima::LimaException& e)
   {
-    std::cerr << "LIMA internal error: " << e.what() << std::endl;
-    return Doc();
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    error = true;
+    errorMessage = e.what();
+    auto doc = Doc(error, errorMessage);
   }
 }
 
 std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& lang,
                                     const std::string& pipeline,
-                                    const std::string& meta) const
+                                    const std::string& meta)
 {
 //   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
-  try {
-  return m_d->analyzeText(text, lang, pipeline, meta);
+  try
+  {
+    return m_d->analyzeText(text, lang, pipeline, meta);
   }
-  catch (const Lima::LinguisticProcessing::LinguisticProcessingException& e) {
-    std::cerr << "LIMA internal error: " << e.what() << std::endl;
+  catch (const Lima::LimaException& e)
+  {
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    error = true;
+    errorMessage = e.what();
+    return "";
   }
-  return "";
 }
 
 Doc LimaAnalyzerPrivate::operator()(
@@ -550,16 +581,8 @@ Doc LimaAnalyzerPrivate::operator()(
   {
     // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-    try
-    {
-      auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
-      return docFrom_analysis(analysis);
-    }
-    catch (const Lima::LimaException& e)
-    {
-      std::cerr << "Lima internal error: " << e.what() << std::endl;
-      return Doc();
-    }
+    auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
+    return docFrom_analysis(analysis);
   }
 }
 
@@ -598,17 +621,11 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                   << " (" << percent.toUtf8().constData() << "%) lines";
       }
       // analyze it
-      try {
-        m_client->analyze(contentText,
-                        localMetaData,
-                        pipeline,
-                        handlers,
-                        inactiveUnits);
-      } catch (const Lima::LimaException& e) {
-        std::cerr << "Lima internal error: " << e.what() << std::endl;
-        simpleStreamHandler->setOut(nullptr);
-        return txtofs->str();
-      }
+      m_client->analyze(contentText,
+                      localMetaData,
+                      pipeline,
+                      handlers,
+                      inactiveUnits);
     }
   }
   else // default == none
@@ -622,14 +639,8 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
     {
       // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-      try {
-        m_client->analyze(contentText, localMetaData, pipeline, handlers,
-                          inactiveUnits);
-      } catch (const Lima::LimaException& e) {
-        std::cerr << "Lima internal error: " << e.what() << std::endl;
-        simpleStreamHandler->setOut(nullptr);
-        return txtofs->str();
-      }
+      m_client->analyze(contentText, localMetaData, pipeline, handlers,
+                        inactiveUnits);
     }
   }
 

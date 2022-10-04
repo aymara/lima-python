@@ -76,4 +76,6 @@ public:
   std::shared_ptr<Lima::AnalysisContent> analysis;
   std::vector<Span> sentences;
   std::string language;
+  bool error = false;
+  std::string errorMessage = "";
 };

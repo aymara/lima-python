@@ -69,9 +69,11 @@ using namespace Lima::LinguisticProcessing;
 using MedData = Lima::Common::MediaticData::MediaticData ;
 
 
-Doc::Doc()
+Doc::Doc(bool error, const std::string& errorMessage)
 {
   m_d = new DocPrivate();
+  m_d->error = error;
+  m_d->errorMessage = errorMessage;
 }
 
 Doc::~Doc()
@@ -89,6 +91,16 @@ Doc& Doc::operator=(const Doc& a)
   // std::cerr << "Doc::operator=" << std::endl;
   *m_d = *a.m_d;
   return *this;
+}
+
+bool Doc::error() const
+{
+  return m_d->error;
+}
+
+std::string Doc::errorMessage() const
+{
+  return m_d->errorMessage;
 }
 
 Token& Doc::operator[](int i)

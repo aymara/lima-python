@@ -51,7 +51,7 @@
 ****************************************************************************/
 -->
 
-<typesystem package="cpplima">
+<typesystem package="cpplima" exception-handling="on">
 <!--     <load-typesystem name="typesystem_core.xml" generate="no"/> -->
 
     <primitive-type name="int"/>
@@ -60,9 +60,9 @@
     <primitive-type name="std::string"/>
 
 
-    <value-type name="Span"/>
-    <value-type name="Token"/>
-    <value-type name="Doc"/>
+    <value-type name="Span" exception-handling="on"/>
+    <value-type name="Token" exception-handling="on"/>
+    <value-type name="Doc" exception-handling="on"/>
 
 <!--    <container-type name="Doc" type="list">
         <conversion-rule>
@@ -91,7 +91,7 @@
     </conversion-rule>
 </container-type>-->
 
-    <value-type name="LimaAnalyzer"/>
+    <value-type name="LimaAnalyzer"  exception-handling="on"/>
 <!--<value-type name="LimaAnalyzer">
     <modify-function signature="operator()(std::string, std::string pipeline, std::string)">
         <modify-argument index="return">

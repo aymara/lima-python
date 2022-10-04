@@ -78,16 +78,19 @@ public:
   ~LimaAnalyzer();
   LimaAnalyzer(const LimaAnalyzer& a) ;
   LimaAnalyzer& operator=(const LimaAnalyzer& a) ;
-//   virtual LimaAnalyzer *clone();
+
   std::string analyzeText(const std::string& text,
                           const std::string& lang="eng",
                           const std::string& pipeline="main",
-                          const std::string& meta="") const;
+                          const std::string& meta="");
   Doc operator()(
     const std::string& text,
                  const std::string& lang="eng",
                  const std::string& pipeline="main",
                  const std::string& meta="");
+
+  bool error = false;
+  std::string errorMessage = "";
 
 private:
   LimaAnalyzerPrivate* m_d;

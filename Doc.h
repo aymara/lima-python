@@ -68,10 +68,12 @@ class DocPrivate;
 class BINDINGS_API Doc
 {
 public:
-  Doc();
+  Doc(bool error=false, const std::string& errorMessage="");
   ~Doc();
   Doc(const Doc& a);
   Doc& operator=(const Doc& a);
+  bool error() const;
+  std::string errorMessage() const;
   std::string text();
   Token& operator[](int i);
   Token& at(int i);

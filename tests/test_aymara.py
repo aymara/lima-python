@@ -9,33 +9,49 @@ import sys
 
 
 def test_unknownLanguage():
-    with pytest.raises(Exception):
-        lima = aymara.lima.Lima(lang="this_is_not_a_language_name")
+    with pytest.raises(aymara.lima.LimaInternalError):
+        lima = aymara.lima.Lima(langs="this_is_not_a_language_name")
+
+
+def test_analyzeText_lang_not_init():
+    with pytest.raises(aymara.lima.LimaInternalError):
+        lima = aymara.lima.Lima()
+        result = lima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
+                                    pipeline="main")
+        print(result, file=sys.stderr)
+        assert True
+
+
+def test_analyzeText_pipeline_not_avail():
+    lima = aymara.lima.Lima("ud-eng")
+    result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="main")
+    print(result, file=sys.stderr)
+    assert True
 
 
 def test_analyzeText():
-    lima = aymara.lima.Lima()
-    result = lima.analyzeText("This is a text on 02/05/2022.", lang="eng",
+    lima = aymara.lima.Lima("ud-eng")
+    result = lima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
                               pipeline="main")
     print(result, file=sys.stderr)
     assert True
 
 
 def test_analyzeText_init_with_lang():
-    lima = aymara.lima.Lima("eng")
+    lima = aymara.lima.Lima("ud-eng")
     result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="main")
     print(result, file=sys.stderr)
     assert True
 
 
 def test_functor():
-    lima = aymara.lima.Lima("eng")
+    lima = aymara.lima.Lima("ud-eng")
     result = lima("This is a text on 02/05/2022.")
     assert result is not None and type(result) == aymara.lima.Doc
 
 
 def test_doc_size():
-    lima = aymara.lima.Lima("eng")
+    lima = aymara.lima.Lima("ud-eng")
     result = lima("This is a text on 02/05/2022.")
     assert len(result) > 0
 
@@ -49,7 +65,7 @@ def test_doc_token_access():
 
 
 def test_doc_sents():
-    nlp = aymara.lima.Lima("eng")
+    nlp = aymara.lima.Lima("ud-eng")
     doc = nlp("This is a sentence. Here's another...")
     sents = list(doc.sents)
     assert len(sents) == 2
@@ -58,14 +74,14 @@ def test_doc_sents():
 
 
 def test_span_size():
-    nlp = aymara.lima.Lima("eng")
+    nlp = aymara.lima.Lima("ud-eng")
     doc = nlp("Give it back! He pleaded.")
     span = doc[1:4]
     assert len(span) == 3
 
 
 def test_span_text():
-    nlp = aymara.lima.Lima("eng")
+    nlp = aymara.lima.Lima("ud-eng")
     doc = nlp("Give it back! He pleaded.")
     span = doc[1:4]
     assert span[1].text == "back"
