@@ -531,6 +531,7 @@ Doc LimaAnalyzer::operator()(const std::string& text,
     error = true;
     errorMessage = e.what();
     auto doc = Doc(error, errorMessage);
+    return doc;
   }
 }
 
