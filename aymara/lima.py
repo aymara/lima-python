@@ -293,14 +293,14 @@ class Span:
 
         ents    The named entities that fall completely within the span. Returns a tuple of
             Span objects.
-            Example
+            Example::
 
-            doc = nlp("Mr. Best flew to New York on Saturday morning.")
-            span = doc[0:6]
-            ents = list(span.ents)
-            assert ents[0].label == 346
-            assert ents[0].label_ == "PERSON"
-            assert ents[0].text == "Mr. Best"
+                doc = nlp("Mr. Best flew to New York on Saturday morning.")
+                span = doc[0:6]
+                ents = list(span.ents)
+                assert ents[0].label == 346
+                assert ents[0].label_ == "PERSON"
+                assert ents[0].text == "Mr. Best"
 
             Name	Description
             RETURNS	Entities in the span, one Span per entity.
@@ -315,11 +315,12 @@ class Span:
             sent = span.sent
             sent = doc[sent.start : max(sent.end, span.end)]
 
-            Example
+            Example::
 
-            doc = nlp("Give it back! He pleaded.")
-            span = doc[1:3]
-            assert span.sent.text == "Give it back!"
+                doc = nlp("Give it back! He pleaded.")
+                span = doc[1:3]
+                assert span.sent.text == "Give it back!"
+
         Span
 
         sents   Returns a generator over the sentences the span belongs to.
@@ -327,11 +328,12 @@ class Span:
             document by the pipeline. It will raise an error otherwise.
 
             If the span happens to cross sentence boundaries, all sentences the span overlaps with will be returned.
-            Example
+            Example::
 
-            doc = nlp("Give it back! He pleaded.")
-            span = doc[2:4]
-            assert len(span.sents) == 2
+                doc = nlp("Give it back! He pleaded.")
+                span = doc[2:4]
+                assert len(span.sents) == 2
+
         Iterable[Span]
 
 
@@ -351,6 +353,7 @@ class Span:
         Returns the number of tokens of this span
 
         EXAMPLE::
+
             doc = nlp("Give it back! He pleaded.")
             span = doc[1:4]
             assert len(span) == 3
@@ -366,6 +369,7 @@ class Span:
         the slice i.
 
         EXAMPLE::
+
             doc = nlp("Give it back! He pleaded.")
             span = doc[1:4]
             assert span[1].text == "back"
@@ -473,6 +477,10 @@ class Doc:
 
     This is mainly an iterable of tokens.
 
+    EXAMPLE::
+
+        doc = nlp("Give it back! He pleaded.")
+
     TODO
     Some parts of the API are still not implemented:
 
@@ -534,12 +542,12 @@ class Doc:
                  "        This property is only available when sentence boundaries have"
                  " been set on the\n"
                  "        document by the pipeline. It will raise an error otherwise.\n"
-                 "        Example\n"
+                 "        Example::\n"
                  "\n"
-                 "        doc = nlp(\"This is a sentence. Here's another...\")\n"
-                 "        sents = list(doc.sents)\n"
-                 "        assert len(sents) == 2\n"
-                 "        assert [s.root.text for s in sents] == [\"is\", \"'s\"]\n"
+                 "          doc = nlp(\"This is a sentence. Here's another...\")\n"
+                 "          sents = list(doc.sents)\n"
+                 "          assert len(sents) == 2\n"
+                 "          assert [s.root.text for s in sents] == [\"is\", \"'s\"]\n"
                  "\n"
                  "        Name	Description\n"
                  "        YIELDS	Sentences in the document.\n"
@@ -562,6 +570,12 @@ class Lima:
     application. The Lima class is a wrapper around the LimaAnalyzer class which is
     itself a binding around the C++ classes necessary to analyze text.
 
+    EXAMPLE::
+
+                import aymara.lima
+                nlp = aymara.lima.Lima()
+                doc = nlp("Give it back! He pleaded.")
+                print(doc)
 
     """
     def __init__(self,
