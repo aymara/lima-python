@@ -25,7 +25,7 @@ def test_analyzeText_lang_not_init():
 def test_analyzeText_pipeline_not_avail():
     with pytest.raises(aymara.lima.LimaInternalError):
         lima = aymara.lima.Lima("ud-eng")
-        result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="main")
+        result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="other")
         print(result, file=sys.stderr)
         assert True
 
