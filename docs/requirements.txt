@@ -10,3 +10,4 @@ pytest-cov
 sphinx-test-reports
 sphinxcontrib-needs
 sphinxcontrib-plantuml
+numpy
