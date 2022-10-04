@@ -732,7 +732,7 @@ class Lima:
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
         if self.analyzer.error or lima_doc.error():
             raise LimaInternalError()
-        return Doc()
+        return Doc(lima_doc)
 
     def analyzeText(self,
                     text: str,
