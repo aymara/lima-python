@@ -25,7 +25,7 @@ documentation.
 """
 
 
-def get_data_dir(appname):
+def _get_data_dir(appname):
     """
 
     :param appname:
@@ -665,7 +665,7 @@ class Lima:
         """
         # Verify thar dir exists and is writable or create it
         if not dir:
-            dir = get_data_dir("lima")
+            dir = _get_data_dir("lima")
         dir.mkdir(parents=True, exist_ok=True)
 
         fromDirectory = pathlib.Path(list(aymaralima.__path__)[-1]) / "config"
