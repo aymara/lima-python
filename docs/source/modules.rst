@@ -5,5 +5,3 @@ lima-python-qt6
    :maxdepth: 4
 
    aymara
-   limatest
-   setup
