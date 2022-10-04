@@ -65,9 +65,10 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-    'sphinxcontrib.needs',
-    'sphinxcontrib.test_reports',
-    'sphinxcontrib.plantuml']
+    ]
+    # 'sphinxcontrib.needs',
+    # 'sphinxcontrib.test_reports',
+    # 'sphinxcontrib.plantuml'
 
 napoleon_google_docstring = False
 napoleon_use_param = False
