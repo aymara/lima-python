@@ -8,3 +8,5 @@ scikit-build
 pytest
 pytest-cov
 sphinx-test-reports
+sphinxcontrib-needs
+sphinxcontrib-plantuml

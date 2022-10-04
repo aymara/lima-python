@@ -24,7 +24,8 @@ RUN yum install -y wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3
 RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
 RUN python${PYTHON_VERSION} -m pip install --upgrade pip
-RUN python${PYTHON_VERSION} -m pip install scikit-build pytest pytest-cov pyconll pydantic requests sphinx-test-reports
+RUN python${PYTHON_VERSION} -m pip install scikit-build pytest pytest-cov pyconll pydantic requests sphinx-test-reports sphinxcontrib-needs sphinxcontrib-plantuml
+
 
 RUN python${PYTHON_VERSION} -m pip install \
     --index-url=http://download.qt.io/official_releases/QtForPython/ \
