@@ -8,6 +8,10 @@ import pytest
 import sys
 
 
+def test__get_data_dir():
+    assert ".local/share" in str(aymara.lima._get_data_dir("lima"))
+
+
 def test_unknownLanguage():
     with pytest.raises(aymara.lima.LimaInternalError):
         lima = aymara.lima.Lima(langs="this_is_not_a_language_name")
@@ -71,6 +75,19 @@ def test_doc_token_access():
     assert doc[-1].text == "."
     span = doc[1:3]
     assert span.text == "it back"
+
+
+def test_token_properties():
+    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    doc = lima("Give it back! He pleaded.")
+    token = doc[5]
+    assert repr(token) == '5\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t_\t_\t_\tPos=17|Len=7'
+    assert str(token) == "pleaded" == token.text
+    assert len(token) == 7
+    assert token.i == 5
+    assert token.idx == 17
+    assert token.ent_iob == "O"
+    assert token.ent_type == "_"
 
 
 def test_doc_sents():
