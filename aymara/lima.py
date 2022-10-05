@@ -50,7 +50,7 @@ def _get_data_dir(appname: str):
     :return: the application's data dir.
     :rtype: str
     """
-    if sys.platform == "win32":
+    if sys.platform == "win32":  # pragma: no cover
         import winreg
         key = winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
@@ -58,7 +58,7 @@ def _get_data_dir(appname: str):
         )
         dir_, _ = winreg.QueryValueEx(key, "Local AppData")
         ans = pathlib.Path(dir_).resolve(strict=False)
-    elif sys.platform == 'darwin':
+    elif sys.platform == 'darwin':  # pragma: no cover
         ans = pathlib.Path('~/Library/Application Support/').expanduser()
     else:
         ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
