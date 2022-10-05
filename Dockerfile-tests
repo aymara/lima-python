@@ -5,11 +5,15 @@
 ARG PYTHON_VERSION=3.7
 FROM python:${PYTHON_VERSION}
 
-RUN pip install pytest pytest-cov pytest-runner
+COPY aymara/lima-python${PYTHON_VERSION}:latest
+
+RUN pip install -U pip
+RUN pip install pytest pytest-cov pytest-runner aymara
+RUN lima_models.py -l eng
+RUN pip uninstall -y aymara
 
 COPY aymara-0.4.2-cp37-abi3-manylinux_2_28_x86_64.whl /
 RUN pip install /aymara-0.4.2-cp37-abi3-manylinux_2_28_x86_64.whl
-RUN lima_models.py -i eng
 RUN install -d /lima-python
 
 WORKDIR /lima-python
