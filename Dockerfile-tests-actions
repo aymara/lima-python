@@ -19,6 +19,7 @@ RUN pip install /aymara-0.4.2-cp37-abi3-manylinux_2_28_x86_64.whl
 RUN install -d /lima-python
 
 WORKDIR /lima-python
+COPY .coveragerc .
 RUN install -d /lima-python/tests
 COPY tests/* /lima-python/tests/
 COPY aymara/* /lima-python/aymara/
