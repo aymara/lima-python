@@ -90,6 +90,8 @@
 #include "linguisticProcessing/core/LinguisticProcessors/LinguisticMetaData.h"
 #include "linguisticProcessing/core/LinguisticResources/AbstractResource.h"
 #include "linguisticProcessing/core/LinguisticResources/LinguisticResources.h"
+#include "linguisticProcessing/core/SyntacticAnalysis/DependencyGraph.h"
+#include "linguisticProcessing/core/SyntacticAnalysis/SyntacticData.h"
 #include "linguisticProcessing/core/TextSegmentation/SegmentationData.h"
 #include <deque>
 #include <fstream>
@@ -113,6 +115,7 @@
 
 using namespace Lima::LinguisticProcessing;
 using namespace Lima::LinguisticProcessing::SpecificEntities;
+using namespace Lima::LinguisticProcessing::SyntacticAnalysis;
 using namespace Lima::Common::AnnotationGraphs;
 using namespace Lima::Common::MediaticData;
 using LangData = Lima::Common::MediaticData::LanguageData;
@@ -174,6 +177,7 @@ public:
                          int& tokenId,
                          LinguisticGraphVertex vEndDone,
                          std::map<LinguisticGraphVertex,int>& segmentationMapping,
+                         std::map<int,LinguisticGraphVertex>& segmentationMappingReverse,
                          const QString& parentNeType,
                          bool first);
 
@@ -192,6 +196,7 @@ public:
                        int& tokenId,
                        LinguisticGraphVertex vEndDone,
                        std::map<LinguisticGraphVertex,int>& segmentationMapping,
+                       std::map<int,LinguisticGraphVertex> segmentationMappingReverse,
                        const QString& neType);
 
   /** Gets the named entity type for the PosGraph vertex @ref posGraphVertex
@@ -223,16 +228,18 @@ public:
   std::set<std::string> inactiveUnits;
 
 
+  const LanguageData* languageData = nullptr;
   BowTextWriter* bowTextWriter = nullptr;
   EventAnalysis::EventHandler* eventHandler = nullptr;
   BowTextHandler* bowTextHandler = nullptr;
   SimpleStreamHandler* simpleStreamHandler = nullptr;
   SimpleStreamHandler* fullXmlSimpleStreamHandler = nullptr;
   LTRTextHandler* ltrTextHandler = nullptr;
-
+  SyntacticData* syntacticData = nullptr;
   const Common::PropertyCode::PropertyAccessor* propertyAccessor = nullptr;
   LinguisticGraph* posGraph = nullptr;
   LinguisticGraph* anaGraph = nullptr;
+  DependencyGraph* depGraph = nullptr;
   AnnotationData* annotationData = nullptr;
   const PropertyCodeManager* propertyCodeManager = nullptr;
   const PropertyManager* microManager = nullptr;
@@ -714,8 +721,8 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
   auto metadataholder = static_cast<LinguisticMetaData*>(analysis->getData("LinguisticMetaData"));
   const auto& lang = metadataholder->getMetaData("Lang");
   medId = MedData::single().media(lang);
-  const auto& languageData = static_cast<const LanguageData&>(MedData::single().mediaData(medId));
-  propertyCodeManager = &languageData.getPropertyCodeManager();
+  languageData = static_cast<const LanguageData*>(&MedData::single().mediaData(medId));
+  propertyCodeManager = &languageData->getPropertyCodeManager();
   propertyAccessor = &propertyCodeManager->getPropertyAccessor("MICRO");
 
   // std::cerr << "docFrom_analysis get stringsPool" << std::endl;
@@ -750,11 +757,21 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
   }
   int sentenceNb = 0;
   LinguisticGraphVertex vEndDone = 0; // TODO remove. useless here. comes from LIMA ConllDumper
-  std::map<LinguisticGraphVertex,int> segmentationMapping; // TODO remove. useless here. comes from LIMA ConllDumper
-  std::map<int,LinguisticGraphVertex> segmentationMappingReverse; // TODO remove. useless here. comes from LIMA ConllDumper
+  std::map<LinguisticGraphVertex,int> segmentationMapping;
+  std::map<int,LinguisticGraphVertex> segmentationMappingReverse;
   auto tokenId = 0;
   auto tokens = get(vertex_token, *posGraph);
   auto morphoDatas = get(vertex_data, *posGraph);
+
+  syntacticData = static_cast<SyntacticData*>(analysis->getData("SyntacticData"));
+  if (syntacticData == nullptr)
+  {
+    syntacticData = new SyntacticData(posGraphData, 0);
+    syntacticData->setupDependencyGraph();
+    analysis->setData("SyntacticData", syntacticData);
+  }
+  depGraph = syntacticData-> dependencyGraph();
+
   // std::cerr << "docFrom_analysis before while" << std::endl;
   while (v != lastVertex)
   {
@@ -764,6 +781,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
                             tokenId,
                             vEndDone,
                             segmentationMapping,
+                            segmentationMappingReverse,
                             "",
                             false);
 
@@ -813,6 +831,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
                                             int& tokenId,
                                             LinguisticGraphVertex vEndDone,
                                             std::map<LinguisticGraphVertex,int>& segmentationMapping,
+                                            std::map<int,LinguisticGraphVertex>& segmentationMappingReverse,
                                             const QString& parentNeType,
                                             bool first)
 {
@@ -867,6 +886,63 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
     {
       lemmatizedToken = (*sp)[(*morphoData)[0].lemma];
     }
+
+
+    segmentationMapping.insert(std::make_pair(v,tokenId));
+    segmentationMappingReverse.insert(std::make_pair(tokenId,v));
+#ifdef DEBUG_LP
+    LDEBUG << "ConllDumper::process conll id : " << tokenId
+            << " Lima id : " << v;
+#endif
+
+    auto dcurrent = syntacticData->depVertexForTokenVertex(v);
+    for (auto [dit, dit_end] = boost::out_edges(dcurrent,*depGraph);
+         dit != dit_end; dit++)
+    {
+#ifdef DEBUG_LP
+      LDEBUG << "ConllDumper::process Dumping dependency edge "
+              << (*dit).m_source << " -> " << (*dit).m_target;
+#endif
+      try
+      {
+        auto typeMap = get(edge_deprel_type, *depGraph);
+        auto type = typeMap[*dit];
+        auto syntRelName = languageData->getSyntacticRelationName(type);
+#ifdef DEBUG_LP
+        LDEBUG << "ConllDumper::process relation = " << syntRelName;
+        LDEBUG << "ConllDumper::process Src  : Dep vertex= "
+                << boost::source(*dit, *depGraph);
+        auto src = syntacticData->tokenVertexForDepVertex(
+            boost::source(*dit, *depGraph));
+        LDEBUG << "ConllDumper::process Src  : Morph vertex= " << src;
+        LDEBUG << "ConllDumper::process Targ : Dep vertex= "
+                << boost::target(*dit, *depGraph);
+#endif
+        auto dest = syntacticData->tokenVertexForDepVertex(
+          boost::target(*dit, *depGraph));
+#ifdef DEBUG_LP
+        LDEBUG << "ConllDumper::process Targ : Morph vertex= " << dest;
+#endif
+        if (syntRelName!="")
+        {
+#ifdef DEBUG_LP
+          LDEBUG << "ConllDumper::process saving target for"
+                  << v << ":" << dest << syntRelName;
+#endif
+          vertexDependencyInformations.insert(std::make_pair(v, std::make_pair(dest, syntRelName)));
+        }
+      }
+      catch (const std::range_error& )
+      {
+      }
+      catch (...)
+      {
+#ifdef DEBUG_LP
+        LDEBUG << "ConllDumper::process: catch others.....";
+#endif
+        throw;
+      }
+    }
     // std::cerr << "LimaAnalyzerPrivate::dumpPosGraphVertex lemmatizedToken:" << lemmatizedToken << std::endl;
     // @TODO Should follow instructions here to output all MWE:
     // https://universaldependencies.org/format.html#words-tokens-and-empty-nodes
@@ -881,7 +957,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
     // Furthermore, named entities can be recursive...
     if (neType != "_")
     {
-      dumpNamedEntity(doc, v, tokenId, vEndDone, segmentationMapping, neType);
+      dumpNamedEntity(doc, v, tokenId, vEndDone, segmentationMapping, segmentationMappingReverse, neType);
     }
     else
     {
@@ -909,6 +985,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
       auto len = ft->length();
       auto tStatus = ft->status().defaultKey();
 
+      // std::cerr << "Token t: " << targetConllId << ", " << conllRelName.toStdString() << std::endl;
       Token t(len, inflectedToken, lemmatizedToken.toStdString(),
               tokenId++, pos, micro.toStdString(), targetConllId, conllRelName.toStdString(),
               features.toStdString(), neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
@@ -926,6 +1003,7 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
                                          int& tokenId,
                                          LinguisticGraphVertex vEndDone,
                                          std::map<LinguisticGraphVertex,int>& segmentationMapping,
+                                         std::map<int,LinguisticGraphVertex> segmentationMappingReverse,
                                          const QString& neType)
 {
   std::cerr << "LimaAnalyzerPrivate::dumpNamedEntity IN" << v << std::endl;
@@ -958,7 +1036,8 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
         bool first = true;
         for (const auto& vse : se->vertices())
         {
-          dumpPosGraphVertex(doc, vse, tokenId, vEndDone, segmentationMapping, neType, first);
+          dumpPosGraphVertex(doc, vse, tokenId, vEndDone, segmentationMapping, segmentationMappingReverse,
+                             neType, first);
           first = false;
         }
 #ifdef DEBUG_LP
@@ -1078,6 +1157,7 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
     auto tStatus = ft->status().defaultKey();
     auto features = getFeats(*propertyCodeManager, *morphoData);
     auto [conllRelName, targetConllId] = getConllRelName(v, segmentationMapping);
+    std::cerr << "Token t: " << targetConllId << ", " << conllRelName.toStdString() << std::endl;
     Token t(len, inflectedToken, lemmatizedToken.toStdString(), tokenId++, pos,
             micro.toStdString(), targetConllId, conllRelName.toStdString(), features.toStdString(),
             neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
