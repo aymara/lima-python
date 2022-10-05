@@ -5,8 +5,6 @@
 ARG PYTHON_VERSION=3.7
 FROM python:${PYTHON_VERSION}
 
-COPY aymara/lima-python${PYTHON_VERSION}:latest
-
 RUN pip install -U pip
 RUN pip install pytest pytest-cov pytest-runner aymara
 RUN lima_models.py -l eng
