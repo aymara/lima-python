@@ -417,7 +417,8 @@ class Span:
             return Span(self._doc, self._start+i.start, self._start+i.stop)
         if i < 0:
             i = len(self) + i
-        if self._start+i < 0 or self._start+i >= len(self._doc):
+        if (i < 0 or i > len(self)
+                or self._start+i < 0 or self._start+i >= len(self._doc)):
             raise IndexError("Span index out of range")
         return self._doc[self._start+i]
 
