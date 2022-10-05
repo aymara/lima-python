@@ -243,16 +243,15 @@ def _list_installed_languages_per_module(target_dir, prefix_list):
                 lang, ext = mo.group(1), mo.group(2)
                 if lang not in d:
                     d[lang] = []
-                if ext in d[lang]:
+                if ext in d[lang]:  # pragma: no cover
                     print(f'Error: something wrong with "{f}"', file=sys.stderr)
                 d[lang].append(ext)
 
     r = {}
     for lang in d:
-        if lang in r:
-            print(
-                f'Error: model for lang "{lang}" is installed twice?', file=sys.stderr
-            )
+        if lang in r:  # pragma: no cover
+            print(f'Error: model for lang "{lang}" is installed twice?',
+                  file=sys.stderr)
         if "morphosyntax" in prefix_list:
             if (
                 len(d[lang]) != 3
@@ -269,7 +268,7 @@ def _list_installed_languages_per_module(target_dir, prefix_list):
                 r[lang] = "installed"
         else:
             if len(d[lang]) != 2 or "model" not in d[lang] or "conf" not in d[lang]:
-                if "lemmatizer" not in prefix_list or "conf" not in d[lang]:
+                if "lemmatizer" not in prefix_list or "conf" not in d[lang]:   # pragma: no cover
                     print(
                         f'Error: model ({",".join(prefix_list)}) '
                         f'for lang "{lang}" is installed incorrectly',

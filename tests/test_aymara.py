@@ -150,9 +150,9 @@ def test_span_at():
     token = span[-1]
     assert str(token) == "!"
     subspan = span[:1]
-    assert str(subspan) == "it back"
+    assert subspan.text == "it back"
     subspan = span[-2:0]
-    assert str(subspan) == "back!"
+    assert subspan.text == "back!"
 
 
 def test_span_properties():

@@ -22,15 +22,19 @@ def test__get_target_dir():
     assert aymara.lima_models._get_target_dir("/x/y/z") == "/x/y/z"
 
 
+def test__find_lang_code():
+    assert aymara.lima_models._find_lang_code("no such language") == (None, None)
+
+
 def test_install_model():
     """Test installation of models for a language. We use Wolof because it is currently
     the smallest in file size."""
     assert aymara.lima_models.install_language("wol", force=True)
     # Test 2 thing: trying to reinstall a model without forcing and use the complete
     # language name instead of the trigram code
-    assert not aymara.lima_models.install_language("wolof", force=False)
+    assert aymara.lima_models.install_language("wolof", force=False) is False
     # Test trying to install a non-exsistent language
-    assert not aymara.lima_models.install_language("auieauieuia", force=False)
+    assert aymara.lima_models.install_language("auieauieuia", force=False) is False
 
 
 # def test_installed_model():
