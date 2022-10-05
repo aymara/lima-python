@@ -289,10 +289,14 @@ class _SpanIterator:
         # index variable to keep track
         self._index = 0
 
+    def __iter__(self):
+        """Returns Iterator object"""
+        return self
+
     def __next__(self):
         """'Returns the next value from span object's lists"""
         if self._index < len(self._span):
-            result = self._span.at(self._index)
+            result = self._span[self._index]
             self._index += 1
             return result
         # Iteration ends
@@ -407,10 +411,13 @@ class Span:
         :rtype: Union[int, slice]
         """
         if isinstance(i, slice):
+            i.start = 0 if i.start is None else i.start
+            i.stop = -1 if i.stop is None else i.stop
+
             if i.start < 0:
-                i.start =  len(self) + i.start
+                i.start = len(self) + i.start
             if i.stop < 0:
-                i.stop =  len(self) + i.stop
+                i.stop = len(self) + i.stop
             if (self._start+i.start < 0 or self._start+i.start >= len(self._doc)
                     or self._start+i.stop < 0 or self._start+i.stop >= len(self._doc)):
                 raise IndexError("Span slice out of range")
