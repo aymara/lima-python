@@ -7,6 +7,9 @@ import aymara.lima
 import pytest
 import sys
 
+lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+doc = lima("Give it back! He pleaded.")
+
 
 def test__get_data_dir():
     assert ".local/share" in str(aymara.lima._get_data_dir("lima"))
@@ -14,63 +17,56 @@ def test__get_data_dir():
 
 def test_unknownLanguage():
     with pytest.raises(aymara.lima.LimaInternalError):
-        lima = aymara.lima.Lima(langs="this_is_not_a_language_name")
+        aymara.lima.Lima(langs="this_is_not_a_language_name")
 
 
 def test_analyzeText_lang_not_init():
     with pytest.raises(aymara.lima.LimaInternalError):
-        lima = aymara.lima.Lima()
-        result = lima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
-                                    pipeline="main")
+        result = aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.",
+                                                lang="wol", pipeline="main")
         print(result, file=sys.stderr)
         assert True
 
 
 def test_analyzeText_pipeline_not_avail():
     with pytest.raises(aymara.lima.LimaInternalError):
-        lima = aymara.lima.Lima("ud-eng")
-        result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="other")
+        result = aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
+                                                        pipeline="other")
         print(result, file=sys.stderr)
         assert True
 
 
 def test_analyzeText():
-    lima = aymara.lima.Lima()
-    result = lima.analyzeText("This is a text on 02/05/2022.", lang="eng",
-                              pipeline="main")
+    result = aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.", lang="eng",
+                                            pipeline="main")
     print(result, file=sys.stderr)
     assert True
 
 
 def test_analyzeText_init_with_lang():
-    lima = aymara.lima.Lima("ud-eng")
-    result = lima.analyzeText("This is a text on 02/05/2022.", pipeline="deepud")
+    result = aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
+                                                    pipeline="deepud")
     print(result, file=sys.stderr)
     assert True
 
 
 def test_analyzeText_init_with_lang_and_pipe():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
     result = lima.analyzeText("This is a text on 02/05/2022.")
     print(result, file=sys.stderr)
     assert True
 
 
 def test_functor():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("This is a text on 02/05/2022.")
     assert doc is not None and type(doc) == aymara.lima.Doc
 
 
 def test_doc_size():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("This is a text on 02/05/2022.")
     assert len(doc) > 0
 
 
 def test_doc_token_access():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("Give it back! He pleaded.")
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
     assert doc[0].text == "Give"
     assert doc[-1].text == "."
     span = doc[1:3]
@@ -78,21 +74,38 @@ def test_doc_token_access():
 
 
 def test_token_properties():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("Give it back! He pleaded.")
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
     token = doc[5]
-    assert repr(token) == '5\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t_\t_\t_\tPos=17|Len=7'
+    print(repr(token), file=sys.stderr)
+    # assert repr(token) == '5\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t4\tobj\t_\tPos=17|Len=7'
     assert str(token) == "pleaded" == token.text
     assert len(token) == 7
     assert token.i == 5
     assert token.idx == 17
     assert token.ent_iob == "O"
     assert token.ent_type == "_"
+    assert token.lemma == "plead"
+    assert token.pos == "VERB"
+    assert token.head == 4
+    assert token.dep == "obj"
+    assert token.features == {'Mood': 'Ind', 'Tense': 'Past', 'VerbForm': 'Fin'}
+    assert token.t_status == 't_small'
+    assert token.is_alpha is True
+    assert token.is_digit is False
+    assert token.is_lower is True
+    assert token.is_upper is False
+    assert token.is_punct is False
+    assert token.is_sent_start is False
+    assert token.is_sent_end is False
+    assert token.is_space is False
+    assert token.is_bracket is False
+    assert token.is_quote is False
 
 
 def test_doc_sents():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("This is a sentence. Here's another...")
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("This is a sentence. Here's another...")
     sents = list(doc.sents)
     assert len(sents) == 2
     ## TODO impjement s.root
@@ -100,17 +113,56 @@ def test_doc_sents():
 
 
 def test_span_size():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("Give it back! He pleaded.")
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
     span = doc[1:4]
     assert len(span) == 3
 
 
 def test_span_text():
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("Give it back! He pleaded.")
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
     span = doc[1:4]
     assert span[1].text == "back"
     assert span[1:3].text == "back!"
 
 
+def test_span_len():
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
+    span = doc[1:4]
+    assert len(span) == 3
+
+
+def test_span_iter():
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
+    span = doc[1:4]
+    assert len(span) == len(list(iter(span)))
+
+
+def test_span_at():
+    # doc = lima("Give it back! He pleaded.")
+    # span = "it back!"
+    span = doc[1:4]
+    token = span[1]
+    assert str(token) == "back"
+    token = span[-1]
+    assert str(token) == "!"
+    subspan = span[:1]
+    assert str(subspan) == "it back"
+    subspan = span[-2:0]
+    assert str(subspan) == "back!"
+
+
+def test_span_properties():
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("Give it back! He pleaded.")
+    span = doc[1:4]
+    assert span.text == "it back!"
+    assert span.doc == doc
+    assert span.start == 1
+    assert span.end == 4
+    assert span.start_char == 5
+    assert span.end_char == 13
+    assert span.label == ""
