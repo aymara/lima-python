@@ -8,6 +8,8 @@ FROM aymara/lima-python${PYTHON_VERSION}:latest AS lima_python
 ARG PYTHON_VERSION=3.7
 FROM python:${PYTHON_VERSION}
 
+ARG LIMA_PYTHON_VERSION
+ARG PYTHON_WHEEL_VERSION
 
 RUN pip install -U pip
 RUN pip install pytest pytest-cov pytest-runner aymara
