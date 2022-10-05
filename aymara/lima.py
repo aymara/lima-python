@@ -407,9 +407,18 @@ class Span:
         :rtype: Union[int, slice]
         """
         if isinstance(i, slice):
+            if i.start < 0:
+                i.start =  len(self) + i.start
+            if i.stop < 0:
+                i.stop =  len(self) + i.stop
+            if (self._start+i.start < 0 or self._start+i.start >= len(self._doc)
+                    or self._start+i.stop < 0 or self._start+i.stop >= len(self._doc)):
+                raise IndexError("Span slice out of range")
             return Span(self._doc, self._start+i.start, self._start+i.stop)
         if i < 0:
             i = len(self) + i
+        if self._start+i < 0 or self._start+i >= len(self._doc):
+            raise IndexError("Span index out of range")
         return self._doc[self._start+i]
 
     text = property(
