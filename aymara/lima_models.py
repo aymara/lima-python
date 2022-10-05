@@ -42,7 +42,7 @@ def _yesnoconfirm(msg):
     while True:
         try:
             answer = input(f"{msg} [y|N]: ").lower()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt:  # pragma: no cover
             print()
             exit(0)
 
@@ -69,7 +69,7 @@ def _remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
             if os.system(f"rm -f {model_dir}/*-{code}.*") == 0:
                 removed = True
             else:
-                print(f"Failed to remove {model_dir}")
+                print(f"Failed to remove {model_dir}")  # pragma: no cover
     return removed
 
 
@@ -82,7 +82,7 @@ def _get_target_dir(dest=None):
     """
     if not dest:
         if "XDG_DATA_HOME" in os.environ and len(os.environ["XDG_DATA_HOME"]) > 0:
-            target_dir_prefix = os.environ["XDG_DATA_HOME"]
+            target_dir_prefix = os.environ["XDG_DATA_HOME"]  # pragma: no cover
         else:
             home_dir = os.path.expanduser("~")
             target_dir_prefix = os.path.join(home_dir, ".local", "share")
@@ -122,7 +122,7 @@ def _install_model(dir, fn, code, prefix_list):
                 )
                 if mo:
                     subdir = mo.group(1)
-                    if subdir is None or len(subdir) == 0:
+                    if subdir is None or len(subdir) == 0:  # pragma: no cover
                         print(f"Error: can't parse '{full_dir}'\n", file=sys.stderr)
                         sys.exit(1)
                     target_dir = os.path.join(dir, subdir)
@@ -133,17 +133,18 @@ def _install_model(dir, fn, code, prefix_list):
                             if len(chunk) == 0:
                                 break
                             f.write(chunk)
-                    # LIMA historically uses 'fre' for French.
-                    # This workaround adds symlinks 'fre' -> 'fra' to support
-                    # this.
-                    if code in ["fra"]:
-                        src_name = os.path.join(target_dir, name)
-                        symlink_name = re.sub(
-                            r"-fra.(conf|model|bin)$", r"-fre.\1", name, 1
-                        )
-                        symlink_name = os.path.join(target_dir, symlink_name)
-                        if not os.path.isfile(symlink_name):
-                            os.symlink(src_name, symlink_name)
+                    # Lets deprecate this old usage:
+                    # # LIMA historically uses 'fre' for French.
+                    # # This workaround adds symlinks 'fre' -> 'fra' to support
+                    # # this.
+                    # if code in ["fra"]:
+                    #     src_name = os.path.join(target_dir, name)
+                    #     symlink_name = re.sub(
+                    #         r"-fra.(conf|model|bin)$", r"-fre.\1", name, 1
+                    #     )
+                    #     symlink_name = os.path.join(target_dir, symlink_name)
+                    #     if not os.path.isfile(symlink_name):
+                    #         os.symlink(src_name, symlink_name)
 
 
 def _download_binary_file(url, dir):

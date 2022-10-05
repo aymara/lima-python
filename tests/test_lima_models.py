@@ -4,21 +4,33 @@
 # SPDX-License-Identifier: MIT
 
 import aymara.lima_models
+import os
 import pytest
 import sys
+
 
 def test___yesnoconfirm(monkeypatch):
     answers = iter(["y", "Y", "n", "other"])
     monkeypatch.setattr('builtins.input', lambda name: next(answers))
-    assert aymara.lima_models._yesnoconfirm("A test") == True
-    assert aymara.lima_models._yesnoconfirm("A test") == True
-    assert aymara.lima_models._yesnoconfirm("A test") == False
-    assert aymara.lima_models._yesnoconfirm("A test") == False
+    assert aymara.lima_models._yesnoconfirm("A test") is True
+    assert aymara.lima_models._yesnoconfirm("A test") is True
+    assert aymara.lima_models._yesnoconfirm("A test") is False
+    assert aymara.lima_models._yesnoconfirm("A test") is False
+
+
+def test__get_target_dir():
+    assert aymara.lima_models._get_target_dir("/x/y/z") == "/x/y/z"
+
 
 def test_install_model():
     """Test installation of models for a language. We use Wolof because it is currently
     the smallest in file size."""
     assert aymara.lima_models.install_language("wol", force=True)
+    # Test 2 thing: trying to reinstall a model without forcing and use the complete
+    # language name instead of the trigram code
+    assert not aymara.lima_models.install_language("wolof", force=False)
+    # Test trying to install a non-exsistent language
+    assert not aymara.lima_models.install_language("auieauieuia", force=False)
 
 
 # def test_installed_model():
@@ -31,11 +43,22 @@ def test_list_installed_models(capsys):
     captured = capsys.readouterr()
     assert "(wol)" in captured.out
 
+
 def test_remove_model(capsys):
+    # target = aymara.lima_models._get_target_dir()
+    # mask = oct(os.stat(target).st_mode)[-3:]
+    # # remove write permission to the destination dir…
+    # os.chmod(target, 0o444)
+    # #… such that remove fails
+    # assert not aymara.lima_models.remove_language("wol", force=True)
+    # # set back initial permissions…
+    # os.chmod(target, mask)
+    # # … such that we can (hopfully) remove the language
     assert aymara.lima_models.remove_language("wol", force=True)
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
     assert "(wol)" not in captured.out
+
 
 def test_info():
     aymara.lima_models.info()
