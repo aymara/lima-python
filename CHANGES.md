@@ -1,3 +1,11 @@
+## 0.5.0b1 - 20221006
+
+* New API inspired by spaCy
+  Most important parts of Lima (equivalent to Language), Doc, Span and Token are implemented.
+* Complete model management API
+* API documentation on readthedocs (https://lima-python.readthedocs.io/en/port-to-qt6/)
+* Unit tests with coverage (currently 80%)
+
 ## 0.4.1 - 20220728
 
 * abi3-based wheel usable on all python >= 3.7, < 4
