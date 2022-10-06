@@ -72,6 +72,10 @@ Note that some error messages could be displayed during the Lima object instanti
 
 You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline. This is the same for `ud-fra` and `fre`. Note that legacy pipelines do not use the Universal Dependencies tagset, but a proprietary one.
 
+## Python bindings API documentation
+
+The Lima python API documentation is [on readthedocs](https://lima-python.readthedocs.io/en/port-to-qt6/).
+
 ## Configuration and customization
 
 To configure finely LIMA for your needs, follow the same instructions as for the native C++ tools, available here: [[https://github.com/aymara/lima/wiki/LIMA-User-Manual]].
