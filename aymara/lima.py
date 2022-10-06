@@ -363,6 +363,18 @@ class Span:
 
     """
     def __init__(self, doc, start: int, end: int, label: str = ""):
+        """
+        Constructor of a Span
+
+        :param doc: The document on which is built the span.
+        :type doc: Doc
+        :param start: The id of the fist token of the span.
+        :type start: int
+        :param start: The id of past the last token of the span.
+        :type start: int
+        :param label: A label to attach to the span, e.g. for named entities.
+        :type start: str
+        """
         self._doc = doc
         self._start = start
         self._end = end
@@ -842,7 +854,7 @@ class Lima:
             whole configuration is exported (Default value = None)
         :type lang: str
         :return: True if the configuration is correctly exported and False otherwise.
-        :rtype: boool
+        :rtype: bool
         """
         # Verify thar dir exists and is writable or create it
         if not dir:
