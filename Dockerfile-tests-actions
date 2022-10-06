@@ -17,7 +17,7 @@ RUN lima_models.py -l eng
 RUN pip uninstall -y aymara
 
 COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl /
-RUN pip install /aymara-0.4.2-cp37-abi3-manylinux_2_28_x86_64.whl
+RUN pip install /aymara-${LIMA_PYTHON_VERSION}-cp37-abi3-manylinux_2_28_x86_64.whl
 RUN install -d /lima-python
 
 WORKDIR /lima-python
