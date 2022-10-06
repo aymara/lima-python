@@ -19,4 +19,5 @@ COPY .coveragerc .
 RUN install -d /lima-python/tests
 COPY tests/* /lima-python/tests/
 COPY aymara/* /lima-python/aymara/
-RUN python3 -m pytest --cov=aymara --cov-config=.coveragerc --cov-report term-missing  tests/
+RUN python3 -m pytest --cov=aymara --cov-config=.coveragerc --cov-report term-missing tests/
+# --capture=tee-sys tests/

@@ -84,7 +84,6 @@
 #include "linguisticProcessing/client/AnalysisHandlers/SimpleStreamHandler.h"
 #include "linguisticProcessing/client/AnalysisHandlers/LTRTextHandler.h"
 #include "linguisticProcessing/core/Automaton/SpecificEntityAnnotation.h"
-#include "linguisticProcessing/core/EventAnalysis/EventHandler.h"
 #include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
 #include "linguisticProcessing/core/LinguisticAnalysisStructure/MorphoSyntacticData.h"
 #include "linguisticProcessing/core/LinguisticProcessors/LinguisticMetaData.h"
@@ -112,6 +111,8 @@
 #include <QtCore/QString>
 
 #include <QtCore>
+
+#define DEBUG_LP
 
 using namespace Lima::LinguisticProcessing;
 using namespace Lima::LinguisticProcessing::SpecificEntities;
@@ -170,14 +171,16 @@ public:
                  const std::string& pipeline="main",
                  const std::string& meta="");
 
+  void collectDependencyInformations(std::shared_ptr<Lima::AnalysisContent> analysis);
+  void collectVertexDependencyInformations(LinguisticGraphVertex v,
+                                           std::shared_ptr<Lima::AnalysisContent> analysis);
+
   Doc docFrom_analysis(std::shared_ptr<Lima::AnalysisContent> analysis);
 
   int dumpPosGraphVertex(Doc& doc,
                          LinguisticGraphVertex v,
                          int& tokenId,
                          LinguisticGraphVertex vEndDone,
-                         std::map<LinguisticGraphVertex,int>& segmentationMapping,
-                         std::map<int,LinguisticGraphVertex>& segmentationMappingReverse,
                          const QString& parentNeType,
                          bool first);
 
@@ -186,7 +189,6 @@ public:
                               LinguisticGraphVertex posGraphVertex,
                               int& tokenId,
                               LinguisticGraphVertex vEndDone,
-                              std::map<LinguisticGraphVertex,int>& segmentationMapping,
                               const QString& neType,
                               bool first,
                               const Automaton::EntityFeatures& features);
@@ -195,8 +197,6 @@ public:
                        LinguisticGraphVertex v,
                        int& tokenId,
                        LinguisticGraphVertex vEndDone,
-                       std::map<LinguisticGraphVertex,int>& segmentationMapping,
-                       std::map<int,LinguisticGraphVertex> segmentationMappingReverse,
                        const QString& neType);
 
   /** Gets the named entity type for the PosGraph vertex @ref posGraphVertex
@@ -204,57 +204,51 @@ public:
    */
   QString getNeType(LinguisticGraphVertex posGraphVertex);
 
-  std::pair<QString, int> getConllRelName(LinguisticGraphVertex v,
-                                          std::map<LinguisticGraphVertex,int>& segmentationMapping);
+  std::pair<QString, int> getConllRelName(LinguisticGraphVertex v);
 
-  const SpecificEntityAnnotation* getSpecificEntityAnnotation(
-    LinguisticGraphVertex v) const;
+  const SpecificEntityAnnotation* getSpecificEntityAnnotation(LinguisticGraphVertex v) const;
 
   bool hasSpaceAfter(LinguisticGraphVertex v, LinguisticGraph* graph);
 
-  QStringList getPredicate(LinguisticGraphVertex v);
+  QString getMicro(LinguisticAnalysisStructure::MorphoSyntacticData& morphoData);
 
-  QString getMicro(LinguisticAnalysisStructure::MorphoSyntacticData* morphoData);
+  QString getFeats(const LinguisticAnalysisStructure::MorphoSyntacticData& morphoData);
 
-  QMultiMap<LinguisticGraphVertex, AnnotationGraphVertex> predicates;
+  /** Reset all members used to store analysis states. To be called before handling a new analysis. */
+  void reset();
+
+
   QString previousNeType;
 
   const FsaStringsPool* sp = nullptr;
   MediaId medId;
-  std::shared_ptr< AbstractLinguisticProcessingClient > m_client;
-  std::map<std::string,std::string> metaData;
-  std::string splitMode;
-  std::map<std::string, AbstractAnalysisHandler*> handlers;
-  std::set<std::string> inactiveUnits;
 
 
   const LanguageData* languageData = nullptr;
-  BowTextWriter* bowTextWriter = nullptr;
-  EventAnalysis::EventHandler* eventHandler = nullptr;
-  BowTextHandler* bowTextHandler = nullptr;
-  SimpleStreamHandler* simpleStreamHandler = nullptr;
-  SimpleStreamHandler* fullXmlSimpleStreamHandler = nullptr;
-  LTRTextHandler* ltrTextHandler = nullptr;
-  SyntacticData* syntacticData = nullptr;
   const Common::PropertyCode::PropertyAccessor* propertyAccessor = nullptr;
   LinguisticGraph* posGraph = nullptr;
   LinguisticGraph* anaGraph = nullptr;
-  DependencyGraph* depGraph = nullptr;
   AnnotationData* annotationData = nullptr;
-  const PropertyCodeManager* propertyCodeManager = nullptr;
-  const PropertyManager* microManager = nullptr;
-  const std::map< std::string, PropertyManager >* managers = nullptr;
+  SyntacticData* syntacticData = nullptr;
   std::map< LinguisticGraphVertex,
           std::pair<LinguisticGraphVertex,
                     std::string> > vertexDependencyInformations;
   QMap<QString, QString> conllLimaDepMapping;
 
-  std::set<std::string> dumpers = {"text"};
 
   std::map<LinguisticGraphVertex, int> vertexToToken;
 
-  QString m_graph = "PosGraph";
-
+  const PropertyCodeManager* propertyCodeManager = nullptr;
+  // Fixed members that do not change at each analysis
+  std::map<std::string, AbstractAnalysisHandler*> handlers;
+  std::unique_ptr<BowTextWriter> bowTextWriter = nullptr;
+  std::unique_ptr<BowTextHandler> bowTextHandler = nullptr;
+  std::unique_ptr<SimpleStreamHandler> simpleStreamHandler = nullptr;
+  std::unique_ptr<SimpleStreamHandler> fullXmlSimpleStreamHandler = nullptr;
+  std::unique_ptr<LTRTextHandler> ltrTextHandler = nullptr;
+  std::set<std::string> dumpers = {"text"};
+  std::shared_ptr< AbstractLinguisticProcessingClient > m_client;
+  std::map<std::string,std::string> metaData;
   // Store constructor parameters to be able to implement copy constructor
   QStringList qlangs;
   QStringList qpipelines;
@@ -319,7 +313,6 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::string commonConfigFile = "lima-common.xml";
   std::string clientId = "lima-coreclient";
 
-  std::vector<std::string> vinactiveUnits;
   std::string strConfigPath;
 
   // parse 'meta' argument to add metadata
@@ -352,11 +345,6 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
     while (k!=std::string::npos);
   }
 
-  std::set<std::string> inactiveUnits;
-  for (const auto & inactiveUnit: vinactiveUnits)
-  {
-    inactiveUnits.insert(inactiveUnit);
-  }
   std::deque<std::string> pipelines;
   for (const auto& pipeline: qpipelines)
     pipelines.push_back(pipeline.toStdString());
@@ -415,38 +403,16 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
           LinguisticProcessingClientFactory::single().createClient(clientId)));
 
   // Set the handlers
-
-  std::set<std::string> dumpers({"text"});
-//   if (dumpers.find("bow") != dumpers.end())
-//   {
-    bowTextWriter = new BowTextWriter();
-    handlers.insert(std::make_pair("bowTextWriter",
-                                   bowTextWriter));
-//   }
-//   if (dumpers.find("bowh") != dumpers.end())
-//   {
-    bowTextHandler = new BowTextHandler();
-    handlers.insert(std::make_pair("bowTextHandler",
-                                   bowTextHandler));
-//   }
-//   if (dumpers.find("text") != dumpers.end())
-//   {
-    simpleStreamHandler = new SimpleStreamHandler();
-    handlers.insert(std::make_pair("simpleStreamHandler",
-                                   simpleStreamHandler));
-//   }
-//   if (dumpers.find("fullxml") != dumpers.end())
-//   {
-    fullXmlSimpleStreamHandler = new SimpleStreamHandler();
-    handlers.insert(std::make_pair("fullXmlSimpleStreamHandler",
-                                   fullXmlSimpleStreamHandler));
-//   }
-//   if (dumpers.find("ltr") != dumpers.end())
-//   {
-    ltrTextHandler= new LTRTextHandler();
-    handlers.insert(std::make_pair("ltrTextHandler",
-                                   ltrTextHandler));
-//   }
+  bowTextWriter = std::make_unique<BowTextWriter>();
+  handlers.insert(std::make_pair("bowTextWriter", bowTextWriter.get()));
+  bowTextHandler = std::make_unique<BowTextHandler>();
+  handlers.insert(std::make_pair("bowTextHandler", bowTextHandler.get()));
+  simpleStreamHandler = std::make_unique<SimpleStreamHandler>();
+  handlers.insert(std::make_pair("simpleStreamHandler", simpleStreamHandler.get()));
+  fullXmlSimpleStreamHandler = std::make_unique<SimpleStreamHandler>();
+  handlers.insert(std::make_pair("fullXmlSimpleStreamHandler", fullXmlSimpleStreamHandler.get()));
+  ltrTextHandler= std::make_unique<LTRTextHandler>();
+  handlers.insert(std::make_pair("ltrTextHandler", ltrTextHandler.get()));
 
 }
 
@@ -521,6 +487,24 @@ LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer& a)
     error = true;
     errorMessage = e.what();
   }
+  return *this;
+}
+
+void LimaAnalyzerPrivate::reset()
+{
+  previousNeType = "O";
+  sp = nullptr;
+  medId = 0;
+  languageData = nullptr;
+  syntacticData = nullptr;
+  propertyAccessor = nullptr;
+  posGraph = nullptr;
+  anaGraph = nullptr;
+  annotationData = nullptr;
+  propertyCodeManager = nullptr;
+  vertexDependencyInformations.clear();
+  conllLimaDepMapping.clear();
+  vertexToToken.clear();
 }
 
 Doc LimaAnalyzer::operator()(const std::string& text,
@@ -589,7 +573,7 @@ Doc LimaAnalyzerPrivate::operator()(
   {
     // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-    auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers, inactiveUnits);
+    auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers);
     return docFrom_analysis(analysis);
   }
 }
@@ -599,7 +583,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
                                     const std::string& pipeline,
                                     const std::string& meta)
 {
-  auto txtofs  = openHandlerOutputString(simpleStreamHandler, dumpers, "text");
+  auto txtofs  = openHandlerOutputString(simpleStreamHandler.get(), dumpers, "text");
 
   auto localMetaData = metaData;
   localMetaData["FileName"]="param";
@@ -613,43 +597,16 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
 
   localMetaData["Lang"]=lang;
 
-  if (splitMode == std::string("lines"))
+  QString contentText = QString::fromUtf8(text.c_str());
+  if (contentText.isEmpty())
   {
-    QStringList allText = QString::fromUtf8(text.c_str()).split("\n");
-    int lineNum = 0;
-    int nbLines = allText.size();
-//     std::cerr << "\rStarting analysis";
-    for (const auto& contentText: allText)
-    {
-      lineNum++;
-      QString percent = QString::number((lineNum*1.0/nbLines*100),'f',2);
-      if ( (lineNum % 100) == 0)
-      {
-        std::cerr << "\rAnalyzed "<< lineNum << "/" << nbLines
-                  << " (" << percent.toUtf8().constData() << "%) lines";
-      }
-      // analyze it
-      m_client->analyze(contentText,
-                      localMetaData,
-                      pipeline,
-                      handlers,
-                      inactiveUnits);
-    }
+    std::cerr << "Empty input ! " << std::endl;
   }
-  else // default == none
+  else
   {
-    QString contentText = QString::fromUtf8(text.c_str());
-    if (contentText.isEmpty())
-    {
-      std::cerr << "Empty input ! " << std::endl;
-    }
-    else
-    {
-      // analyze it
+    // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-      m_client->analyze(contentText, localMetaData, pipeline, handlers,
-                        inactiveUnits);
-    }
+    m_client->analyze(contentText, localMetaData, pipeline, handlers);
   }
 
   simpleStreamHandler->setOut(nullptr);
@@ -669,10 +626,13 @@ std::shared_ptr< std::ostringstream > openHandlerOutputString(
   return ofs;
 }
 
-QString getFeats(const PropertyCodeManager& propertyCodeManager,
-                 const LinguisticAnalysisStructure::MorphoSyntacticData& morphoData)
+QString LimaAnalyzerPrivate::getFeats(const LinguisticAnalysisStructure::MorphoSyntacticData& morphoData)
 {
-  auto managers = propertyCodeManager.getPropertyManagers();
+#ifdef DEBUG_LP
+  DUMPERLOGINIT;
+  LDEBUG << "getFeats";
+#endif
+  auto managers = propertyCodeManager->getPropertyManagers();
 
   QStringList featuresList;
   for (auto i = managers.cbegin(); i != managers.cend(); i++)
@@ -680,7 +640,7 @@ QString getFeats(const PropertyCodeManager& propertyCodeManager,
     auto key = QString::fromUtf8(i->first.c_str());
     if (key != "MACRO" && key != "MICRO")
     {
-      const auto& pa = propertyCodeManager.getPropertyAccessor(key.toStdString());
+      const auto& pa = propertyCodeManager->getPropertyAccessor(key.toStdString());
       LinguisticCode lc = morphoData.firstValue(pa);
       auto value = QString::fromUtf8(i->second.getPropertySymbolicValue(lc).c_str());
       if (value != "NONE")
@@ -709,15 +669,162 @@ QString getFeats(const PropertyCodeManager& propertyCodeManager,
     }
   }
 #ifdef DEBUG_LP
-  LDEBUG << "ConllDumper::process features:" << features;
+  LDEBUG << "LimaAnalyzerPrivate::getFeats features:" << features;
 #endif
 
   return features;
 }
 
+void LimaAnalyzerPrivate::collectDependencyInformations(std::shared_ptr<Lima::AnalysisContent> analysis)
+{
+#ifdef DEBUG_LP
+  DUMPERLOGINIT;
+  LDEBUG << "LimaAnalyzerPrivate::collectVertexDependencyInformations";
+#endif
+
+  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+  if (posGraphData == nullptr)
+  {
+    std::cerr << "Error: PosGraph has not been produced: check pipeline";
+    return;
+  }
+
+  auto firstVertex = posGraphData->firstVertex();
+  auto lastVertex = posGraphData->lastVertex();
+  auto v = firstVertex;
+  auto [it, it_end] = boost::out_edges(v, *posGraph);
+  if (it != it_end)
+  {
+      v = boost::target(*it, *posGraph);
+  }
+  else
+  {
+      v = lastVertex;
+  }
+
+  syntacticData = static_cast<SyntacticData*>(analysis->getData("SyntacticData"));
+  if (syntacticData == nullptr)
+  {
+    syntacticData = new SyntacticData(posGraphData, 0);
+    syntacticData->setupDependencyGraph();
+    analysis->setData("SyntacticData", syntacticData);
+  }
+  int tokenId = 0;
+
+  while (v != lastVertex)
+  {
+    QString neType = getNeType(v);
+    QString neIOB = "O";
+    // Collect NE vertices and output them instead of a single line for
+    // current v. NE vertices can not only be PosGraph
+    // vertices (and thus can just call dumpPosGraphVertex
+    // recursively) but also AnalysisGraph vertices. In the latter case, data
+    // come partly from the AnalysisGraph and partly from the PosGraph
+    // Furthermore, named entities can be recursive...
+    if (neType != "_")
+    {
+      auto matches = annotationData->matches("PosGraph", v, "annot");
+      if (!matches.empty())
+      {
+        for (const auto& vx: matches)
+        {
+          if (annotationData->hasAnnotation(vx, QString::fromUtf8("SpecificEntity")))
+          {
+            auto se = annotationData->annotation(vx, QString::fromUtf8("SpecificEntity"))
+              .pointerValue<SpecificEntityAnnotation>();
+            previousNeType = "O";
+            bool first = true;
+            for (const auto& vse : se->vertices())
+            {
+              collectVertexDependencyInformations(vse, analysis);
+              vertexToToken[vse] = tokenId;
+              first = false;
+            }
+            break;
+          }
+        }
+      }
+      else
+      {
+        auto anaVertices = annotationData->matches("PosGraph", v, "AnalysisGraph");
+        auto anaVertex = *anaVertices.begin();
+        if (annotationData->hasAnnotation(anaVertex, QString::fromUtf8("SpecificEntity")))
+        {
+          auto se = annotationData->annotation(anaVertex, QString::fromUtf8("SpecificEntity"))
+            .pointerValue<SpecificEntityAnnotation>();
+          // All retrieved lines/tokens have the same netype. Depending on the
+          // output style (CoNLL 2003, CoNLL-U, …), the generated line is different
+          // and the ne-Type includes or not BIO information using in this case the
+          // previousNeType member.
+          previousNeType = "O";
+          bool first = true;
+          vertexToToken[v] = tokenId;
+          tokenId++;
+          for (const auto& vse : se->vertices())
+          {
+            auto posVertices = annotationData->matches("AnalysisGraph", vse, "PosGraph");
+            auto posVertex = *posVertices.begin();
+            // @TODO Should follow instructions here to output all MWE:
+            // https://universaldependencies.org/format.html#words-tokens-and-empty-nodes
+
+            // TODO Get correct UD dep relation for relations inside the named entity
+            // and for the token that must be linked to the outside. For this one, the
+            // relation is the one which links to posGraphVertex to the rest of the pos
+            // graph.
+            auto [conllRelName, targetConllId] = getConllRelName(v);
+
+            vertexToToken[posVertex] = tokenId;
+            // std::cerr << "docFrom_analysis pushing token" << std::endl;
+            first = false;
+          }
+          previousNeType = neType;
+        }
+      }
+    }
+    else
+    {
+      vertexToToken[v] = tokenId;
+      tokenId++;
+    }
+
+    collectVertexDependencyInformations(v, analysis);
+
+    auto [it, it_end] = boost::out_edges(v, *posGraph);
+    if (it != it_end)
+    {
+        v = boost::target(*it, *posGraph);
+    }
+    else
+    {
+        v = lastVertex;
+    }
+
+  }
+}
+
+void LimaAnalyzerPrivate::collectVertexDependencyInformations(LinguisticGraphVertex v,
+                                                              std::shared_ptr<Lima::AnalysisContent> analysis)
+{
+    auto dcurrent = syntacticData->depVertexForTokenVertex(v);
+    auto depGraph = syntacticData->dependencyGraph();
+    for (auto [dit, dit_end] = boost::out_edges(dcurrent, *depGraph); dit != dit_end; dit++)
+    {
+        auto typeMap = get(edge_deprel_type, *depGraph);
+        auto type = typeMap[*dit];
+        auto syntRelName = languageData->getSyntacticRelationName(type);
+        auto dest = syntacticData->tokenVertexForDepVertex(
+          boost::target(*dit, *depGraph));
+        if (syntRelName != "")
+        {
+          vertexDependencyInformations.insert(std::make_pair(v, std::make_pair(dest, syntRelName)));
+        }
+    }
+}
+
 Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent > analysis)
 {
   // std::cerr << "docFrom_analysis" << std::endl;
+  reset();
   auto metadataholder = static_cast<LinguisticMetaData*>(analysis->getData("LinguisticMetaData"));
   const auto& lang = metadataholder->getMetaData("Lang");
   medId = MedData::single().media(lang);
@@ -725,24 +832,54 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
   propertyCodeManager = &languageData->getPropertyCodeManager();
   propertyAccessor = &propertyCodeManager->getPropertyAccessor("MICRO");
 
+
   // std::cerr << "docFrom_analysis get stringsPool" << std::endl;
   Doc doc;
   doc.m_d->language = lang;
+  doc.m_d->analysis = analysis;
+
   sp = &MedData::single().stringsPool(MedData::single().media(lang));
 
 
   annotationData = static_cast<AnnotationData*>(analysis->getData("AnnotationData"));
+  if (annotationData == nullptr)
+  {
+    std::cerr << "Error: AnnotationData has not been produced: check pipeline";
+    doc.m_d->error = true;
+    doc.m_d->errorMessage = "Error: AnnotationData has not been produced: check pipeline";
+    return doc;
+  }
 
-  doc.m_d->analysis = analysis;
   auto anaGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("AnalysisGraph"));
-  anaGraph = anaGraphData->getGraph();
+  if (anaGraphData == nullptr)
+  {
+    std::cerr << "Error: AnaGraph has not been produced: check pipeline";
+    doc.m_d->error = true;
+    doc.m_d->errorMessage = "AnaGraph: PosGraph has not been produced: check pipeline";
+    return doc;
+  }
+
   auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
   if (posGraphData==0)
   {
     std::cerr << "Error: PosGraph has not been produced: check pipeline";
+    doc.m_d->error = true;
+    doc.m_d->errorMessage = "Error: PosGraph has not been produced: check pipeline";
     return doc;
   }
+
+  anaGraph = anaGraphData->getGraph();
   posGraph = posGraphData->getGraph();
+  if (anaGraph == nullptr || posGraph == nullptr || annotationData == nullptr)
+  {
+    DUMPERLOGINIT;
+    LERROR << "LimaAnalyzerPrivate::dumpPosGraphVertex missing data";
+    doc.m_d->error = true;
+    doc.m_d->errorMessage = "Error: missing data";
+    return doc;
+  }
+  collectDependencyInformations(analysis);
+
   auto firstVertex = posGraphData->firstVertex();
   auto lastVertex = posGraphData->lastVertex();
   auto v = firstVertex;
@@ -757,33 +894,16 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
   }
   int sentenceNb = 0;
   LinguisticGraphVertex vEndDone = 0; // TODO remove. useless here. comes from LIMA ConllDumper
-  std::map<LinguisticGraphVertex,int> segmentationMapping;
-  std::map<int,LinguisticGraphVertex> segmentationMappingReverse;
   auto tokenId = 0;
   auto tokens = get(vertex_token, *posGraph);
   auto morphoDatas = get(vertex_data, *posGraph);
-
-  syntacticData = static_cast<SyntacticData*>(analysis->getData("SyntacticData"));
-  if (syntacticData == nullptr)
-  {
-    syntacticData = new SyntacticData(posGraphData, 0);
-    syntacticData->setupDependencyGraph();
-    analysis->setData("SyntacticData", syntacticData);
-  }
-  depGraph = syntacticData-> dependencyGraph();
 
   // std::cerr << "docFrom_analysis before while" << std::endl;
   while (v != lastVertex)
   {
     // std::cerr << "docFrom_analysis on vertex " << v << posGraph << std::endl;
 
-    dumpPosGraphVertex(doc, v,
-                            tokenId,
-                            vEndDone,
-                            segmentationMapping,
-                            segmentationMappingReverse,
-                            "",
-                            false);
+    dumpPosGraphVertex(doc, v, tokenId, vEndDone, "", false);
 
     auto [it, it_end] = boost::out_edges(v, *posGraph);
     if (it != it_end)
@@ -809,16 +929,6 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
       auto sentenceBegin = bound.getFirstVertex();
       auto sentenceEnd = bound.getLastVertex();
       doc.m_d->sentences.push_back(Span(vertexToToken[sentenceBegin], vertexToToken[sentenceEnd]));
-
-      auto [it, it_end] = boost::out_edges(v, *posGraph);
-      if (it != it_end)
-      {
-          v = boost::target(*it, *posGraph);
-      }
-      else
-      {
-          v = lastVertex;
-      }
     }
   }
   // std::cerr << "docFrom_analysis before return" << std::endl;
@@ -830,8 +940,6 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
                                             LinguisticGraphVertex v,
                                             int& tokenId,
                                             LinguisticGraphVertex vEndDone,
-                                            std::map<LinguisticGraphVertex,int>& segmentationMapping,
-                                            std::map<int,LinguisticGraphVertex>& segmentationMappingReverse,
                                             const QString& parentNeType,
                                             bool first)
 {
@@ -840,12 +948,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
   DUMPERLOGINIT;
   LDEBUG << "LimaAnalyzerPrivate::dumpPosGraphVertex IN" << v;
 #endif
-  if (anaGraph == nullptr || posGraph == nullptr || annotationData == nullptr)
-  {
-    DUMPERLOGINIT;
-    LERROR << "LimaAnalyzerPrivate::dumpPosGraphVertex missing data";
-    return MISSING_DATA;
-  }
+  // vertexToToken.insert(std::make_pair(v, tokenId));
   bool notDone(true);
   if( v == vEndDone )
     notDone = false;
@@ -862,13 +965,13 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
     // std::cerr << "LimaAnalyzerPrivate::dumpPosGraphVertex PosGraph nb different LinguisticCode"
     //       << morphoData->size() << std::endl;
 
-    auto micro = getMicro(morphoData);
+    auto micro = getMicro(*morphoData);
 #ifdef DEBUG_LP
     LDEBUG << "LimaAnalyzerPrivate::dumpPosGraphVertex graphTag:" << micro;
 #endif
     // std::cerr << "LimaAnalyzerPrivate::dumpPosGraphVertex graphTag:" << micro.toStdString() << std::endl;
 
-    auto feats = getFeats(*propertyCodeManager, *morphoData);
+    auto feats = getFeats(*morphoData);
 #ifdef DEBUG_LP
     LDEBUG << "LimaAnalyzerPrivate::dumpPosGraphVertex feats:" << feats;
 #endif
@@ -888,61 +991,11 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
     }
 
 
-    segmentationMapping.insert(std::make_pair(v,tokenId));
-    segmentationMappingReverse.insert(std::make_pair(tokenId,v));
 #ifdef DEBUG_LP
-    LDEBUG << "ConllDumper::process conll id : " << tokenId
+    LDEBUG << "LimaAnalyzerPrivate::dumpPosGraphVertex conll id : " << tokenId
             << " Lima id : " << v;
 #endif
 
-    auto dcurrent = syntacticData->depVertexForTokenVertex(v);
-    for (auto [dit, dit_end] = boost::out_edges(dcurrent,*depGraph);
-         dit != dit_end; dit++)
-    {
-#ifdef DEBUG_LP
-      LDEBUG << "ConllDumper::process Dumping dependency edge "
-              << (*dit).m_source << " -> " << (*dit).m_target;
-#endif
-      try
-      {
-        auto typeMap = get(edge_deprel_type, *depGraph);
-        auto type = typeMap[*dit];
-        auto syntRelName = languageData->getSyntacticRelationName(type);
-#ifdef DEBUG_LP
-        LDEBUG << "ConllDumper::process relation = " << syntRelName;
-        LDEBUG << "ConllDumper::process Src  : Dep vertex= "
-                << boost::source(*dit, *depGraph);
-        auto src = syntacticData->tokenVertexForDepVertex(
-            boost::source(*dit, *depGraph));
-        LDEBUG << "ConllDumper::process Src  : Morph vertex= " << src;
-        LDEBUG << "ConllDumper::process Targ : Dep vertex= "
-                << boost::target(*dit, *depGraph);
-#endif
-        auto dest = syntacticData->tokenVertexForDepVertex(
-          boost::target(*dit, *depGraph));
-#ifdef DEBUG_LP
-        LDEBUG << "ConllDumper::process Targ : Morph vertex= " << dest;
-#endif
-        if (syntRelName!="")
-        {
-#ifdef DEBUG_LP
-          LDEBUG << "ConllDumper::process saving target for"
-                  << v << ":" << dest << syntRelName;
-#endif
-          vertexDependencyInformations.insert(std::make_pair(v, std::make_pair(dest, syntRelName)));
-        }
-      }
-      catch (const std::range_error& )
-      {
-      }
-      catch (...)
-      {
-#ifdef DEBUG_LP
-        LDEBUG << "ConllDumper::process: catch others.....";
-#endif
-        throw;
-      }
-    }
     // std::cerr << "LimaAnalyzerPrivate::dumpPosGraphVertex lemmatizedToken:" << lemmatizedToken << std::endl;
     // @TODO Should follow instructions here to output all MWE:
     // https://universaldependencies.org/format.html#words-tokens-and-empty-nodes
@@ -957,7 +1010,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
     // Furthermore, named entities can be recursive...
     if (neType != "_")
     {
-      dumpNamedEntity(doc, v, tokenId, vEndDone, segmentationMapping, segmentationMappingReverse, neType);
+      dumpNamedEntity(doc, v, tokenId, vEndDone, neType);
     }
     else
     {
@@ -975,9 +1028,9 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
         neIOB = first?"B":"I";
       }
 
-      auto [conllRelName, targetConllId] = getConllRelName(v, segmentationMapping);
+      auto [conllRelName, targetConllId] = getConllRelName(v);
       // if(!hasSpaceAfter(v, posGraph)) // TODO use hasSpaceAfter in Token
-      auto features = getFeats(*propertyCodeManager, *morphoData);
+      auto features = getFeats(*morphoData);
 
       // std::cerr << "docFrom_analysis token/lemma are " << inflectedToken << "/" << lemmatizedToken << std::endl;
 
@@ -989,7 +1042,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
       Token t(len, inflectedToken, lemmatizedToken.toStdString(),
               tokenId++, pos, micro.toStdString(), targetConllId, conllRelName.toStdString(),
               features.toStdString(), neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
-      vertexToToken[v] = tokenId;
+      // vertexToToken[v] = tokenId;
       // std::cerr << "docFrom_analysis pushing token" << std::endl;
       doc.m_d->tokens.push_back(t);
       previousNeType = neType;
@@ -1002,11 +1055,8 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
                                          LinguisticGraphVertex v,
                                          int& tokenId,
                                          LinguisticGraphVertex vEndDone,
-                                         std::map<LinguisticGraphVertex,int>& segmentationMapping,
-                                         std::map<int,LinguisticGraphVertex> segmentationMappingReverse,
                                          const QString& neType)
 {
-  std::cerr << "LimaAnalyzerPrivate::dumpNamedEntity IN" << v << std::endl;
 #ifdef DEBUG_LP
   DUMPERLOGINIT;
   LDEBUG << "LimaAnalyzerPrivate::dumpNamedEntity" << v << tokenId << vEndDone
@@ -1021,10 +1071,10 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
   if (annotationData != nullptr)
   {
     // Check if the PosGraph vertex holds a specific entity
-    auto matches = annotationData->matches(m_graph.toStdString(), v, "annot");
+    auto matches = annotationData->matches("PosGraph", v, "annot");
 #ifdef DEBUG_LP
-    LDEBUG << "LimaAnalyzerPrivate::dumpNamedEntity matches PosGraph" << v
-            << "annot:" << matchesS(matches);
+    LDEBUG << "LimaAnalyzerPrivate::dumpNamedEntity matches PosGraph" << v;
+            // << "annot:" << matchesS(matches);
 #endif
     for (const auto& vx: matches)
     {
@@ -1036,8 +1086,7 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
         bool first = true;
         for (const auto& vse : se->vertices())
         {
-          dumpPosGraphVertex(doc, vse, tokenId, vEndDone, segmentationMapping, segmentationMappingReverse,
-                             neType, first);
+          dumpPosGraphVertex(doc, vse, tokenId, vEndDone, neType, first);
           first = false;
         }
 #ifdef DEBUG_LP
@@ -1046,9 +1095,10 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
         return;
       }
     }
-    auto anaVertices = annotationData->matches(m_graph.toStdString(), v, "AnalysisGraph");
+    auto anaVertices = annotationData->matches("PosGraph", v, "AnalysisGraph");
 #ifdef DEBUG_LP
-    LDEBUG << "LimaAnalyzerPrivate::dumpNamedEntity anaVertices for" << v << ":" << matchesS(anaVertices);
+    LDEBUG << "LimaAnalyzerPrivate::dumpNamedEntity anaVertices for" << v;
+    // << ":" << matchesS(anaVertices);
 #endif
 
     assert(anaVertices.size() == 1);
@@ -1075,7 +1125,7 @@ void LimaAnalyzerPrivate::dumpNamedEntity(Doc& doc,
       bool first = true;
       for (const auto& vse : se->vertices())
       {
-        dumpAnalysisGraphVertex(doc, vse, v, tokenId, vEndDone, segmentationMapping, neType, first, se->getFeatures());
+        dumpAnalysisGraphVertex(doc, vse, v, tokenId, vEndDone, neType, first, se->getFeatures());
         first = false;
       }
       previousNeType = neType;
@@ -1090,7 +1140,6 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
   LinguisticGraphVertex posGraphVertex,
   int& tokenId,
   LinguisticGraphVertex vEndDone,
-  std::map<LinguisticGraphVertex,int>& segmentationMapping,
   const QString& neType,
   bool first,
   const Automaton::EntityFeatures& features)
@@ -1123,12 +1172,12 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
           << morphoData->size();
 #endif
 
-    auto micro = getMicro(morphoData);
+    auto micro = getMicro(*morphoData);
 #ifdef DEBUG_LP
     LDEBUG << "LimaAnalyzerPrivate::dumpAnalysisGraphVertex micro:" << micro;
 #endif
 
-    auto feats = getFeats(*propertyCodeManager, *morphoData);
+    auto feats = getFeats(*morphoData);
 #ifdef DEBUG_LP
     LDEBUG << "LimaAnalyzerPrivate::dumpAnalysisGraphVertex feats:" << feats;
 #endif
@@ -1155,14 +1204,14 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
     auto pos = ft->position();
     auto len = ft->length();
     auto tStatus = ft->status().defaultKey();
-    auto features = getFeats(*propertyCodeManager, *morphoData);
-    auto [conllRelName, targetConllId] = getConllRelName(v, segmentationMapping);
+    auto features = getFeats(*morphoData);
+    auto [conllRelName, targetConllId] = getConllRelName(v);
     std::cerr << "Token t: " << targetConllId << ", " << conllRelName.toStdString() << std::endl;
     Token t(len, inflectedToken, lemmatizedToken.toStdString(), tokenId++, pos,
             micro.toStdString(), targetConllId, conllRelName.toStdString(), features.toStdString(),
             neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
 
-    vertexToToken[v] = tokenId;
+    // vertexToToken[v] = tokenId;
     // std::cerr << "docFrom_analysis pushing token" << std::endl;
     doc.m_d->tokens.push_back(t);
   }
@@ -1176,9 +1225,9 @@ QString LimaAnalyzerPrivate::getNeType(LinguisticGraphVertex posGraphVertex)
   if (annotationData != nullptr)
   {
     // Check if the PosGraph vertex holds a specific entity
-    // std::cerr << "LimaAnalyzerPrivate::getNeType call matches with " << m_graph.toStdString()
+    // std::cerr << "LimaAnalyzerPrivate::getNeType call matches with " << "PosGraph"
     //     << " and " << posGraphVertex << std::endl;
-    auto matches = annotationData->matches(m_graph.toStdString(), posGraphVertex, "annot");
+    auto matches = annotationData->matches("PosGraph", posGraphVertex, "annot");
     // std::cerr << "LimaAnalyzerPrivate::getNeType got" << matches.size() << " matches" << std::endl;
     for (const auto& vx: matches)
     {
@@ -1196,7 +1245,7 @@ QString LimaAnalyzerPrivate::getNeType(LinguisticGraphVertex posGraphVertex)
       // The PosGraph vertex did not hold a specific entity,
       // check if the AnalysisGraph vertex does
       // std::cerr << "LimaAnalyzerPrivate::getNeType checking AnalysisGraph" << std::endl;
-      auto anaVertices = annotationData->matches(m_graph.toStdString(), posGraphVertex, "AnalysisGraph");
+      auto anaVertices = annotationData->matches("PosGraph", posGraphVertex, "AnalysisGraph");
       // note: anaVertices size should be 0 or 1
       for (const auto& anaVertex: anaVertices)
       {
@@ -1221,13 +1270,11 @@ QString LimaAnalyzerPrivate::getNeType(LinguisticGraphVertex posGraphVertex)
   return neType;
 }
 
-std::pair<QString, int> LimaAnalyzerPrivate::getConllRelName(
-  LinguisticGraphVertex v,
-  std::map<LinguisticGraphVertex,int>& segmentationMapping)
+std::pair<QString, int> LimaAnalyzerPrivate::getConllRelName(LinguisticGraphVertex v)
 {
 #ifdef DEBUG_LP
   DUMPERLOGINIT;
-  LDEBUG << "LimaAnalyzerPrivate::getConllRelName" << v;
+  LDEBUG << "LimaAnalyzerPrivate::getConllRelName" << v << vertexDependencyInformations.count(v);
 #endif
   QString conllRelName = "_";
   int targetConllId = 0;
@@ -1235,28 +1282,23 @@ std::pair<QString, int> LimaAnalyzerPrivate::getConllRelName(
   {
     auto target = vertexDependencyInformations.find(v)->second.first;
 #ifdef DEBUG_LP
-    LDEBUG << "ConllDumper::process target saved for"
-            << v << "is" << target;
+    LDEBUG << "LimaAnalyzerPrivate::getConllRelName target saved for" << v << "is" << target;
 #endif
-    if (segmentationMapping.find(target) != segmentationMapping.end())
+    if (vertexToToken.find(target) != vertexToToken.end())
     {
-      targetConllId =  segmentationMapping.find(target)->second;
+      targetConllId =  vertexToToken.find(target)->second;
     }
     else
     {
       DUMPERLOGINIT;
-      LERROR << "ConllDumper::process target" << target
-              << "not found in segmentation mapping";
+      LERROR << "LimaAnalyzerPrivate::getConllRelName target" << target << "not found in segmentation mapping";
     }
 #ifdef DEBUG_LP
-    LDEBUG << "ConllDumper::process conll target saved for "
-            << v << " is " << targetConllId;
+    LDEBUG << "LimaAnalyzerPrivate::getConllRelName conll target saved for " << v << " is " << targetConllId;
 #endif
-    auto relName = QString::fromUtf8(
-      vertexDependencyInformations.find(v)->second.second.c_str());
+    auto relName = QString::fromStdString(vertexDependencyInformations.find(v)->second.second);
 #ifdef DEBUG_LP
-    LDEBUG << "ConllDumper::process the lima dependency tag for "
-            << v << " is " << relName;
+    LDEBUG << "LimaAnalyzerPrivate::getConllRelName the lima dependency tag for " << v << " is " << relName;
 #endif
     if (conllLimaDepMapping.contains(relName))
     {
@@ -1265,7 +1307,7 @@ std::pair<QString, int> LimaAnalyzerPrivate::getConllRelName(
     else
     {
       conllRelName = relName;
-//             LERROR << "ConllDumper::process" << relName << "not found in mapping";
+//             LERROR << "LimaAnalyzerPrivate::getConllRelName" << relName << "not found in mapping";
     }
 
     // There is no way for vertex to have 0 as head.
@@ -1274,6 +1316,15 @@ std::pair<QString, int> LimaAnalyzerPrivate::getConllRelName(
       targetConllId = 0;
     }
   }
+  else
+  {
+#ifdef DEBUG_LP
+    LDEBUG << "LimaAnalyzerPrivate::getConllRelName no target saved for" << v;
+#endif
+  }
+#ifdef DEBUG_LP
+    LDEBUG << "LimaAnalyzerPrivate::getConllRelName result for" << v << "is" << conllRelName << targetConllId;
+#endif
   return { conllRelName, targetConllId };
 }
 
@@ -1319,79 +1370,12 @@ bool LimaAnalyzerPrivate::hasSpaceAfter(LinguisticGraphVertex v, LinguisticGraph
   return SpaceAfter;
 }
 
-QStringList LimaAnalyzerPrivate::getPredicate(LinguisticGraphVertex v)
-{
-#ifdef DEBUG_LP
-  DUMPERLOGINIT;
-  LDEBUG << "LimaAnalyzerPrivate::getPredicate" << v;
-#endif
-
-  QStringList miscField;
-  if (annotationData != nullptr && predicates.contains(v))
-  {
-    auto keys = predicates.keys();
-    auto predicate = annotationData->stringAnnotation(predicates.value(v),
-                                                      "Predicate");
-
-    // Now output the roles supported by the current PoS graph token
-#ifdef DEBUG_LP
-    LDEBUG << "ConllDumper::process output the roles for the"
-            << keys.size() << "predicates";
-#endif
-    for (int i = 0; i < keys.size(); i++)
-    {
-      auto predicateVertex = predicates.value(keys[keys.size()-1-i]);
-
-      auto vMatches = annotationData->matches(m_graph.toStdString(), v, "annot");
-      if (!vMatches.empty())
-      {
-#ifdef DEBUG_LP
-        LDEBUG << "ConllDumper::process there is" << vMatches.size()
-                << "nodes matching PoS graph vertex" << v
-                << "in the annotation graph.";
-#endif
-        QString roleAnnotation;
-        for (auto it = vMatches.begin(); it != vMatches.end(); it++)
-        {
-          auto vMatch = *it;
-          AnnotationGraphInEdgeIt vMatchInEdgesIt, vMatchInEdgesIt_end;
-          boost::tie(vMatchInEdgesIt, vMatchInEdgesIt_end) =
-              boost::in_edges(vMatch,annotationData->getGraph());
-          for (; vMatchInEdgesIt != vMatchInEdgesIt_end; vMatchInEdgesIt++)
-          {
-            auto inVertex = boost::source(*vMatchInEdgesIt,
-                                          annotationData->getGraph());
-            auto inVertexAnnotPosGraphMatches = annotationData->matches(
-              "annot",inVertex,m_graph.toStdString());
-            if (inVertex == predicateVertex
-                && !inVertexAnnotPosGraphMatches.empty())
-            {
-              // Current edge is holding a role of the current predicate
-              roleAnnotation =
-                  annotationData->stringAnnotation(*vMatchInEdgesIt,
-                                                    "SemanticRole");
-              break;
-            }
-          }
-        }
-        if (!roleAnnotation.isEmpty() )
-          predicate = roleAnnotation + ":" + predicate;
-      }
-    }
-    if (!predicate.isEmpty())
-    {
-      miscField << predicate;
-    }
-  }
-  return miscField;
-}
-
-QString LimaAnalyzerPrivate::getMicro(LinguisticAnalysisStructure::MorphoSyntacticData* morphoData)
+QString LimaAnalyzerPrivate::getMicro(LinguisticAnalysisStructure::MorphoSyntacticData& morphoData)
 {
   return QString::fromUtf8(static_cast<const LangData&>(
       MedData::single().mediaData(medId)).getPropertyCodeManager()
         .getPropertyManager("MICRO")
-        .getPropertySymbolicValue(morphoData->firstValue(
+        .getPropertySymbolicValue(morphoData.firstValue(
           *propertyAccessor)).c_str());
 }
 

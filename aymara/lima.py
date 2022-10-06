@@ -477,11 +477,13 @@ class _DocEntitiesIterator:
     def __next__(self) -> Span:
         """'Returns the next Span defining an entity in the document"""
         while self._index < len(self._doc):
+            print(f"doc entities loop {self._index}, {len(self._doc)}", file=sys.stderr)
             if self._doc[self._index].ent_iob == "B":
                 start = self._doc[self._index].i
                 end = start
                 label = self._doc[self._index].ent_type
                 while self._index < len(self._doc):
+                    print(f"doc entities inner loop {self._index}, {len(self._doc)}", file=sys.stderr)
                     self._index += 1
                     if self._index < len(self._doc):
                         if self._doc[self._index].ent_iob == "I":

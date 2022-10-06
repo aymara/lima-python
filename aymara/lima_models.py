@@ -223,13 +223,15 @@ def _list_installed_languages(target_dir):
     return langs
 
 
-def _list_installed_languages_per_module(target_dir, prefix_list):
+def _list_installed_languages_per_module(target_dir: str, prefix_list: List[str]):
     """List the installation status of the models from prefix_list for all languages in
     target_dir. Allows also to check the correct installation of the models.
     This function is private. It should not be used directly.
 
-    :param target_dir:
-    :param prefix_list:
+    :param target_dir: where the models are installed
+    :type target_dir: str
+    :param prefix_list: the submodels to check
+    :type prefix_list: List[str]
 
     """
     Path(target_dir).mkdir(parents=True, exist_ok=True)
@@ -243,7 +245,7 @@ def _list_installed_languages_per_module(target_dir, prefix_list):
                 lang, ext = mo.group(1), mo.group(2)
                 if lang not in d:
                     d[lang] = []
-                if ext in d[lang]:  # pragma: no cover
+                if ext in d[lang]:
                     print(f'Error: something wrong with "{f}"', file=sys.stderr)
                 d[lang].append(ext)
 
@@ -268,7 +270,7 @@ def _list_installed_languages_per_module(target_dir, prefix_list):
                 r[lang] = "installed"
         else:
             if len(d[lang]) != 2 or "model" not in d[lang] or "conf" not in d[lang]:
-                if "lemmatizer" not in prefix_list or "conf" not in d[lang]:   # pragma: no cover
+                if "lemmatizer" not in prefix_list or "conf" not in d[lang]:
                     print(
                         f'Error: model ({",".join(prefix_list)}) '
                         f'for lang "{lang}" is installed incorrectly',

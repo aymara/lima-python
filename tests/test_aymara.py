@@ -33,7 +33,7 @@ def test_analyzeText_pipeline_not_avail():
         result = aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
                                                         pipeline="other")
         print(result, file=sys.stderr)
-        assert True
+        assert Truess
 
 
 def test_analyzeText():
@@ -78,7 +78,7 @@ def test_token_properties():
     # doc = lima("Give it back! He pleaded.")
     token = doc[5]
     print(repr(token), file=sys.stderr)
-    # assert repr(token) == '5\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t4\tobj\t_\tPos=17|Len=7'
+    assert repr(token) == '5\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t_\troot\t_\tPos=17|Len=7'
     assert str(token) == "pleaded" == token.text
     assert len(token) == 7
     assert token.i == 5
@@ -87,8 +87,8 @@ def test_token_properties():
     assert token.ent_type == "_"
     assert token.lemma == "plead"
     assert token.pos == "VERB"
-    assert token.head == 4
-    assert token.dep == "obj"
+    assert token.head == 0
+    assert token.dep == "root"
     assert token.features == {'Mood': 'Ind', 'Tense': 'Past', 'VerbForm': 'Fin'}
     assert token.t_status == 't_small'
     assert token.is_alpha is True
@@ -108,8 +108,18 @@ def test_doc_sents():
     # doc = lima("This is a sentence. Here's another...")
     sents = list(doc.sents)
     assert len(sents) == 2
-    ## TODO impjement s.root
+    # # TODO impjement s.root
     # assert [s.root.text for s in sents] == ["is", "'s"]
+
+# TODO infinite loop here. Check entities generation code
+# def test_doc_ents():
+#     # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+#     print("before", file=sys.stderr)
+#     doc = lima("John Doe lives in New York. And Jane Smith will meet him tomorrow.")
+#     print("after", file=sys.stderr)
+#     ents = list(doc.ents)
+#     print("listed", file=sys.stderr)
+#     assert len(ents) == 4
 
 
 def test_span_size():
