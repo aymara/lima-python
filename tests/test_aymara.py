@@ -6,6 +6,7 @@
 import aymara.lima
 import pytest
 import sys
+from pathlib import Path
 
 lima = aymara.lima.Lima("ud-eng", pipes="deepud")
 doc = lima("Give it back! He pleaded.")
@@ -111,15 +112,14 @@ def test_doc_sents():
     # # TODO impjement s.root
     # assert [s.root.text for s in sents] == ["is", "'s"]
 
-# TODO infinite loop here. Check entities generation code
-# def test_doc_ents():
-#     # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-#     print("before", file=sys.stderr)
-#     doc = lima("John Doe lives in New York. And Jane Smith will meet him tomorrow.")
-#     print("after", file=sys.stderr)
-#     ents = list(doc.ents)
-#     print("listed", file=sys.stderr)
-#     assert len(ents) == 4
+def test_doc_ents():
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    print("before", file=sys.stderr)
+    doc = lima("John Doe lives in New York. And Jane Smith will meet him on Friday.")
+    print("after", file=sys.stderr)
+    ents = list(doc.ents)
+    print("listed", file=sys.stderr)
+    assert len(ents) == 4
 
 
 def test_span_size():
@@ -176,3 +176,18 @@ def test_span_properties():
     assert span.start_char == 5
     assert span.end_char == 13
     assert span.label == ""
+
+
+def test_export_system_conf():
+    assert aymara.lima.Lima.export_system_conf(Path("/tmp/test_lima"))
+
+
+def test_get_system_paths():
+    """
+    TODO add tests
+    """
+    conf, ress =  aymara.lima.Lima.get_system_paths()
+    assert conf is not None
+    assert ress is not None
+
+
