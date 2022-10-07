@@ -22,6 +22,11 @@ def test_unknownLanguage():
         aymara.lima.Lima(langs="this_is_not_a_language_name")
 
 
+# def test_lang_no_prefix():
+#     with pytest.raises(aymara.lima.LimaInternalError):
+#         aymara.lima.Lima(langs="cym")
+
+
 def test_analyzeText_lang_not_init():
     with pytest.raises(aymara.lima.LimaInternalError):
         result = aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.",
@@ -35,7 +40,7 @@ def test_analyzeText_pipeline_not_avail():
         result = aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
                                                         pipeline="other")
         print(result, file=sys.stderr)
-        assert Truess
+        assert True
 
 
 def test_analyzeText():
@@ -68,6 +73,14 @@ def test_doc_size():
 
 def test_doc_str():
     assert str(doc) == text
+
+
+def test_doc_repr():
+    assert len(repr(doc).split("\n")) == 7
+
+
+def test_doc_iter():
+    assert len(list(doc)) == 7
 
 
 def test_doc_token_access():
