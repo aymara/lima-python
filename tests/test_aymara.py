@@ -8,8 +8,9 @@ import pytest
 import sys
 from pathlib import Path
 
+text = "Give it back! He pleaded."
 lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-doc = lima("Give it back! He pleaded.")
+doc = lima(text)
 
 
 def test__get_data_dir():
@@ -62,7 +63,11 @@ def test_functor():
 
 
 def test_doc_size():
-    assert len(doc) > 0
+    assert len(doc) == 7
+
+
+def test_doc_str():
+    assert str(doc) == text
 
 
 def test_doc_token_access():
@@ -151,7 +156,7 @@ def test_span_iter():
     assert len(span) == len(list(iter(span)))
 
 
-def test_span_at():
+def test_span_get_item():
     # doc = lima("Give it back! He pleaded.")
     # span = "it back!"
     span = doc[1:4]
@@ -163,6 +168,21 @@ def test_span_at():
     assert subspan.text == "it back"
     subspan = span[-2:-1]
     assert subspan.text == "back"
+    assert len(span[0:0]) == 0
+    assert len(span[1:1]) == 0
+    assert len(span[1:10]) == 2
+    assert len(span[-12:1]) == 1
+    assert len(span[1:-8]) == 0
+    assert len(span[1:0]) == 0
+    assert len(span[10:1]) == 0
+    assert len(span[10:8]) == 0
+    assert len(span[-2:-1]) == 1
+    assert len(span[-21:-20]) == 0
+    assert len(span[20:21]) == 0
+    with pytest.raises(IndexError):
+        span[-12]
+    with pytest.raises(IndexError):
+        span[12]
 
 
 def test_span_properties():
