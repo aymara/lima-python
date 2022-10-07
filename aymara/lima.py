@@ -430,9 +430,16 @@ class Span:
                 start = len(self) + start
             if stop < 0:
                 stop = len(self) + stop
-            if (self._start+start < 0 or self._start+start >= len(self._doc)
-                    or self._start+stop < 0 or self._start+stop >= len(self._doc)):
-                raise IndexError("Span slice out of range")
+            if start >= stop:
+                return Span(self._doc, self._start+start, self._start+start)
+            if start > len(self):
+                return Span(self._doc, self._start+start, self._start+start)
+            if start < 0:
+                start = 0
+            if stop < 0:
+                stop = 0
+            if stop > len(self):
+                stop = len(self)
             return Span(self._doc, self._start+start, self._start+stop)
         else:
             if i < 0:
@@ -502,9 +509,6 @@ class _DocEntitiesIterator:
                             end = self._index
                         else:
                             return Span(self._doc, start, end, label=label)
-
-                # Iteration ends
-                raise StopIteration
             self._index += 1
         # Iteration ends
         raise StopIteration
