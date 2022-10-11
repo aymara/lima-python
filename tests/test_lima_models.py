@@ -39,9 +39,12 @@ def test_install_model():
 
 
 # def test_installed_model():
+#     import aymara.lima
 #     lima = aymara.lima.Lima("wol")
-#     result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).")
+#     result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
+#                   "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).")
 #     assert result.len() > 0
+
 
 def test_list_installed_models(capsys):
     aymara.lima_models.list_installed_models()

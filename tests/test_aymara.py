@@ -73,10 +73,51 @@ def test_analyzeText_pipeline_not_avail():
         lima.analyzeText("This is a text on 02/05/2022.", pipeline="other")
 
 
+def test_analyzeText_pipeline_none_lang_ud():
+    print(f"test_analyzeText_pipeline_not_avail")
+    thelima = aymara.lima.Lima("ud-eng", pipes="")
+    thelima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng", pipeline=None)
+    assert True
+
+
+def test_functor_pipeline_none_lang_ud():
+    print(f"test_analyzeText_pipeline_not_avail")
+    thelima = aymara.lima.Lima("ud-eng", pipes="")
+    thelima("This is a text on 02/05/2022.", lang="ud-eng", pipeline=None)
+    assert True
+
+# TODO uncomment when instantiation problem is solved
+def test_analyzeText_pipeline_none_lang_eng():
+    print(f"test_analyzeText_pipeline_not_avail")
+    thelima = aymara.lima.Lima("eng", pipes="")
+    thelima.analyzeText("This is a text on 02/05/2022.", lang="eng", pipeline=None)
+    assert True
+
+
+def test_functor_pipeline_none_lang_eng():
+    print(f"test_analyzeText_pipeline_not_avail")
+    thelima = aymara.lima.Lima("eng", pipes="")
+    thelima("This is a text on 02/05/2022.", lang="eng", pipeline=None)
+    assert True
+
+
 def test_functor_pipeline_not_avail():
     print(f"test_functor_pipeline_not_avail")
     with pytest.raises(aymara.lima.LimaInternalError):
         lima("This is a text on 02/05/2022.", pipeline="other")
+
+
+def test_functor_meta_not_dict():
+    print(f"test_functor_meta_not_dict")
+    with pytest.raises(TypeError):
+        lima("This is a text on 02/05/2022.", pipeline="other", meta="wrong metadata")
+
+
+def test_analyzeText_meta_not_dict():
+    print(f"test_functor_meta_not_dict")
+    with pytest.raises(TypeError):
+        lima.analyzeText("This is a text on 02/05/2022.", pipeline="other",
+                         meta="wrong metadata")
 
 
 def test_analyzeText_pipeline_not_str():
