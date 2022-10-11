@@ -86,7 +86,7 @@ def test_functor_pipeline_none_lang_ud():
     thelima("This is a text on 02/05/2022.", lang="ud-eng", pipeline=None)
     assert True
 
-# TODO uncomment when instantiation problem is solved
+
 def test_analyzeText_pipeline_none_lang_eng():
     print(f"test_analyzeText_pipeline_not_avail")
     thelima = aymara.lima.Lima("eng", pipes="")

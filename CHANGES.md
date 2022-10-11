@@ -1,3 +1,7 @@
+## 0.5.0b2 - 20221012
+
+* Unit tests with coverage at 100% for main API
+
 ## 0.5.0b1 - 20221006
 
 * New API inspired by spaCy
