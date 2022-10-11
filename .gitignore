@@ -1,3 +1,4 @@
+.autoenv*
 *.se.xml
 
 *.whl.md5
