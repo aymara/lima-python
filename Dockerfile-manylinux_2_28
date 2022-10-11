@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 ARG PYTHON_VERSION=3.8
-ARG QT_VERSION=5.15
+ARG QT_VERSION=6.3
 FROM aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}:latest AS aymara_lima_manylinux_2_28_qt_python
 
 # FROM quay.io/pypa/manylinux_2_28_x86_64
@@ -71,7 +71,6 @@ ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-b
 RUN python${PYTHON_VERSION} -m pip install unix_ar
 RUN python${PYTHON_VERSION} -m pip install /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python
-# RUN python${PYTHON_VERSION} -m pytest --cov=aymara --cov-config=.coveragerc --cov-report term-missing  tests/
 RUN auditwheel repair --plat manylinux_2_28_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl

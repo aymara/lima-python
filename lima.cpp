@@ -297,16 +297,16 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   auto resourcesPath = resourcesDirs.join(LIMA_PATH_SEPARATOR);
 
   QsLogging::initQsLog(configPath);
-//   std::cerr << "QsLog initialized" << std::endl;
+  std::cerr << "QsLog initialized" << std::endl;
   // Necessary to initialize factories
   Lima::AmosePluginsManager::single();
-//   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
+  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
   if (!Lima::AmosePluginsManager::changeable().loadPlugins(configPath))
   {
     throw InvalidConfiguration("loadLibrary method failed.");
   }
-//   std::cerr << "Amose plugins are now initialized hop" << std::endl;
-//   qDebug() << "Amose plugins are now initialized";
+  std::cerr << "Amose plugins are now initialized hop" << std::endl;
+  qDebug() << "Amose plugins are now initialized";
 
 
   std::string lpConfigFile = "lima-analysis.xml";
@@ -355,27 +355,27 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::deque<std::string> langs;
   for (const auto& lang: qlangs)
     langs.push_back(lang.toStdString());
-//   std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
-//             << resourcesPath.toUtf8().constData() << ", "
-//             << configPath.toUtf8().constData() << ", "
-//             << commonConfigFile << ", "
-//             << langs.front() << std::endl;
+  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
+            << resourcesPath.toUtf8().constData() << ", "
+            << configPath.toUtf8().constData() << ", "
+            << commonConfigFile << ", "
+            << langs.front() << std::endl;
   // initialize common
   Common::MediaticData::MediaticData::changeable().init(
     resourcesPath.toUtf8().constData(),
     configPath.toUtf8().constData(),
     commonConfigFile,
     langs);
-//   std::cerr << "MediaticData initialized" << std::endl;
+  std::cerr << "MediaticData initialized" << std::endl;
 
   bool clientFactoryConfigured = false;
   Q_FOREACH(QString configDir, configDirs)
   {
     if (QFileInfo::exists(configDir + "/" + lpConfigFile.c_str()))
     {
-//       std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
-//           << (configDir + "/" + lpConfigFile.c_str()).toUtf8().constData() << ", "
-//           << clientId << std::endl;
+      std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
+          << (configDir + "/" + lpConfigFile.c_str()).toUtf8().constData() << ", "
+          << clientId << std::endl;
 
       // initialize linguistic processing
       Lima::Common::XMLConfigurationFiles::XMLConfigurationFileParser lpconfig(
@@ -396,7 +396,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
               << "and" << lpConfigFile << std::endl;
     throw LimaException("Configuration failure");
   }
-//   std::cerr << "Client factory configured" << std::endl;
+  std::cerr << "Client factory configured" << std::endl;
 
   m_client = std::shared_ptr< AbstractLinguisticProcessingClient >(
       std::dynamic_pointer_cast<AbstractLinguisticProcessingClient>(
@@ -413,6 +413,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   handlers.insert(std::make_pair("fullXmlSimpleStreamHandler", fullXmlSimpleStreamHandler.get()));
   ltrTextHandler= std::make_unique<LTRTextHandler>();
   handlers.insert(std::make_pair("ltrTextHandler", ltrTextHandler.get()));
+  std::cerr << "LimaAnalyzerPrivate constructor done" << std::endl;
 
 }
 
@@ -512,13 +513,20 @@ Doc LimaAnalyzer::operator()(const std::string& text,
                                      const std::string& pipeline,
                                      const std::string& meta)
 {
+  if (m_d == nullptr || error)
+  {
+    error = true;
+    errorMessage = "Invalid Lima analyzer. Previous error message was: " + errorMessage;
+    auto doc = Doc(error, errorMessage);
+    return doc;
+  }
   try
   {
     return (*m_d)(text, lang, pipeline, meta);
   }
   catch (const Lima::LimaException& e)
   {
-    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    // std::cerr << "Lima internal error: " << e.what() << std::endl;
     error = true;
     errorMessage = e.what();
     auto doc = Doc(error, errorMessage);
@@ -531,7 +539,13 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& pipeline,
                                     const std::string& meta)
 {
-//   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
+  std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
+  if (m_d == nullptr || error)
+  {
+    error = true;
+    errorMessage = "Invalid Lima analyzer. Previous error message was: " + errorMessage;
+    return "";
+  }
   try
   {
     return m_d->analyzeText(text, lang, pipeline, meta);
@@ -595,7 +609,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
       localMetaData[kv[0].toStdString()] = kv[1].toStdString();
   }
 
-  localMetaData["Lang"]=lang;
+  localMetaData["Lang"] = lang;
 
   QString contentText = QString::fromUtf8(text.c_str());
   if (contentText.isEmpty())
@@ -605,12 +619,13 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
   else
   {
     // analyze it
-//       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
+      std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
     m_client->analyze(contentText, localMetaData, pipeline, handlers);
   }
-
+  auto result = txtofs->str();
+  std::cerr << "LimaAnalyzerPrivate::analyzeText result: " << result << std::endl;
   simpleStreamHandler->setOut(nullptr);
-  return txtofs->str();
+  return result;
 }
 
 std::shared_ptr< std::ostringstream > openHandlerOutputString(
@@ -622,6 +637,11 @@ std::shared_ptr< std::ostringstream > openHandlerOutputString(
   if (dumpers.find(dumperId)!=dumpers.end())
   {
     handler->setOut(ofs.get());
+  }
+  else
+  {
+    DUMPERLOGINIT;
+    LERROR << dumperId << "is not in the dumpers list";
   }
   return ofs;
 }

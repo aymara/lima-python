@@ -694,6 +694,8 @@ class Lima:
             empty dictionary)
         :type meta:  Dict[str, str]
         """
+        # print(f"Lima __init__: calling LimaAnalyzer constructor {langs}, {pipes}",
+        #       file=sys.stderr)
         self.analyzer = aymaralima.cpplima.LimaAnalyzer(
             langs,
             pipes,
@@ -703,7 +705,8 @@ class Lima:
             ",".join([f"{k}:{v}" for k, v in meta.items()])
             )
         if self.analyzer.error:
-            raise LimaInternalError()
+            raise LimaInternalError(self.analyzer.errorMessage
+                                    )
 
         self.langs = langs
         self.pipes = pipes
@@ -729,7 +732,7 @@ class Lima:
         :param lang: the language of the text. If none, will backup to the first element
             of the langs member or to eng if empty (Default value = `None`).
         :type lang: str
-        :paramm pipeline: the Lima pipeline to use for analysis. If none, will backup to
+        :param pipeline: the Lima pipeline to use for analysis. If none, will backup to
             the first element of the pipelines member or to main if empty (Default value =
             `None`).
         :type pipeline: str
@@ -791,14 +794,20 @@ class Lima:
         :param lang: the language of the text. If none, will backup to the first element
             of the langs member or to eng if empty (Default value = `None`).
         :type lang: str
-        :paramm pipeline: the Lima pipeline to use for analysis. If none, will backup to
+        :param pipeline: the Lima pipeline to use for analysis. If none, will backup to
             the first element of the pipelines member or to main if empty (Default
             value = `None`).
         :type pipeline: str
         :param meta: a dict of named metadata values (Default value = an empty
             dictionary).
         :type meta: Dict[str, str]
+        :return: the content of the text written by the text dumper of Lima if any. An
+            empty string otherwise
+        :rtype: str
         """
+        print(f"Lima.analyzeText {text}, {lang}, {pipeline}, {meta}", file=sys.stderr)
+        if self.analyzer.error:
+            raise LimaInternalError(self.analyzer.errorMessage)
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
         if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
@@ -806,6 +815,7 @@ class Lima:
         if pipeline is None:
             pipeline = self.pipes.split(",")[0] if self.pipes else "main"
         if not isinstance(text, str):
+            print(f"Lima.analyzeText text ({text}) is not a string. Raising.", file=sys.stderr)
             raise TypeError(f"Lima.analyzeText text parameter must be str, "
                             f"not {type(text)}")
         if not isinstance(lang, str):
