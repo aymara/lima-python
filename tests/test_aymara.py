@@ -43,30 +43,63 @@ def test_lang_no_prefix():
 #     assert doc2 is not None and type(doc2) == Doc
 
 
+def test_analyzeText_lang_not_str():
+    with pytest.raises(TypeError):
+        aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.",
+                                       lang=dict(), pipeline="main")
+
+
+def test_functor_lang_not_str():
+    with pytest.raises(TypeError):
+        aymara.lima.Lima()("This is a text on 02/05/2022.", lang=dict(),
+                           pipeline="main")
+
+
 def test_analyzeText_lang_not_init():
     with pytest.raises(aymara.lima.LimaInternalError):
         aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.",
                                        lang="wol", pipeline="main")
 
 
+def test_functor_lang_not_init():
+    with pytest.raises(aymara.lima.LimaInternalError):
+        aymara.lima.Lima()("This is a text on 02/05/2022.",
+                           lang="wol", pipeline="main")
+
+
 def test_analyzeText_pipeline_not_avail():
     print(f"test_analyzeText_pipeline_not_avail")
     with pytest.raises(aymara.lima.LimaInternalError):
-        aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
-                                               pipeline="other")
+        lima.analyzeText("This is a text on 02/05/2022.", pipeline="other")
+
+
+def test_functor_pipeline_not_avail():
+    print(f"test_functor_pipeline_not_avail")
+    with pytest.raises(aymara.lima.LimaInternalError):
+        lima("This is a text on 02/05/2022.", pipeline="other")
+
+
+def test_analyzeText_pipeline_not_str():
+    print(f"test_analyzeText_pipeline_not_str")
+    with pytest.raises(TypeError):
+        lima.analyzeText("This is a text on 02/05/2022.", pipeline=["main", "deepud"])
+    with pytest.raises(TypeError):
+        lima("This is a text on 02/05/2022.", pipeline=["main", "deepud"])
 
 
 def test_analyzeText_not_text():
     print(f"test_analyzeText_not_text")
     with pytest.raises(TypeError):
         print(f"test_analyzeText_not_text in with")
-        result = aymara.lima.Lima("ud-eng", pipes="deepud").analyzeText(dict())
+        result = lima.analyzeText(dict())
+    with pytest.raises(TypeError):
+        print(f"test_analyzeText_not_text in with")
+        result = lima(dict())
 
 
 def test_analyzeText():
     print(f"test_analyzeText")
-    result = aymara.lima.Lima("ud-eng", pipes="deepud").analyzeText("This is a text on 02/05/2022.")
-    print(result)
+    result = lima.analyzeText("This is a text on 02/05/2022.")
     assert True
 
 
@@ -74,14 +107,13 @@ def test_analyzeText_init_with_lang():
     print(f"test_analyzeText_init_with_lang")
     result = aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
                                                     pipeline="deepud")
-    print(result)
     assert True
 
 
 def test_analyzeText_init_with_lang_and_pipe():
     print(f"test_analyzeText_init_with_lang_and_pipe")
-    result = aymara.lima.Lima("ud-eng", pipes="deepud").analyzeText("This is a text on 02/05/2022.")
-    print(result)
+    result = aymara.lima.Lima("ud-eng", pipes="deepud").analyzeText(
+        "This is a text on 02/05/2022.")
     assert True
 
 
@@ -257,12 +289,17 @@ def test_export_system_conf():
     assert aymara.lima.Lima.export_system_conf(Path("/tmp/test_lima"))
 
 
+def test_export_system_conf_none():
+    print(f"test_export_system_conf")
+    assert aymara.lima.Lima.export_system_conf()
+
+
 def test_get_system_paths():
     """
     TODO add tests
     """
     print(f"test_get_system_paths")
-    conf, ress =  aymara.lima.Lima.get_system_paths()
+    conf, ress = aymara.lima.Lima.get_system_paths()
     assert conf is not None
     assert ress is not None
 

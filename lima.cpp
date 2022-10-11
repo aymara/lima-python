@@ -256,6 +256,10 @@ public:
   QString user_config_path;
   QString user_resources_path;
   QString meta;
+
+  bool error = false;
+  std::string errorMessage = "";
+
 };
 
 
@@ -438,8 +442,6 @@ LimaAnalyzer::LimaAnalyzer(const std::string& langs,
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
-    error = true;
-    errorMessage = e.what();
   }
 }
 
@@ -462,8 +464,6 @@ LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
-    error = true;
-    errorMessage = e.what();
   }
   // std::cerr << "LimaAnalyzer::LimaAnalyzer copy constructor" << std::endl;
 }
@@ -485,11 +485,27 @@ LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer& a)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
-    error = true;
-    errorMessage = e.what();
   }
   return *this;
 }
+
+/** return true if an error occured */
+bool LimaAnalyzer::error()
+{
+  return m_d == nullptr || m_d->error;
+}
+/** return the error message if an error occured and reset the error state */
+std::string LimaAnalyzer::errorMessage()
+{
+  if (m_d == nullptr)
+  {
+    return "Error during constructor";
+  }
+  std::string result = m_d->errorMessage;
+  m_d->reset();
+  return result;
+}
+
 
 void LimaAnalyzerPrivate::reset()
 {
@@ -506,6 +522,8 @@ void LimaAnalyzerPrivate::reset()
   vertexDependencyInformations.clear();
   conllLimaDepMapping.clear();
   vertexToToken.clear();
+  error = false;
+  errorMessage = "";
 }
 
 Doc LimaAnalyzer::operator()(const std::string& text,
@@ -513,11 +531,16 @@ Doc LimaAnalyzer::operator()(const std::string& text,
                                      const std::string& pipeline,
                                      const std::string& meta)
 {
-  if (m_d == nullptr || error)
+  if (m_d == nullptr)
   {
-    error = true;
-    errorMessage = "Invalid Lima analyzer. Previous error message was: " + errorMessage;
-    auto doc = Doc(error, errorMessage);
+    auto doc = Doc(true, "No analyzer available");
+    return doc;
+  }
+  else if (m_d->error)
+  {
+    m_d->error = true;
+    m_d->errorMessage = "Invalid Lima analyzer. Previous error message was: " + m_d->errorMessage;
+    auto doc = Doc(true, m_d->errorMessage);
     return doc;
   }
   try
@@ -526,10 +549,10 @@ Doc LimaAnalyzer::operator()(const std::string& text,
   }
   catch (const Lima::LimaException& e)
   {
-    // std::cerr << "Lima internal error: " << e.what() << std::endl;
-    error = true;
-    errorMessage = e.what();
-    auto doc = Doc(error, errorMessage);
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    m_d->error = true;
+    m_d->errorMessage = e.what();
+    auto doc = Doc(m_d->error, m_d->errorMessage);
     return doc;
   }
 }
@@ -540,10 +563,13 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& meta)
 {
   std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
-  if (m_d == nullptr || error)
+  if (m_d == nullptr)
   {
-    error = true;
-    errorMessage = "Invalid Lima analyzer. Previous error message was: " + errorMessage;
+    return "";
+  }
+  else if (m_d->error)
+  {
+    m_d->errorMessage = "Invalid Lima analyzer. Previous error message was: " + m_d->errorMessage;
     return "";
   }
   try
@@ -553,8 +579,8 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
   catch (const Lima::LimaException& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
-    error = true;
-    errorMessage = e.what();
+    m_d->error = true;
+    m_d->errorMessage = e.what();
     return "";
   }
 }
@@ -619,7 +645,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
   else
   {
     // analyze it
-      std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
+    std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
     m_client->analyze(contentText, localMetaData, pipeline, handlers);
   }
   auto result = txtofs->str();

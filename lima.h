@@ -89,8 +89,10 @@ public:
                  const std::string& pipeline="main",
                  const std::string& meta="");
 
-  bool error = false;
-  std::string errorMessage = "";
+  /** return true if an error occured */
+  bool error();
+  /** return the error message if an error occured and reset the error state */
+  std::string errorMessage();
 
 private:
   LimaAnalyzerPrivate* m_d;

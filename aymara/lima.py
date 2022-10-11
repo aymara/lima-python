@@ -704,9 +704,8 @@ class Lima:
             user_resources_path,
             ",".join([f"{k}:{v}" for k, v in meta.items()])
             )
-        if self.analyzer.error:
-            raise LimaInternalError(self.analyzer.errorMessage
-                                    )
+        if self.analyzer.error():
+            raise LimaInternalError(self.analyzer.errorMessage())
 
         self.langs = langs
         self.pipes = pipes
@@ -744,34 +743,35 @@ class Lima:
         """
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
-        if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
-            lang = "ud-" + lang
-        if pipeline is None:
-            pipeline = self.pipes.split(",")[0] if self.pipes else "main"
-        if not isinstance(text, str):
-            raise TypeError(f"Lima.analyzeText text parameter must be str, "
-                            f"not {type(text)}")
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
+        if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
+            lang = "ud-" + lang
+        if pipeline is None:
+            if self.pipes:
+                pipeline = self.pipes.split(",")[0]
+            elif lang.startswith("ud-"):
+                pipeline = "deepud"
+            else:
+                pipeline = "main"
         if not isinstance(pipeline, str):
             raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
                             f"not {type(pipeline)}")
+        if not isinstance(text, str):
+            raise TypeError(f"Lima.analyzeText text parameter must be str, "
+                            f"not {type(text)}")
         try:
             parse_obj_as(Dict[str, str], meta)
         except ValidationError as e:
             raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
                             f"not {type(meta)}")
-        if pipeline is None:
-            if lang.startswith("ud-"):
-                pipeline = "deepud"
-            else:
-                pipeline = "main"
         lima_doc = self.analyzer(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
-        if self.analyzer.error or lima_doc.error():
-            raise LimaInternalError()
+        if self.analyzer.error() or lima_doc.error():
+            raise LimaInternalError(self.analyzer.errorMessage()
+                                    + " / " + lima_doc.errorMessage())
         return Doc(lima_doc)
 
     def analyzeText(self,
@@ -806,39 +806,41 @@ class Lima:
         :rtype: str
         """
         print(f"Lima.analyzeText {text}, {lang}, {pipeline}, {meta}", file=sys.stderr)
-        if self.analyzer.error:
-            raise LimaInternalError(self.analyzer.errorMessage)
+        if self.analyzer.error():
+            # Not covering line below because it is not easy to make lima fail at will
+            raise LimaInternalError(self.analyzer.errorMessage())  # pragma: no cover
         if lang is None:
             lang = self.langs.split(",")[0] if self.langs else "eng"
+        if not isinstance(lang, str):
+            raise TypeError(f"Lima.analyzeText lang parameter must be str, "
+                            f"not {type(lang)}")
         if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
             lang = "ud-" + lang
         if pipeline is None:
-            pipeline = self.pipes.split(",")[0] if self.pipes else "main"
+            if self.pipes:
+                pipeline = self.pipes.split(",")[0]
+            elif lang.startswith("ud-"):
+                pipeline = "deepud"
+            else:
+                pipeline = "main"
+        if not isinstance(pipeline, str):
+            raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
+                            f"not {type(pipeline)}")
         if not isinstance(text, str):
             print(f"Lima.analyzeText text ({text}) is not a string. Raising.", file=sys.stderr)
             raise TypeError(f"Lima.analyzeText text parameter must be str, "
                             f"not {type(text)}")
-        if not isinstance(lang, str):
-            raise TypeError(f"Lima.analyzeText lang parameter must be str, "
-                            f"not {type(lang)}")
-        if not isinstance(pipeline, str):
-            raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
-                            f"not {type(pipeline)}")
         try:
             parse_obj_as(Dict[str, str], meta)
         except ValidationError as e:
             raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
                             f"not {type(meta)}")
-        if pipeline is None:
-            if lang.startswith("ud-"):
-                pipeline = "deepud"
-            else:
-                pipeline = "main"
         result = self.analyzer.analyzeText(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
-        if self.analyzer.error:
-            raise LimaInternalError(self.analyzer.errorMessage)
+        if self.analyzer.error():
+            raise LimaInternalError(self.analyzer.errorMessage())
+        return result
 
     @staticmethod
     def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:
