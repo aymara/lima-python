@@ -5,7 +5,7 @@
 
 import sys
 
-__version__ = "0.5.0b2"
+__version__ = "0.5.0b3"
 
 if __name__ == "__main__":
     print(__version__)

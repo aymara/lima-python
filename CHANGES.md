@@ -1,3 +1,7 @@
+## 0.5.0b3 - 20221012
+
+* More unit tests with several analyzers
+
 ## 0.5.0b2 - 20221012
 
 * Unit tests with coverage at 100% for main API
