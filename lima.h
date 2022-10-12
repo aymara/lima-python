@@ -80,13 +80,13 @@ public:
   LimaAnalyzer& operator=(const LimaAnalyzer& a) ;
 
   std::string analyzeText(const std::string& text,
-                          const std::string& lang="eng",
-                          const std::string& pipeline="main",
+                          const std::string& lang="",
+                          const std::string& pipeline="",
                           const std::string& meta="");
   Doc operator()(
     const std::string& text,
-                 const std::string& lang="eng",
-                 const std::string& pipeline="main",
+                 const std::string& lang="",
+                 const std::string& pipeline="",
                  const std::string& meta="");
 
   /** return true if an error occured */

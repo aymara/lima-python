@@ -276,6 +276,15 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
   QCoreApplication app(argc, argv);
 
+  if(iqlangs.size() == 0)
+  {
+    throw LimaException("Must initialize at least one language");
+  }
+  if(iqpipelines.size() == 0)
+  {
+    throw LimaException("Must initialize at least one pipeline");
+  }
+
 
   QStringList additionalPaths({modulePath+"/config"});
   // Add here LIMA_CONF content in front, otherwise it will be ignored
@@ -601,7 +610,17 @@ Doc LimaAnalyzerPrivate::operator()(
       localMetaData[kv[0].toStdString()] = kv[1].toStdString();
   }
 
-  localMetaData["Lang"]=lang;
+  auto localLang = lang;
+  if (localLang.size() == 0)
+  {
+    localLang = qlangs[0].toStdString();
+  }
+  auto localPipeline = pipeline;
+  if (localPipeline.size() == 0)
+  {
+    localPipeline = qpipelines[0].toStdString();
+  }
+  localMetaData["Lang"] = localLang;
 
   QString contentText = QString::fromUtf8(text.c_str());
   if (contentText.isEmpty())
@@ -613,7 +632,7 @@ Doc LimaAnalyzerPrivate::operator()(
   {
     // analyze it
 //       std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-    auto analysis = m_client->analyze(contentText, localMetaData, pipeline, handlers);
+    auto analysis = m_client->analyze(contentText, localMetaData, localPipeline, handlers);
     return docFrom_analysis(analysis);
   }
 }
@@ -635,7 +654,17 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
       localMetaData[kv[0].toStdString()] = kv[1].toStdString();
   }
 
-  localMetaData["Lang"] = lang;
+  auto localLang = lang;
+  if (localLang.size() == 0)
+  {
+    localLang = qlangs[0].toStdString();
+  }
+  auto localPipeline = pipeline;
+  if (localPipeline.size() == 0)
+  {
+    localPipeline = qpipelines[0].toStdString();
+  }
+  localMetaData["Lang"] = localLang;
 
   QString contentText = QString::fromUtf8(text.c_str());
   if (contentText.isEmpty())
@@ -646,7 +675,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
   {
     // analyze it
     std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
-    m_client->analyze(contentText, localMetaData, pipeline, handlers);
+    m_client->analyze(contentText, localMetaData, localPipeline, handlers);
   }
   auto result = txtofs->str();
   std::cerr << "LimaAnalyzerPrivate::analyzeText result: " << result << std::endl;

@@ -32,15 +32,15 @@ def test_lang_no_prefix():
 # TODO test with several ud languages
 
 
-# def test_several_instances():
-#     # Test with several analyzer instantiated and called alternatively
-#     print(f"test_several_instances")
-#     lima1 = aymara.lima.Lima("eng", pipes="main")
-#     doc1 = lima1(text)
-#     assert doc1 is not None and type(doc1) == Doc
-#     lima2 = aymara.lima.Lima("fre", pipes="main")
-#     doc2 = lima2("Et maintenant, du français.")
-#     assert doc2 is not None and type(doc2) == Doc
+def test_several_instances():
+    # Test with several analyzer instantiated and called alternatively
+    print(f"test_several_instances")
+    lima1 = aymara.lima.Lima("eng", pipes="main")
+    doc1 = lima1(text)
+    assert doc1 is not None and type(doc1) == aymara.lima.Doc
+    lima2 = aymara.lima.Lima("fre", pipes="main")
+    doc2 = lima2("Et maintenant, du français.")
+    assert doc2 is not None and type(doc2) == aymara.lima.Doc
 
 
 def test_analyzeText_lang_not_str():
