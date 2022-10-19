@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import aymara.lima
 import aymara.lima_models
 import os
 import pytest
@@ -30,28 +31,38 @@ def test_install_model():
     """Test installation of models for a language. We use Wolof because it is currently
     the smallest in file size."""
     assert aymara.lima_models.install_language("wol", force=True)
+
+
+@pytest.mark.depends(on=['test_install_model'])
+def test_install_already_installed_model():
     # Test 2 thing: trying to reinstall a model without forcing and use the complete
     # language name instead of the trigram code
-    # TODO Understand while the error is not the one expected
-    # assert aymara.lima_models.install_language("wolof", force=False) is False
+    # TODO Understand why the error is not the one expected
+    assert aymara.lima_models.install_language("wolof", force=False) is False
     # Test trying to install a non-exsistent language
     assert aymara.lima_models.install_language("auieauieuia", force=False) is False
 
 
-# def test_installed_model():
-#     import aymara.lima
-#     lima = aymara.lima.Lima("wol")
-#     result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
-#                   "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).")
-#     assert result.len() > 0
+@pytest.mark.depends(on=['test_install_model'])
+def test_installed_model():
+    # lima = aymara.lima.Lima("ud-uig", pipes="deepud")
+    # result = lima("بۇ ئۇيغۇردىكى بىر مىسال.")
+    lima = aymara.lima.Lima("ud-wol")
+    result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
+                  "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).")
+    print(repr(result))
+    assert len(result) > 0
 
 
+@pytest.mark.depends(on=['test_install_model'])
 def test_list_installed_models(capsys):
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
     assert "(wol)" in captured.out
 
 
+@pytest.mark.depends(on=['test_installed_model', 'test_list_installed_models',
+                         'test_install_already_installed_model'])
 def test_remove_model(capsys):
     # target = aymara.lima_models._get_target_dir()
     # mask = oct(os.stat(target).st_mode)[-3:]
@@ -66,6 +77,18 @@ def test_remove_model(capsys):
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
     assert "(wol)" not in captured.out
+
+
+def test_remove_model_say_no(monkeypatch):
+    answers = iter(["n"])
+    monkeypatch.setattr('builtins.input', lambda name: next(answers))
+    assert aymara.lima_models.remove_language("not_installed") is False
+
+
+def test_remove_non_installed_model(monkeypatch):
+    answers = iter(["y"])
+    monkeypatch.setattr('builtins.input', lambda name: next(answers))
+    assert aymara.lima_models.remove_language("not_installed") is False
 
 
 def test_info():

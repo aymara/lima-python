@@ -355,7 +355,7 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
         (Default value = None)
     :param force: bool: if False, only models not already present are installed.
         Otherwise, they are replaced by new ones. (Default value = False)
-    :return: True if installation is successful and Fales otherwise.
+    :return: True if installation is successful and False otherwise.
     :rtype: bool
     """
     target_dir = _get_target_dir(dest)
@@ -371,8 +371,8 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
     prefix_list = ["tokenizer", "morphosyntax", "lemmatizer"]
     if select is not None:
         prefix_list = [x.lower().strip() for x in args.select.split(",")]
-        if "morphosyntax" in prefix_list:
-            prefix_list.append("fasttext")
+    if "morphosyntax" in prefix_list:
+        prefix_list.append("fasttext")
 
     if not force:
         new_prefix_list = []
@@ -421,17 +421,17 @@ def remove_language(language: str, dest: str = None, force: bool = False) -> boo
     :rtype: bool
     """
     if not force and not _yesnoconfirm(f"Do you really want to remove language {language} ?"):
-        return
+        return False
     target_dir = _get_target_dir(dest)
     code, lang = _find_lang_code(language.lower())
     if not lang:
         print(f"There is no such language {language}")
-        sys.exit(1)
+        return False
     prefix_list = ["Tokenizer", "MorphoSyntax", "Lemmatizer"]
     return _remove_model(target_dir, code, prefix_list)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-a",

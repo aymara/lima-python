@@ -87,8 +87,9 @@ setup(
 
     #    cmake_install_dir= 'aymara/',
     cmake_minimum_required_version='3.15',
-    setup_requires=['cmake', 'pytest', 'pytest-cov', 'pytest-runner'],
-    tests_require=['pytest', 'pytest-cov', 'sphinx-test-reports', 'pyconll', 'pydantic', 'shiboken6'],
+    setup_requires=['cmake', 'pytest', 'pytest-cov', 'pytest-runner', 'pytest-depends'],
+    tests_require=['pytest', 'pytest-cov', 'pytest-depends', 'sphinx-test-reports',
+                   'pyconll', 'pydantic', 'shiboken6'],
     cmake_args=['-DCMAKE_BUILD_TYPE=RelWithDebInfo',
                 '-DCMAKE_GENERATOR=Ninja',
                 f"-DPython3_INCLUDE_DIR={include_dir}",
