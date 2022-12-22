@@ -17,7 +17,8 @@ with open(ver_path) as ver_file:
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-QT_FULL_VERSION = os.environ.get("QT_FULL_VERSION")
+# The environment variable below must be defined. Fail if not
+QT_FULL_VERSION = os.environ["QT_FULL_VERSION"]
 PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "3.8")
 PYTHON_SHORT_VERSION = os.environ.get("PYTHON_SHORT_VERSION", "cp38-cp38")
 PYTHON_FULL_VERSION = os.environ.get("PYTHON_FULL_VERSION", "3.8.12")

@@ -25,6 +25,8 @@ RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 RUN python${PYTHON_VERSION} -m pip install --upgrade pip
 RUN python${PYTHON_VERSION} -m pip install scikit-build pyconll pydantic requests
 
+RUN echo "QT_FULL_VERSION=${QT_FULL_VERSION}"
+ENV QT_FULL_VERSION=${QT_FULL_VERSION}
 
 RUN python${PYTHON_VERSION} -m pip install \
     --index-url=http://download.qt.io/official_releases/QtForPython/ \
