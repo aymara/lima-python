@@ -22,7 +22,6 @@ echo "PYTHON_WHEEL_VERSION=${PYTHON_WHEEL_VERSION}"
 #     --build-arg CACHE_BUST="$(date)" \
 #     --no-cache \
 # docker build --progress=plain \
-#      --no-cache \
 #     --build-arg MANYLINUX_TAG="${MANYLINUX_TAG}" \
 #     --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" \
 #     --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
