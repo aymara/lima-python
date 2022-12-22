@@ -1,3 +1,7 @@
+## 0.5.0b4 - 20221222
+
+* Update to latest Lima
+
 ## 0.5.0b3 - 20221012
 
 * More unit tests with several analyzers

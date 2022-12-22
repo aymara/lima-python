@@ -20,21 +20,24 @@ echo "PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION}"
 echo "PYTHON_WHEEL_VERSION=${PYTHON_WHEEL_VERSION}"
 
 #     --build-arg CACHE_BUST="$(date)" \
-#     --no-cache\
-docker build --progress=plain \
-    --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" \
-    --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
-    --build-arg PYTHON_SHORT_VERSION="${PYTHON_SHORT_VERSION}" \
-    --build-arg PYTHON_FULL_VERSION="${PYTHON_FULL_VERSION}" \
-    --build-arg LIMA_PYTHON_VERSION="${LIMA_PYTHON_VERSION}" \
-    --build-arg BRANCH="${BRANCH}" \
-    --build-arg QT_FULL_VERSION="${QT_FULL_VERSION}" \
-    --build-arg QT_VERSION_MAJOR="${QT_VERSION_MAJOR}" \
-    --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" \
-    --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" \
-    --build-arg QT_VERSION="${QT_VERSION}" \
-    -f Dockerfile-manylinux_2_28 -t lima-python${PYTHON_VERSION}:latest . 2>&1 | tee output.log
+#     --no-cache \
+# docker build --progress=plain \
+#      --no-cache \
+#     --build-arg MANYLINUX_TAG="${MANYLINUX_TAG}" \
+#     --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" \
+#     --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
+#     --build-arg PYTHON_SHORT_VERSION="${PYTHON_SHORT_VERSION}" \
+#     --build-arg PYTHON_FULL_VERSION="${PYTHON_FULL_VERSION}" \
+#     --build-arg LIMA_PYTHON_VERSION="${LIMA_PYTHON_VERSION}" \
+#     --build-arg BRANCH="${BRANCH}" \
+#     --build-arg QT_FULL_VERSION="${QT_FULL_VERSION}" \
+#     --build-arg QT_VERSION_MAJOR="${QT_VERSION_MAJOR}" \
+#     --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" \
+#     --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" \
+#     --build-arg QT_VERSION="${QT_VERSION}" \
+#     -f Dockerfile-manylinux_2_28 -t lima-python${PYTHON_VERSION}:latest . 2>&1 | tee output.log
 
+docker pull docker.io/aymara/lima-python${PYTHON_VERSION}
 docker create -ti --name dummy lima-python${PYTHON_VERSION}:latest bash
 docker cp dummy:/lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl .
 docker rm -f dummy

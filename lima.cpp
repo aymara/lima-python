@@ -228,8 +228,8 @@ public:
   const Common::PropertyCode::PropertyAccessor* propertyAccessor = nullptr;
   LinguisticGraph* posGraph = nullptr;
   LinguisticGraph* anaGraph = nullptr;
-  AnnotationData* annotationData = nullptr;
-  SyntacticData* syntacticData = nullptr;
+  std::shared_ptr<AnnotationData> annotationData = nullptr;
+  std::shared_ptr<SyntacticData> syntacticData = nullptr;
   std::map< LinguisticGraphVertex,
           std::pair<LinguisticGraphVertex,
                     std::string> > vertexDependencyInformations;
@@ -757,7 +757,7 @@ void LimaAnalyzerPrivate::collectDependencyInformations(std::shared_ptr<Lima::An
   LDEBUG << "LimaAnalyzerPrivate::collectVertexDependencyInformations";
 #endif
 
-  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+  auto posGraphData = std::dynamic_pointer_cast<LinguisticAnalysisStructure::AnalysisGraph>(analysis->getData("PosGraph"));
   if (posGraphData == nullptr)
   {
     std::cerr << "Error: PosGraph has not been produced: check pipeline";
@@ -777,12 +777,12 @@ void LimaAnalyzerPrivate::collectDependencyInformations(std::shared_ptr<Lima::An
       v = lastVertex;
   }
 
-  syntacticData = static_cast<SyntacticData*>(analysis->getData("SyntacticData"));
+  syntacticData = std::dynamic_pointer_cast<SyntacticData>(analysis->getData("SyntacticData"));
   if (syntacticData == nullptr)
   {
-    syntacticData = new SyntacticData(posGraphData, 0);
+    syntacticData = std::make_shared<SyntacticData>(posGraphData.get(), nullptr);
     syntacticData->setupDependencyGraph();
-    analysis->setData("SyntacticData", syntacticData);
+    analysis->setData("SyntacticData", syntacticData.get());
   }
   int tokenId = 0;
 
@@ -900,7 +900,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
 {
   // std::cerr << "docFrom_analysis" << std::endl;
   reset();
-  auto metadataholder = static_cast<LinguisticMetaData*>(analysis->getData("LinguisticMetaData"));
+  auto metadataholder = std::dynamic_pointer_cast<LinguisticMetaData>(analysis->getData("LinguisticMetaData"));
   const auto& lang = metadataholder->getMetaData("Lang");
   medId = MedData::single().media(lang);
   languageData = static_cast<const LanguageData*>(&MedData::single().mediaData(medId));
@@ -916,7 +916,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
   sp = &MedData::single().stringsPool(MedData::single().media(lang));
 
 
-  annotationData = static_cast<AnnotationData*>(analysis->getData("AnnotationData"));
+  annotationData = std::dynamic_pointer_cast<AnnotationData>(analysis->getData("AnnotationData"));
   if (annotationData == nullptr)
   {
     std::cerr << "Error: AnnotationData has not been produced: check pipeline";
@@ -925,7 +925,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
     return doc;
   }
 
-  auto anaGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("AnalysisGraph"));
+  auto anaGraphData = std::dynamic_pointer_cast<LinguisticAnalysisStructure::AnalysisGraph>(analysis->getData("AnalysisGraph"));
   if (anaGraphData == nullptr)
   {
     std::cerr << "Error: AnaGraph has not been produced: check pipeline";
@@ -934,7 +934,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
     return doc;
   }
 
-  auto posGraphData = static_cast<LinguisticAnalysisStructure::AnalysisGraph*>(analysis->getData("PosGraph"));
+  auto posGraphData = std::dynamic_pointer_cast<LinguisticAnalysisStructure::AnalysisGraph>(analysis->getData("PosGraph"));
   if (posGraphData==0)
   {
     std::cerr << "Error: PosGraph has not been produced: check pipeline";
@@ -993,7 +993,7 @@ Doc LimaAnalyzerPrivate::docFrom_analysis(std::shared_ptr< Lima::AnalysisContent
   auto tmp = analysis->getData("SentenceBoundaries");
   if (tmp != 0)
   {
-    auto sb = static_cast<SegmentationData*>(tmp);
+    auto sb = std::dynamic_pointer_cast<SegmentationData>(tmp);
     // if (sb->getGraphId() != "PosGraph") {
     //   LERROR << "SentenceBounds have been computed on " << sb->getGraphId() << " !";
     //   LERROR << "SyntacticAnalyzer-deps needs SentenceBounds on PosGraph";

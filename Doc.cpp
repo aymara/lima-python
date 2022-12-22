@@ -120,7 +120,7 @@ int Doc::len()
 
 std::string Doc::text()
 {
-  auto originalText = static_cast<LimaStringText*>(m_d->analysis->getData("Text"));
+  auto originalText = std::dynamic_pointer_cast<LimaStringText>(m_d->analysis->getData("Text"));
   if (originalText == nullptr)
   {
     std::cerr << "There is no doc text available" << std::endl;
