@@ -404,7 +404,10 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
             )
             return True
     else:
+        print("Language: %s, code: %s" % (lang, code))
+        print("Installation dir: %s" % target_dir)
         print("All requested models are already installed")
+        return True
     return False
 
 
