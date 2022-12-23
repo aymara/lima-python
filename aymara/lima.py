@@ -400,6 +400,11 @@ class Span:
         :return: the number of tokens in this span
         :rtype: int
         """
+        if self._end < self._start:
+            print(f"Error in Span.__len__. Span end ({self._end}) is before start "
+                  f"({self._start}). Return 0", file=sys.stderr)
+            return 0
+
         return self._end - self._start
 
     def __getitem__(self, i: Union[int, slice]):
@@ -455,12 +460,17 @@ class Span:
         The representation of a span is one line for each token represented in the
         CoNLL-U format.
         """
+        if len(self) == 0:
+            return ""
+        first_tid = self[0].i - 1
         id = 1
         tokens_repr = [token.__repr__() for token in self]
         tokens_repr_reindexed = []
         for token_repr in tokens_repr:
             cols = token_repr.split("\t")
             cols[0] = str(id)
+            if cols[6] != "_":
+                cols[6] = str(int(cols[6]) - first_tid)
             id += 1
             token_repr = "\t".join(cols)
             tokens_repr_reindexed.append(token_repr)
