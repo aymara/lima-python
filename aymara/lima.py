@@ -272,8 +272,9 @@ class _SentencesIterator:
         """'Returns the next value from doc object's lists"""
         if self._index < len(self._doc.limadoc.sentences()):
             result = Span(self._doc,
-                          self._doc.limadoc.sentences()[self._index].start,
-                          self._doc.limadoc.sentences()[self._index].end)
+                          self._doc.limadoc.sentences()[self._index].start+(
+                              1 if self._index > 0 else 0),
+                          self._doc.limadoc.sentences()[self._index].end+1)
             self._index += 1
             return result
         # Iteration ends
@@ -449,6 +450,22 @@ class Span:
                 raise IndexError("Span index out of range")
             return self._doc[self._start+i]
 
+    def __repr__(self) -> str:
+        """
+        The representation of a span is one line for each token represented in the
+        CoNLL-U format.
+        """
+        id = 1
+        tokens_repr = [token.__repr__() for token in self]
+        tokens_repr_reindexed = []
+        for token_repr in tokens_repr:
+            cols = token_repr.split("\t")
+            cols[0] = str(id)
+            id += 1
+            token_repr = "\t".join(cols)
+            tokens_repr_reindexed.append(token_repr)
+        return "\n".join(tokens_repr_reindexed)
+
     text = property(
             fget=lambda self: (self._doc.text[
                 self._doc[self._start].idx:
@@ -595,7 +612,8 @@ class Doc:
         The representation of a document is one line for each token represented in the
         CoNLL-U format.
         """
-        return "\n".join([token.__repr__() for token in self])
+        return "\n\n".join([repr(sent) for sent in self.sents])
+        # return "\n".join([token.__repr__() for token in self])
 
     def __str__(self) -> str:
         """
