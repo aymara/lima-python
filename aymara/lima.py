@@ -141,7 +141,7 @@ class Token:
             doc="The original text of the token.")
 
     i = property(
-            fget=lambda self: self.token.i,
+            fget=lambda self: self.token.i+1,
             doc="The index of this token in its parent document.")
 
     lemma = property(

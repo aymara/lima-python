@@ -205,10 +205,10 @@ def test_token_properties():
     # doc = lima("Give it back! He pleaded.")
     token = doc[5]
     print(repr(token))
-    assert repr(token) == '5\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t_\troot\t_\tPos=17|Len=7'
+    assert repr(token) == '6\tpleaded\tplead\tVERB\t_\tMood:Ind|Tense:Past|VerbForm:Fin\t_\troot\t_\tPos=17|Len=7'
     assert str(token) == "pleaded" == token.text
     assert len(token) == 7
-    assert token.i == 5
+    assert token.i == 6
     assert token.idx == 17
     assert token.ent_iob == "O"
     assert token.ent_type == "_"
