@@ -38,9 +38,9 @@ echo "PYTHON_WHEEL_VERSION=${PYTHON_WHEEL_VERSION}"
 #     -f Dockerfile-manylinux_2_28 -t lima-python${PYTHON_VERSION}:latest . 2>&1 | tee output.log
 
 docker pull docker.io/aymara/lima-python${PYTHON_VERSION}
-docker create -ti --name dummy lima-python${PYTHON_VERSION}:latest bash
+docker create -ti --name dummy aymara/lima-python${PYTHON_VERSION}:latest bash
 docker cp dummy:/lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl . || docker rm -f dummy && true
 docker rm -f dummy
 
-docker build --no-cache -f Dockerfile-tests --build-arg PYTHON_VERSION=3.7 \
-    --build-arg LIMA_PYTHON_VERSION="${LIMA_PYTHON_VERSION}" .
+# docker build --no-cache -f Dockerfile-tests --build-arg PYTHON_VERSION=3.7 \
+#     --build-arg LIMA_PYTHON_VERSION="${LIMA_PYTHON_VERSION}" .
