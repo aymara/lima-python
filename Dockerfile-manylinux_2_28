@@ -31,7 +31,8 @@ ENV QT_FULL_VERSION=${QT_FULL_VERSION}
 RUN python${PYTHON_VERSION} -m pip install \
     --index-url=http://download.qt.io/official_releases/QtForPython/ \
     --trusted-host download.qt.io \
-    shiboken6==${QT_FULL_VERSION} pyside6  shiboken6_generator
+    shiboken${PYSIDE_VERSION}==${QT_FULL_VERSION} pyside${PYSIDE_VERSION}==${QT_FULL_VERSION}  \
+    shiboken${PYSIDE_VERSION}_generator==${QT_FULL_VERSION} PySide${PYSIDE_VERSION}==${QT_FULL_VERSION}
 
 
 ENV PATH=/opt/_internal/cpython-${PYTHON_FULL_VERSION}/bin:/opt/python/${PYTHON_SHORT_VERSION}/bin:/opt/qt6/bin:/opt/llvm/bin:/opt/lima/bin:${PATH} \
