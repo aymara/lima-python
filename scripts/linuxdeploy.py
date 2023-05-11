@@ -140,7 +140,6 @@ def lddr(executable, libs):
         warn("CalledProcessError while running %s. Return code %s - output: %s"
              % (e.cmd, e.returncode, e.output))
         exit(1)
-        output = e.output
     # print(output.decode())
     output = output.decode().split('\n')
 
