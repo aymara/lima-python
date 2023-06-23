@@ -217,6 +217,10 @@ public:
   /** Reset all members used to store analysis states. To be called before handling a new analysis. */
   void reset();
 
+  std::map<std::string, std::string> parseMetaData(const QString& meta,
+                                                   QChar comma = ',',
+                                                   QChar colon = ':',
+                                                   const std::map<std::string, std::string>& append = {});
 
   QString previousNeType;
 
@@ -329,34 +333,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::string strConfigPath;
 
   // parse 'meta' argument to add metadata
-  if(!meta.isEmpty())
-  {
-    std::string metaString(meta.toStdString());
-    std::string::size_type k=0;
-    do
-    {
-      k=metaString.find(",");
-      //if (k==std::string::npos) continue;
-      std::string str(metaString,0,k);
-      std::string::size_type i=str.find(":");
-      if (i==std::string::npos)
-      {
-        std::cerr << "meta argument '"<< str
-                  << "' is not of the form XXX:YYY: ignored" << std::endl;
-      }
-      else
-      {
-        //std::cout << "add metadata " << std::string(str,0,i) << "=>" << std::string(str,i+1) << std::endl;
-        metaData.insert(std::make_pair(std::string(str,0,i),
-                                       std::string(str,i+1)));
-      }
-      if (k!=std::string::npos)
-      {
-        metaString=std::string(metaString,k+1);
-      }
-    }
-    while (k!=std::string::npos);
-  }
+  metaData = parseMetaData(meta, ',', ':', metaData);
 
   std::deque<std::string> pipelines;
   for (const auto& pipeline: qpipelines)
@@ -368,17 +345,23 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::deque<std::string> langs;
   for (const auto& lang: qlangs)
     langs.push_back(lang.toStdString());
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() "
+  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() NEW VERSION !"
             << resourcesPath.toUtf8().constData() << ", "
             << configPath.toUtf8().constData() << ", "
             << commonConfigFile << ", "
             << langs.front() << std::endl;
+  std::cerr << "metadata:" << std::endl;
+  for (const auto& elem: metaData)
+  {
+    std::cerr << "\t" << elem.first << " : " << elem.second << std::endl;
+  }
   // initialize common
   Common::MediaticData::MediaticData::changeable().init(
     resourcesPath.toUtf8().constData(),
     configPath.toUtf8().constData(),
     commonConfigFile,
-    langs);
+    langs,
+    metaData);
   std::cerr << "MediaticData initialized" << std::endl;
 
   bool clientFactoryConfigured = false;
@@ -411,9 +394,8 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   }
   std::cerr << "Client factory configured" << std::endl;
 
-  m_client = std::shared_ptr< AbstractLinguisticProcessingClient >(
-      std::dynamic_pointer_cast<AbstractLinguisticProcessingClient>(
-          LinguisticProcessingClientFactory::single().createClient(clientId)));
+  m_client = std::dynamic_pointer_cast<AbstractLinguisticProcessingClient>(
+    LinguisticProcessingClientFactory::single().createClient(clientId));
 
   // Set the handlers
   bowTextWriter = std::make_unique<BowTextWriter>();
@@ -644,7 +626,7 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
 {
   auto txtofs  = openHandlerOutputString(simpleStreamHandler.get(), dumpers, "text");
 
-  auto localMetaData = metaData;
+  auto localMetaData = parseMetaData(QString::fromStdString(meta), ',', ':', metaData);
   localMetaData["FileName"]="param";
   auto qmeta = QString::fromStdString(meta).split(",");
   for (const auto& m: qmeta)
@@ -1454,3 +1436,27 @@ QString LimaAnalyzerPrivate::getMicro(LinguisticAnalysisStructure::MorphoSyntact
           *propertyAccessor)).c_str());
 }
 
+std::map<std::string, std::string> LimaAnalyzerPrivate::parseMetaData(
+  const QString& meta,
+  QChar comma,
+  QChar colon,
+  const std::map<std::string, std::string>& append)
+{
+  std::map<std::string, std::string> opts;
+  auto metaView = QStringView(meta);
+  auto metas = metaView.split(comma);
+  for (const auto& keyValueString: metas)
+  {
+    auto kv = keyValueString.split(colon);
+    if (kv.size()!= 2)
+    {
+      DUMPERLOGINIT;
+      LERROR << "Error in metadata string. Cannot split" << keyValueString << "in key/value pair on" << colon;
+    }
+    else
+    {
+      opts[kv[0].toString().toStdString()] = kv[1].toString().toStdString();
+    }
+  }
+  return opts;
+}

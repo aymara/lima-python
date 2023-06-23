@@ -757,11 +757,15 @@ class Lima:
         :param text: the text to analyze
         :type text: str
         :param lang: the language of the text. If none, will backup to the first element
-            of the langs member or to eng if empty (Default value = `None`).
+            of the langs member or to eng if empty (Default value = `None`). Its value
+            can be one of the three historic pre-Universal Dependencies languages
+            ("eng", "fre" and "por") or the value "ud". In the latter case, the meta
+            parameter must include a pair "udlang":"<trigram for the language>", e.g.:
+            "udlang":"fra".
         :type lang: str
         :param pipeline: the Lima pipeline to use for analysis. If none, will backup to
-            the first element of the pipelines member or to main if empty (Default value =
-            `None`).
+            the first element of the pipelines member or to main if empty (Default
+            value = `None`).
         :type pipeline: str
         :param meta: a dict of named metadata values (Default value = an empty dictionary).
         :type meta: Dict[str, str]
@@ -774,7 +778,8 @@ class Lima:
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
-        if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
+        if (lang not in ["eng", "fre", "por"] and not lang.startswith("ud-")
+                and lang != "ud"):
             lang = "ud-" + lang
         if pipeline is None:
             if self.pipes:
@@ -842,7 +847,8 @@ class Lima:
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
-        if lang not in ["eng", "fre", "por"] and not lang.startswith("ud-"):
+        if (lang not in ["eng", "fre", "por"] and not lang.startswith("ud-")
+                and lang != "ud"):
             lang = "ud-" + lang
         if pipeline is None:
             if self.pipes:

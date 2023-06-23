@@ -5,7 +5,7 @@
 
 [tool.poetry]
 name = "aymara"
-version = "0.5.0b4"
+version = "0.5.0b5"
 description = "Python bindings to the LIMA linguistic analyzer"
 authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
 
@@ -15,7 +15,7 @@ pydantic = "^1.8.2"
 python = ">=3.7,<4"
 pyconll = "^2.0"
 requests = "^2.22"
-shiboken6 = "^6.3"
+shiboken6 = "^6.5"
 tqdm = "^4.56.0"
 unix-ar = "^0.2.1b"
 

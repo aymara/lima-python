@@ -21,6 +21,7 @@ echo "PYTHON_SHORT_VERSION=${PYTHON_SHORT_VERSION}"
 echo "PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION}"
 echo "PYTHON_WHEEL_VERSION=${PYTHON_WHEEL_VERSION}"
 
+docker pull aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}
 #     --build-arg CACHE_BUST="$(date)" \
 #     --no-cache \
 docker build --progress=plain \
