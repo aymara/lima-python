@@ -696,7 +696,7 @@ class Lima:
     """
     def __init__(self,
                  langs: str = "fre,eng",
-                 pipes: str = "main,deepud",
+                 pipes: str = "main,deepud,tfud",
                  user_config_path: str = "",
                  user_resources_path: str = "",
                  meta: Dict[str, str] = {}):
@@ -707,7 +707,7 @@ class Lima:
             (Default value = "fre,eng")
         :type langs: str
         :param pipes: a comma-separated list of Lima pipelines to analyze (Default value =
-            "main, deepud")
+            "main, deepud, tfud")
         :type pipes: str
         :param user_config_path: a path where Lima configuration files will be searched
             for. This allows to override default configurations. (Default value = an empty

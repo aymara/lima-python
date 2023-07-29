@@ -6,15 +6,17 @@
 
 # -*- coding: utf-8 -*-
 
-import sys
+import argparse
+import json
 import os
 import re
-import argparse
+import requests
+import sys
+import tarfile
 import tempfile
 import unix_ar
-import tarfile
-import requests
 import urllib.request
+import zipfile
 from tqdm import tqdm
 from os import listdir
 from os.path import isfile, join
@@ -27,11 +29,16 @@ URL_DEB = (
     "lima-deep-models-%s-%s_0.1.5_all.deb"
 )
 URL_C2LC = "https://raw.githubusercontent.com/aymara/lima-models/master/c2lc.txt"
-C2LC = {"lang2code": {}, "code2lang": {}}
+C2LC = {"lang2code": {}, "code2lang": {}, "corpus2code": {}, "code2corpus": {}}
 
-
+URL_DEEP = (
+    "https://github.com/aymara/lima-models/releases/download/v0.2.0-beta/%s-%s.zip"
+    )
+LANGLIST = ("https://github.com/aymara/lima-models/releases/download/v0.2.0-beta/"
+            "langlist.json")
 #############################################
 # Private functions
+
 
 def _yesnoconfirm(msg):
     """
@@ -73,6 +80,64 @@ def _remove_model(target_dir: str, code: str, prefix_list: List[str]) -> bool:
     return removed
 
 
+def _remove_deep_model(target_dir: str, code: str, corpus: str) -> bool:
+    """Remove a DeepLima model.
+    This function is private. It should not be used directly.
+
+    :param target_dir: str: The target Lima resources directory
+    :param code: str: The language code (ISO 639-2 or 639-3)
+    :param corpus: str: The UD corpus name
+    :param prefix_list: List[str]:
+
+    """
+    removed = True
+    # for model in ["Tokenizer", "DependencyParser", "Lemmatizer", "Tagger"]:
+    model_dir = os.path.join(target_dir, f"RnnTokenizer", "ud")
+    if os.path.exists(model_dir):
+        # print(f"Removing *-{code}.* in {model_dir}", file=sys.stderr)
+        if not os.system(f"rm -f {model_dir}/tokenizer-{code}-{corpus}.pt") == 0:
+            removed = False
+            print(f"Failed to remove {model_dir}")  # pragma: no cover
+    model_dir = os.path.join(target_dir, f"RnnTagger", "ud")
+    if os.path.exists(model_dir):
+        # print(f"Removing *-{code}.* in {model_dir}", file=sys.stderr)
+        if not os.system(f"rm -f {model_dir}/tagger-{code}-{corpus}.pt") == 0:
+            removed = False
+            print(f"Failed to remove {model_dir}")  # pragma: no cover
+    model_dir = os.path.join(target_dir, f"RnnLemmatizer", "ud")
+    if os.path.exists(model_dir):
+        # print(f"Removing *-{code}.* in {model_dir}", file=sys.stderr)
+        if not os.system(f"rm -f {model_dir}/lemmatizer-{code}-{corpus}.pt") == 0:
+            removed = False
+            print(f"Failed to remove {model_dir}")  # pragma: no cover
+    model_dir = os.path.join(target_dir, f"RnnDependencyParser", "ud")
+    if os.path.exists(model_dir):
+        # print(f"Removing *-{code}.* in {model_dir}", file=sys.stderr)
+        if not os.system(f"rm -f {model_dir}/dependencyparser-{code}-{corpus}.pt") == 0:
+            removed = False
+            print(f"Failed to remove {model_dir}")  # pragma: no cover
+    with open(os.path.join(target_dir, f"{corpus}.json")) as corpus_json_file:
+        corpus_json = json.load(corpus_json_file)
+        if "tag" in corpus_json and "embd" in corpus_json["tag"]["embd"]:
+            embd_file_name = os.path.splitext(corpus_json["tag"]["embd"].split("/")[-1])[0]
+            try:
+                os.remove(f"{os.path.join(target_dir,'embd',embd_file_name)}.bin")
+            except FileNotFoundError as _:
+                try:
+                    os.remove(f"{os.path.join(target_dir,'embd',embd_file_name)}.ftz")
+                except FileNotFoundError as e:
+                    removed = False
+                    print(f"Failed to remove "
+                          f"{os.path.join(target_dir,'embd',embd_file_name)}"
+                          f".[bin|ftz]")  # pragma: no cover
+    try:
+        os.remove(os.path.join(target_dir, f"{corpus}.json"))
+    except FileNotFoundError as e:
+        removed = False
+        print(f"Failed to remove {os.path.join(target_dir, f'{corpus}.json')}")
+    return removed
+
+
 def _get_target_dir(dest=None):
     """
 
@@ -92,8 +157,7 @@ def _get_target_dir(dest=None):
 
 
 def _install_model(dir, fn, code, prefix_list):
-    """Install an individual model to its destination. This function is private. It should
-    not be used directly.
+    """Install an individual model to its destination.
     This function is private. It should not be used directly.
 
     :param dir:
@@ -147,15 +211,30 @@ def _install_model(dir, fn, code, prefix_list):
                     #         os.symlink(src_name, symlink_name)
 
 
+def _install_deep_model(dir, fn, code, corpus, prefix_list):
+    """Install an individual model to its destination.
+    This function is private. It should not be used directly.
+
+    :param dir:
+    :param fn:
+    :param code:
+    :param prefix_list:
+
+    """
+    Path(dir).mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(fn, "r") as zip_ref:
+        zip_ref.extractall(dir)
+
+
 def _download_binary_file(url, dir):
-    """Download the file at the given url to the give directory. This function is private.
-    It should not be used directly.
+    """Download the file at the given url to the give directory.
     This function is private. It should not be used directly.
 
     :param url:
     :param dir:
 
     """
+    print(f"Downloading {url}")
     Path(dir).mkdir(parents=True, exist_ok=True)
     chunk_size = 4096
     local_filename = os.path.join(dir, url.split("/")[-1])
@@ -173,10 +252,10 @@ def _download_binary_file(url, dir):
         progress_bar.close()
 
 
-def _find_lang_code(lang_str):
+def _find_lang_code(lang_or_code):
     """
 
-    :param lang_str:
+    :param lang_or_code: either the name or the code
     :returns: either the code or the name.
     On the first call, the mapping is downloaded from an external source. So, you need
     to be able to access the Internet to use this function.
@@ -192,12 +271,18 @@ def _find_lang_code(lang_str):
                     lang, corp_id = corpus.split("-")
                     C2LC["lang2code"][lang] = code
                     C2LC["code2lang"][code] = lang
+        langlist = load_lang_list_()
+        for code, corpus in langlist.items():
+            C2LC["corpus2code"][corpus] = code
+            C2LC["code2corpus"][code] = corpus
 
-    if lang_str in C2LC["lang2code"]:
-        return C2LC["lang2code"][lang_str], lang_str
-    elif lang_str in C2LC["code2lang"]:
-        return lang_str, C2LC["code2lang"][lang_str]
-    return None, None
+    if lang_or_code in C2LC["lang2code"]:
+        return (C2LC["lang2code"][lang_or_code], lang_or_code,
+                C2LC["code2corpus"][C2LC["lang2code"][lang_or_code]])
+    elif lang_or_code in C2LC["code2lang"] and lang_or_code in C2LC["code2corpus"]:
+        return (lang_or_code, C2LC["code2lang"][lang_or_code],
+                C2LC["code2corpus"][lang_or_code] or None)
+    return None, None, None
 
 
 def _list_installed_languages(target_dir):
@@ -287,6 +372,23 @@ def _list_installed_languages_per_module(target_dir: str, prefix_list: List[str]
 
     return r
 
+
+def load_lang_list_():
+    result = {}
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        _download_binary_file(LANGLIST, tmpdirname)
+        with open(os.path.join(tmpdirname, "langlist.json")) as langlist_file:
+            langlist = json.load(langlist_file)
+            for lang in langlist:
+                for tri in langlist[lang]:
+                    for q in langlist[lang][tri]:
+                        if "ud" not in langlist[lang][tri][q]:
+                            print(f"Error: no ud in {lang}/{tri}/{q}", file=sys.stderr)
+                        elif len(langlist[lang][tri][q]["ud"]) > 0:
+                            result[tri] = langlist[lang][tri][q]["ud"][0]
+                            # for corpus in langlist[lang][tri][q]["ud"]:
+    return result
+
 #############################################
 # Public functions
 
@@ -361,12 +463,13 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
     target_dir = _get_target_dir(dest)
     Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-    code, lang = _find_lang_code(language.lower())
+    code, lang, corpus = _find_lang_code(language.lower())
     if code is None or lang is None:
         print(f"There is no such language: {language}", file=sys.stderr)
         print(f"You can check available ones with lima_models.info()", file=sys.stderr)
         return False
     deb_url = URL_DEB % (code, lang)
+    deep_url = URL_DEEP % (code, corpus)
 
     prefix_list = ["tokenizer", "morphosyntax", "lemmatizer"]
     if select is not None:
@@ -387,9 +490,8 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
         prefix_list = new_prefix_list
 
     if len(prefix_list) > 0:
-        print("Language: %s, code: %s" % (lang, code))
-        print("Installation dir: %s" % target_dir)
-        print("Downloading %s" % deb_url)
+        print(f"Language: {lang}, code: {code}, corpus: {corpus}")
+        print(f"Installation dir: {target_dir}")
 
         if len(prefix_list) < 3:
             print("Installing only: %s" % (", ".join(prefix_list)))
@@ -400,6 +502,14 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
                 target_dir,
                 os.path.join(tmpdirname, deb_url.split("/")[-1]),
                 code,
+                prefix_list,
+            )
+            _download_binary_file(deep_url, tmpdirname)
+            _install_deep_model(
+                target_dir,
+                os.path.join(tmpdirname, deep_url.split("/")[-1]),
+                code,
+                corpus,
                 prefix_list,
             )
             return True
@@ -426,12 +536,13 @@ def remove_language(language: str, dest: str = None, force: bool = False) -> boo
     if not force and not _yesnoconfirm(f"Do you really want to remove language {language} ?"):
         return False
     target_dir = _get_target_dir(dest)
-    code, lang = _find_lang_code(language.lower())
+    code, lang, corpus = _find_lang_code(language.lower())
     if not lang:
         print(f"There is no such language {language}")
         return False
     prefix_list = ["Tokenizer", "MorphoSyntax", "Lemmatizer"]
-    return _remove_model(target_dir, code, prefix_list)
+    return (_remove_model(target_dir, code, prefix_list)
+            and _remove_deep_model(target_dir, code, corpus))
 
 
 if __name__ == "__main__":  # pragma: no cover
