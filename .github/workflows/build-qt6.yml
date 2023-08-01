@@ -16,9 +16,9 @@ env:
   PYSIDE_VERSION: "6"
   QT_VERSION_MAJOR: "6"
   QT_VERSION_MINOR: "5"
-  QT_VERSION_PATCH: "1.1"
+  QT_VERSION_PATCH: "2"
   QT_VERSION: "6.5"
-  QT_FULL_VERSION: "6.5.1.1"
+  QT_FULL_VERSION: "6.5.2"
   GCC_VERSION: "11.2.1"
   LLVM_VERSION: "13.0.1"
   LIMA_PYTHON_VERSION: "0.5.0b5"
@@ -45,6 +45,22 @@ jobs:
 
       - name: "Push image"
         run: docker push aymara/lima-python${PYTHON_VERSION}:latest
+
+      - uses: shrink/actions-docker-extract@v2
+        id: extract
+        with:
+          image: aymara/lima-python${PYTHON_VERSION}:latest
+          path: /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+
+      - name: move wheel
+        run: mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+
+      - name: upload wheel artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+          path: ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+          if-no-files-found: error
 
   lima-python-tests:
     name: "Build the lima-python test image with Qt ${QT_VERSION} for python ${PYTHON_VERSION}"
