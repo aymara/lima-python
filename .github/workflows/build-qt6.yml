@@ -53,7 +53,7 @@ jobs:
           path: /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
 
       - name: move wheel
-        run: mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+        run: mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
 
       - name: upload wheel artifact
         uses: actions/upload-artifact@v3
