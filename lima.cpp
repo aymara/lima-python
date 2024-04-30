@@ -294,7 +294,8 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   // Add here LIMA_CONF content in front, otherwise it will be ignored
   auto limaConf = QString::fromUtf8(qgetenv("LIMA_CONF").constData());
   if (!limaConf.isEmpty())
-    additionalPaths = limaConf.split(LIMA_PATH_SEPARATOR) + additionalPaths;
+    additionalPaths = limaConf.split(LIMA_PATH_SEPARATOR,
+                                     Qt::SkipEmptyParts) + additionalPaths;
   // Add then the user path in front again such that it takes precedence on environment variable
   if (!user_config_path.isEmpty())
     additionalPaths.push_front(user_config_path);
@@ -306,7 +307,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   // Add here LIMA_RESOURCES content in front, otherwise it will be ignored
   auto limaRes = QString::fromUtf8(qgetenv("LIMA_RESOURCES").constData());
   if (!limaRes.isEmpty())
-    additionalResourcePaths = limaRes.split(LIMA_PATH_SEPARATOR) + additionalResourcePaths;
+    additionalResourcePaths = limaRes.split(LIMA_PATH_SEPARATOR, Qt::SkipEmptyParts) + additionalResourcePaths;
   if (!user_resources_path.isEmpty())
     additionalResourcePaths.push_front(user_resources_path);
   auto resourcesDirs = buildResourcesDirectoriesList(QStringList({"lima"}),
@@ -421,8 +422,10 @@ LimaAnalyzer::LimaAnalyzer(const std::string& langs,
 {
   try
   {
-    QStringList qlangs = QString::fromStdString(langs).split(",");
-    QStringList qpipelines = QString::fromStdString(pipelines).split(",");
+    QStringList qlangs = QString::fromStdString(langs).split(",",
+                                                             Qt::SkipEmptyParts);
+    QStringList qpipelines = QString::fromStdString(pipelines).split(
+      ",", Qt::SkipEmptyParts);
     m_d = new LimaAnalyzerPrivate(qlangs, qpipelines,
                                   QString::fromStdString(modulePath),
                                   QString::fromStdString(user_config_path),
@@ -584,10 +587,10 @@ Doc LimaAnalyzerPrivate::operator()(
 {
   auto localMetaData = metaData;
   localMetaData["FileName"]="param";
-  auto qmeta = QString::fromStdString(meta).split(",");
+  auto qmeta = QString::fromStdString(meta).split(",", Qt::SkipEmptyParts);
   for (const auto& m: qmeta)
   {
-    auto kv = m.split(":");
+    auto kv = m.split(":", Qt::SkipEmptyParts);
     if (kv.size() == 2)
       localMetaData[kv[0].toStdString()] = kv[1].toStdString();
   }
@@ -628,10 +631,10 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
 
   auto localMetaData = parseMetaData(QString::fromStdString(meta), ',', ':', metaData);
   localMetaData["FileName"]="param";
-  auto qmeta = QString::fromStdString(meta).split(",");
+  auto qmeta = QString::fromStdString(meta).split(",", Qt::SkipEmptyParts);
   for (const auto& m: qmeta)
   {
-    auto kv = m.split(":");
+    auto kv = m.split(":", Qt::SkipEmptyParts);
     if (kv.size() == 2)
       localMetaData[kv[0].toStdString()] = kv[1].toStdString();
   }
@@ -1444,10 +1447,10 @@ std::map<std::string, std::string> LimaAnalyzerPrivate::parseMetaData(
 {
   std::map<std::string, std::string> opts;
   auto metaView = QStringView(meta);
-  auto metas = metaView.split(comma);
+  auto metas = metaView.split(comma, Qt::SkipEmptyParts);
   for (const auto& keyValueString: metas)
   {
-    auto kv = keyValueString.split(colon);
+    auto kv = keyValueString.split(colon, Qt::SkipEmptyParts);
     if (kv.size()!= 2)
     {
       DUMPERLOGINIT;
