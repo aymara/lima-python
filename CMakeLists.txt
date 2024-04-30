@@ -249,26 +249,28 @@ target_include_directories(${bindings_library} PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(${bindings_library} PRIVATE ${shiboken_shared_libraries})
 target_link_libraries(${bindings_library} PRIVATE ${sample_library})
 target_link_libraries(${bindings_library} PRIVATE ${pyside_link})
-target_link_libraries(${bindings_library} PRIVATE fasttext-lima
-    lima-common-datahandler
+target_link_libraries(${bindings_library} PRIVATE
+    fasttext-lima
     lima-common-data
+    lima-common-datahandler
     lima-common-factory
     lima-common-fsaaccess
     lima-common-mediaprocessors
     lima-common-mediaticdata
     lima-common-misc
     lima-common-processunitframework
-    lima-common
     lima-common-time
     lima-common-tools
     lima-common-xmlconfigurationfiles
+    lima-common
     lima-linguisticprocessing
     lima-lp-analysisdict
     lima-lp-analysisdumpers
     lima-lp-analysishandlers
+    lima-lp-annotationgraph
     lima-lp-applyrecognizer
-    lima-lp-automatoncompiler
     lima-lp-automaton
+    lima-lp-automatoncompiler
     lima-lp-bagofwords
     lima-lp-client
     lima-lp-compounds
@@ -291,10 +293,14 @@ target_link_libraries(${bindings_library} PRIVATE fasttext-lima
     lima-lp-postagger
     lima-lp-propertycode
     lima-lp-regexmatcher
+    lima-lp-rnn-dependency-parser
+    lima-lp-rnn-ner
+    lima-lp-rnn-tokenizer
+    lima-lp-rnn-tokens-analyzer
     lima-lp-se-datetime
-    lima-lp-semanticanalysis
     lima-lp-se-number
     lima-lp-se-person
+    lima-lp-semanticanalysis
     lima-lp-specificentities
     lima-lp-syntacticanalysis
     lima-lp-tensorflowlemmatizer
@@ -308,7 +314,11 @@ target_link_libraries(${bindings_library} PRIVATE fasttext-lima
     lima-xp-core
     lima-xp-documentsreader
     lima-xp-qtsgmlentities
+    svmtool
     tensorflow-for-lima
+    torch
+    torch_cpu
+    xcb
 )
 
 set_property(TARGET ${bindings_library} PROPERTY PREFIX "")
