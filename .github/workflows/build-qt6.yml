@@ -51,6 +51,7 @@ jobs:
         with:
           image: aymara/lima-python${PYTHON_VERSION}:latest
           path: /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+          destination: dist
 
       # - name: move wheel
       #   run: mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
@@ -59,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
             name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
-            path: .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+            path: dist
             if-no-files-found: error
             overwrite: true
             compression-level: 0 # wheels are already zip files
