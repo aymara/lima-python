@@ -52,15 +52,17 @@ jobs:
           image: aymara/lima-python${PYTHON_VERSION}:latest
           path: /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
 
-      - name: move wheel
-        run: ls .extracted-* && install -d ${{ github.workspace }} && mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+      # - name: move wheel
+      #   run: mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
 
       - name: upload wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
-          path: ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
-          if-no-files-found: error
+            name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+            path: .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+            if-no-files-found: error
+            overwrite: true
+            compression-level: 0 # wheels are already zip files
 
   lima-python-tests:
     name: "Build the lima-python test image with Qt ${QT_VERSION} for python ${PYTHON_VERSION}"
