@@ -15,13 +15,15 @@ ARG PYTHON_WHEEL_VERSION
 ARG PYTHON_FULL_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN yum update -y --nogpgcheck  && yum install -y --nogpgcheck wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3-clang.x86_64 \
+RUN yum update -y --nogpgcheck  && yum install -y --nogpgcheck wget zip libicu-devel.x86_64 clang.x86_64 python3-clang.x86_64 \
     llvm-devel.x86_64 clang-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 \
     python3-sphinx.noarch && yum -y clean all  && rm -rf /var/cache
 RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
 RUN python${PYTHON_VERSION} -m pip install --upgrade pip
 RUN python${PYTHON_VERSION} -m pip install scikit-build pyconll pydantic requests
+RUN yum remove ninja-build
+RUN python${PYTHON_VERSION} -m pip install ninja
 
 RUN echo "QT_FULL_VERSION=${QT_FULL_VERSION}"
 ENV QT_FULL_VERSION=${QT_FULL_VERSION}
