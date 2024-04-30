@@ -15,7 +15,7 @@ ARG PYTHON_WHEEL_VERSION
 ARG PYTHON_FULL_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN yum update && yum install -y wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3-clang.x86_64 \
+RUN yum update -y && yum install -y wget zip ninja-build libicu-devel.x86_64 clang.x86_64 python3-clang.x86_64 \
     llvm-devel.x86_64 clang-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 \
     python3-sphinx.noarch
 RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
