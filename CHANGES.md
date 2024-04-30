@@ -1,3 +1,9 @@
+## 0.5.0b6 - 20240430
+
+* Update to latest Lima
+* Switch to deepud-based Lima
+* Switch to Qt 6.5.2
+
 ## 0.5.0b5 - 20230623
 
 * Update to latest Lima
