@@ -84,7 +84,7 @@ WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
 RUN rm -f aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
 WORKDIR /lima-python/wheelhouse/aymaralima
-RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
+RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so libEGL.so libGLX.so libsvmtool.so libc10.so libtorch* libconvert_from_torch-shared.so libOpenGL.so libxcb.so liblimabinding.so libGLdispatch.so
 WORKDIR /lima-python/wheelhouse
 RUN sed -ie "s/cp37m/abi3/" aymara-${LIMA_PYTHON_VERSION}.dist-info/WHEEL
 RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl -r *
