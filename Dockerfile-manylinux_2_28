@@ -22,7 +22,7 @@ RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
 RUN python${PYTHON_VERSION} -m pip install --upgrade pip
 RUN python${PYTHON_VERSION} -m pip install scikit-build pyconll pydantic requests
-RUN yum remove ninja-build
+RUN yum remove -y ninja-build
 RUN python${PYTHON_VERSION} -m pip install ninja
 
 RUN echo "QT_FULL_VERSION=${QT_FULL_VERSION}"
