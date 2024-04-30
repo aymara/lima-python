@@ -6,8 +6,6 @@ ARG PYTHON_VERSION
 ARG QT_VERSION
 FROM aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}:latest AS aymara_lima_manylinux_2_28_qt_python
 
-# FROM quay.io/pypa/manylinux_2_28_x86_64
-
 ARG LIMA_PYTHON_VERSION
 ARG QT_FULL_VERSION
 ARG PYSIDE_VERSION
