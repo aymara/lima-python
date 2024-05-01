@@ -80,7 +80,7 @@ jobs:
       - name: upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
           path: dist
           if-no-files-found: error
           overwrite: true
