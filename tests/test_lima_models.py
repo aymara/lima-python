@@ -73,7 +73,7 @@ def test_installed_model():
 def test_list_installed_models(capsys):
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
-    assert "(wol)" in captured.out
+    assert "(pcm)" in captured.out
 
 
 @pytest.mark.depends(on=['test_installed_model', 'test_list_installed_models',

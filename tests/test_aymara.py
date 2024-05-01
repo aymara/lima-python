@@ -194,8 +194,9 @@ def test_doc_str():
 
 
 def test_doc_repr():
-    print(f"test_doc_repr", file=sys.stderr)
-    assert len(repr(doc).split("\n")) == 7
+    print(f"test_doc_repr '{repr(doc)}'", file=sys.stderr)
+    # There is 7 tokens and an empty line separating the 2 sentences
+    assert len(repr(doc).split("\n")) == 8
 
 
 def test_doc_iter():
