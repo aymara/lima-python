@@ -2,6 +2,12 @@ on:
   push:
     branches:
     - port-to-qt6
+   workflow_dispatch:
+
+   # Allows external webhook trigger
+   repository_dispatch:
+     types:
+       - webhook
 
 env:
   # Use docker.io for Docker Hub if empty

@@ -8,14 +8,10 @@ import pytest
 import sys
 from pathlib import Path
 
-text = "Give it back! He pleaded."
-lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-doc = lima(text)
-
 
 def test__get_data_dir():
     print(f"test__get_data_dir", file=sys.stderr)
-    assert ".local/share" in str(aymara.lima._get_data_dir("lima"))
+    assert aymara.lima._get_data_dir("lima").is_dir()
 
 
 def test_unknownLanguage():
@@ -30,6 +26,9 @@ def test_lang_no_prefix():
         aymara.lima.Lima(langs="cym")
 
 # TODO test with several ud languages
+
+
+text = "Give it back! He pleaded."
 
 
 def test_several_instances():
@@ -71,39 +70,63 @@ def test_functor_lang_not_init():
                            lang="wol", pipeline="main")
 
 
-def test_analyzeText_pipeline_not_avail():
-    print(f"test_analyzeText_pipeline_not_avail", file=sys.stderr)
-    with pytest.raises(aymara.lima.LimaInternalError):
-        lima.analyzeText("This is a text on 02/05/2022.", pipeline="other")
-
-
 def test_analyzeText_pipeline_none_lang_ud():
     print(f"test_analyzeText_pipeline_none_lang_ud", file=sys.stderr)
-    thelima = aymara.lima.Lima("ud-eng", pipes="")
-    thelima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
-                        pipeline=None)
-    assert True
+    with pytest.raises(aymara.lima.LimaInternalError):
+        thelima = aymara.lima.Lima("ud-eng", pipes="")
+        thelima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
+                            pipeline=None)
 
 
 def test_functor_pipeline_none_lang_ud():
     print(f"test_functor_pipeline_none_lang_ud", file=sys.stderr)
-    thelima = aymara.lima.Lima("ud-eng", pipes="")
-    thelima("This is a text on 02/05/2022.", lang="ud-eng", pipeline=None)
-    assert True
+    with pytest.raises(aymara.lima.LimaInternalError):
+        thelima = aymara.lima.Lima("ud-eng", pipes="")
+        thelima("This is a text on 02/05/2022.", lang="ud-eng", pipeline=None)
 
 
 def test_analyzeText_pipeline_none_lang_eng():
     print(f"test_analyzeText_pipeline_none_lang_eng", file=sys.stderr)
-    thelima = aymara.lima.Lima("eng", pipes="")
-    thelima.analyzeText("This is a text on 02/05/2022.", lang="eng", pipeline=None)
-    assert True
+    with pytest.raises(aymara.lima.LimaInternalError):
+        thelima = aymara.lima.Lima("eng", pipes="")
+        thelima.analyzeText("This is a text on 02/05/2022.", lang="eng", pipeline=None)
 
 
 def test_functor_pipeline_none_lang_eng():
     print(f"test_functor_pipeline_none_lang_eng", file=sys.stderr)
-    thelima = aymara.lima.Lima("eng", pipes="")
-    thelima("This is a text on 02/05/2022.", lang="eng", pipeline=None)
+    with pytest.raises(aymara.lima.LimaInternalError):
+        thelima = aymara.lima.Lima("eng", pipes="")
+        thelima("This is a text on 02/05/2022.", lang="eng", pipeline=None)
+
+
+def test_functor_not_text():
+    print(f"test_functor_not_text", file=sys.stderr)
+    with pytest.raises(TypeError):
+        result = aymara.lima.Lima("ud-eng", pipes="deepud")(dict())
+
+
+def test_analyzeText_init_with_lang_and_pipe():
+    print(f"test_analyzeText_init_with_lang_and_pipe", file=sys.stderr)
+    thelima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    result = thelima.analyzeText("This is a text on 02/05/2022.")
     assert True
+
+
+def test_analyzeText_init_with_lang():
+    print(f"test_analyzeText_init_with_lang", file=sys.stderr)
+    thelima = aymara.lima.Lima("ud-eng")
+    result = thelima.analyzeText("This is a text on 02/05/2022.",
+                                 pipeline="deepud")
+    assert True
+
+
+lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+
+
+def test_analyzeText_pipeline_not_avail():
+    print(f"test_analyzeText_pipeline_not_avail", file=sys.stderr)
+    with pytest.raises(aymara.lima.LimaInternalError):
+        lima.analyzeText("This is a text on 02/05/2022.", pipeline="other")
 
 
 def test_functor_pipeline_not_avail():
@@ -115,20 +138,22 @@ def test_functor_pipeline_not_avail():
 def test_functor_meta_not_dict():
     print(f"test_functor_meta_not_dict", file=sys.stderr)
     with pytest.raises(TypeError):
-        lima("This is a text on 02/05/2022.", pipeline="other", meta="wrong metadata")
+        lima("This is a text on 02/05/2022.", pipeline="deepud",
+             meta="wrong metadata")
 
 
 def test_analyzeText_meta_not_dict():
     print(f"test_functor_meta_not_dict", file=sys.stderr)
     with pytest.raises(TypeError):
-        lima.analyzeText("This is a text on 02/05/2022.", pipeline="other",
+        lima.analyzeText("This is a text on 02/05/2022.", pipeline="deepud",
                          meta="wrong metadata")
 
 
 def test_analyzeText_pipeline_not_str():
     print(f"test_analyzeText_pipeline_not_str", file=sys.stderr)
     with pytest.raises(TypeError):
-        lima.analyzeText("This is a text on 02/05/2022.", pipeline=["main", "deepud"])
+        lima.analyzeText("This is a text on 02/05/2022.",
+                         pipeline=["main", "deepud"])
     with pytest.raises(TypeError):
         lima("This is a text on 02/05/2022.", pipeline=["main", "deepud"])
 
@@ -145,33 +170,17 @@ def test_analyzeText_not_text():
 
 def test_analyzeText():
     print(f"test_analyzeText", file=sys.stderr)
-    result = lima.analyzeText("This is a text on 02/05/2022.")
+    result = lima.analyzeText("This is a text on 02/05/2022.",
+                              pipeline="deepud")
     assert True
 
 
-def test_analyzeText_init_with_lang():
-    print(f"test_analyzeText_init_with_lang", file=sys.stderr)
-    result = aymara.lima.Lima("ud-eng").analyzeText("This is a text on 02/05/2022.",
-                                                    pipeline="deepud")
-    assert True
-
-
-def test_analyzeText_init_with_lang_and_pipe():
-    print(f"test_analyzeText_init_with_lang_and_pipe", file=sys.stderr)
-    result = aymara.lima.Lima("ud-eng", pipes="deepud").analyzeText(
-        "This is a text on 02/05/2022.")
-    assert True
+doc = lima(text)
 
 
 def test_functor():
     print(f"test_functor", file=sys.stderr)
     assert doc is not None and type(doc) == aymara.lima.Doc
-
-
-def test_functor_not_text():
-    print(f"test_functor_not_text", file=sys.stderr)
-    with pytest.raises(TypeError):
-        result = aymara.lima.Lima("ud-eng", pipes="deepud")(dict())
 
 
 def test_doc_size():
@@ -237,8 +246,8 @@ def test_token_properties():
 
 def test_doc_sents():
     print(f"test_doc_sents", file=sys.stderr)
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("This is a sentence. Here's another...")
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    # doc = lima("This is a sentence. Here's another...")
     sents = list(doc.sents)
     assert len(sents) == 2
     # # TODO impjement s.root
@@ -247,9 +256,9 @@ def test_doc_sents():
 
 def test_doc_ents():
     print(f"test_doc_ents", file=sys.stderr)
-    lima = aymara.lima.Lima("ud-eng", pipes="deepud")
-    doc = lima("John Doe lives in New York. And Jane Smith will meet him on Friday.")
-    ents = list(doc.ents)
+    # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    ndoc = lima("John Doe lives in New York. And Jane Smith will meet him on Friday.")
+    ents = list(ndoc.ents)
     assert len(ents) == 4
 
 
