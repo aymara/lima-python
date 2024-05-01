@@ -696,7 +696,7 @@ class Lima:
     """
     def __init__(self,
                  langs: str = "fre,eng",
-                 pipes: str = "main,deepud,tfud",
+                 pipes: str = "main,deepud",
                  user_config_path: str = "",
                  user_resources_path: str = "",
                  meta: Dict[str, str] = {}):
@@ -707,7 +707,7 @@ class Lima:
             (Default value = "fre,eng")
         :type langs: str
         :param pipes: a comma-separated list of Lima pipelines to analyze (Default value =
-            "main, deepud, tfud")
+            "main,deepud")
         :type pipes: str
         :param user_config_path: a path where Lima configuration files will be searched
             for. This allows to override default configurations. (Default value = an empty
@@ -735,8 +735,8 @@ class Lima:
         if self.analyzer.error():
             raise LimaInternalError(self.analyzer.errorMessage())
 
-        self.langs = langs
-        self.pipes = pipes
+        self.langs = langs.split(",")
+        self.pipes = pipes.split(",")
 
     def __call__(self,
                  text: str,
@@ -774,7 +774,7 @@ class Lima:
         :rtype: Doc
         """
         if lang is None:
-            lang = self.langs.split(",")[0] if self.langs else "eng"
+            lang = self.langs[0] if self.langs else "eng"
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
@@ -783,7 +783,7 @@ class Lima:
             lang = "ud-" + lang
         if pipeline is None:
             if self.pipes:
-                pipeline = self.pipes.split(",")[0]
+                pipeline = self.pipes[0]
             elif lang.startswith("ud-"):
                 pipeline = "deepud"
             else:
@@ -843,7 +843,7 @@ class Lima:
             # Not covering line below because it is not easy to make lima fail at will
             raise LimaInternalError(self.analyzer.errorMessage())  # pragma: no cover
         if lang is None:
-            lang = self.langs.split(",")[0] if self.langs else "eng"
+            lang = self.langs[0] if self.langs else "eng"
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
@@ -852,7 +852,7 @@ class Lima:
             lang = "ud-" + lang
         if pipeline is None:
             if self.pipes:
-                pipeline = self.pipes.split(",")[0]
+                pipeline = self.pipes[0]
             elif lang.startswith("ud-"):
                 pipeline = "deepud"
             else:

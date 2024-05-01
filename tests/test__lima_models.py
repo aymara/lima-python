@@ -34,6 +34,25 @@ def test_install_model():
     assert aymara.lima_models.install_language("pcm", force=True)
 
 
+# @pytest.mark.depends(on=['test_install_model'])
+def test_installed_model():
+    # lima = aymara.lima.Lima("ud-uig", pipes="deepud")
+    # result = lima("بۇ ئۇيغۇردىكى بىر مىسال.")
+
+    # lima = aymara.lima.Lima("ud-wol")
+    # result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
+    #               "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).",
+    #               pipeline="deepud")
+
+    lima = aymara.lima.Lima("ud-pcm", pipes="deepud")
+    result = lima("Rivers and soakaways don overflow, roads don become "
+                  "waterways and homes don destroy.",
+                  pipeline="deepud")
+
+    print(repr(result))
+    assert len(result) > 0
+
+
 @pytest.mark.depends(on=['test_install_model'])
 def test_install_already_installed_model():
     # Test 2 things: trying to reinstall a model without forcing and use the
@@ -47,26 +66,6 @@ def test_install_inexistent_language():
     # Test trying to install a non-existent language
     assert aymara.lima_models.install_language("auieauieuia",
                                                force=False) is False
-
-
-@pytest.mark.depends(on=['test_install_model'])
-def test_installed_model():
-    # lima = aymara.lima.Lima("ud-uig", pipes="deepud")
-    # result = lima("بۇ ئۇيغۇردىكى بىر مىسال.")
-
-    # lima = aymara.lima.Lima("ud-wol")
-    # result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
-    #               "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).",
-    #               pipeline="deepud")
-
-    lima = aymara.lima.Lima("ud-pcm")
-    result = lima("Rivers and soakaways don overflow, roads don become "
-                  "waterways and homes don destroy.",
-                  pipeline="deepud")
-
-
-    print(repr(result))
-    assert len(result) > 0
 
 
 @pytest.mark.depends(on=['test_install_model'])
