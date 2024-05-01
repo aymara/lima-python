@@ -1,13 +1,13 @@
 on:
   push:
     branches:
-    - port-to-qt6
-   workflow_dispatch:
-
-   # Allows external webhook trigger
-   repository_dispatch:
-     types:
-       - webhook
+      - port-to-qt6
+#     workflow_dispatch:
+#
+#     # Allows external webhook trigger
+#     repository_dispatch:
+#       types:
+#         - webhook
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -80,11 +80,11 @@ jobs:
       - name: upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-            name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
-            path: dist
-            if-no-files-found: error
-            overwrite: true
-            compression-level: 0 # wheels are already zip files
+          name: aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+          path: dist
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0 # wheels are already zip files
 
   lima-python-tests:
     name: "Build the lima-python test image with Qt ${QT_VERSION} for python ${PYTHON_VERSION}"
@@ -119,4 +119,3 @@ jobs:
 
       - name: "Build image"
         run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
-
