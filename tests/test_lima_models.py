@@ -24,32 +24,47 @@ def test__get_target_dir():
 
 
 def test__find_lang_code():
-    assert aymara.lima_models._find_lang_code("no such language") == (None, None)
+    assert (aymara.lima_models._find_lang_code("no such language")
+            == (None, None, None))
 
 
 def test_install_model():
     """Test installation of models for a language. We use Wolof because it is currently
     the smallest in file size."""
-    assert aymara.lima_models.install_language("wol", force=True)
+    assert aymara.lima_models.install_language("pcm", force=True)
 
 
 @pytest.mark.depends(on=['test_install_model'])
 def test_install_already_installed_model():
-    # Test 2 thing: trying to reinstall a model without forcing and use the complete
-    # language name instead of the trigram code
+    # Test 2 things: trying to reinstall a model without forcing and use the
+    # complete language name instead of the trigram code
     # TODO Understand why the error is not the one expected
-    assert aymara.lima_models.install_language("wolof", force=False) is False
-    # Test trying to install a non-exsistent language
-    assert aymara.lima_models.install_language("auieauieuia", force=False) is False
+    assert aymara.lima_models.install_language("naija", force=False) is False
+
+
+@pytest.mark.depends(on=['test_install_model'])
+def test_install_inexistent_language():
+    # Test trying to install a non-existent language
+    assert aymara.lima_models.install_language("auieauieuia",
+                                               force=False) is False
 
 
 @pytest.mark.depends(on=['test_install_model'])
 def test_installed_model():
     # lima = aymara.lima.Lima("ud-uig", pipes="deepud")
     # result = lima("بۇ ئۇيغۇردىكى بىر مىسال.")
-    lima = aymara.lima.Lima("ud-wol")
-    result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
-                  "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).")
+
+    # lima = aymara.lima.Lima("ud-wol")
+    # result = lima("Wolof làkk la wu ñuy wax ci Gàmbi (Gàmbi Wolof), "
+    #               "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).",
+    #               pipeline="deepud")
+
+    lima = aymara.lima.Lima("ud-pcm")
+    result = lima("Rivers and soakaways don overflow, roads don become "
+                  "waterways and homes don destroy.",
+                  pipeline="deepud")
+
+
     print(repr(result))
     assert len(result) > 0
 
@@ -69,11 +84,11 @@ def test_remove_model(capsys):
     # # remove write permission to the destination dir…
     # os.chmod(target, 0o444)
     # #… such that remove fails
-    # assert not aymara.lima_models.remove_language("wol", force=True)
+    # assert not aymara.lima_models.remove_language("pcm", force=True)
     # # set back initial permissions…
     # os.chmod(target, mask)
     # # … such that we can (hopfully) remove the language
-    assert aymara.lima_models.remove_language("wol", force=True)
+    assert aymara.lima_models.remove_language("pcm", force=True)
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
     assert "(wol)" not in captured.out

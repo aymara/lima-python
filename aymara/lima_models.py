@@ -118,7 +118,10 @@ def _remove_deep_model(target_dir: str, code: str, corpus: str) -> bool:
             print(f"Failed to remove {model_dir}")  # pragma: no cover
     with open(os.path.join(target_dir, f"{corpus}.json")) as corpus_json_file:
         corpus_json = json.load(corpus_json_file)
-        if "tag" in corpus_json and "embd" in corpus_json["tag"]["embd"]:
+        if ("tag" in corpus_json
+                and corpus_json["tag"] is not None
+                and "embd" in corpus_json["tag"]
+                and corpus_json["tag"]["embd"] is not None):
             embd_file_name = os.path.splitext(corpus_json["tag"]["embd"].split("/")[-1])[0]
             try:
                 os.remove(f"{os.path.join(target_dir,'embd',embd_file_name)}.bin")
@@ -517,20 +520,20 @@ def install_language(language: str, dest: str = None, select: List[str] = None,
         print("Language: %s, code: %s" % (lang, code))
         print("Installation dir: %s" % target_dir)
         print("All requested models are already installed")
-        return True
+        return False
     return False
 
 
 def remove_language(language: str, dest: str = None, force: bool = False) -> bool:
-    """Remove all the resources for a language from the system. Confirmation is asked by
-    default before removing anything.
+    """Remove all the resources for a language from the system. Confirmation
+    is asked by default before removing anything.
 
     :param language: str: the language to remove
     :param dest: str: if given, remove from this directory. Otherwise, search in default
         directories (Default value = None)
     :param force: bool: If False, confirmation will be asked before removing the
     language (Default value = False)
-    :return: True if removing is successful and Fales otherwise.
+    :return: True if removing is successful and False otherwise.
     :rtype: bool
     """
     if not force and not _yesnoconfirm(f"Do you really want to remove language {language} ?"):
