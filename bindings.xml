@@ -54,11 +54,11 @@
 <typesystem package="cpplima" exception-handling="on">
 <!--     <load-typesystem name="typesystem_core.xml" generate="no"/> -->
 
-    <primitive-type name="int"/>
+<!--    <primitive-type name="int"/>
     <primitive-type name="bool"/>
     <primitive-type name="std::map"/>
     <primitive-type name="std::string"/>
-    <primitive-type name="std::vector"/>
+    <primitive-type name="std::vector"/>-->
 
 
     <value-type name="Span" exception-handling="on"/>
