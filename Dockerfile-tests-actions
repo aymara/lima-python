@@ -1,0 +1,28 @@
+# Copyright 2019-2022 CEA LIST
+# SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+#
+# SPDX-License-Identifier: MIT
+ARG PYTHON_VERSION=3.7
+FROM aymara/lima-python${PYTHON_VERSION}:latest AS lima_python
+
+ARG PYTHON_VERSION=3.7
+FROM python:${PYTHON_VERSION}
+
+ARG LIMA_PYTHON_VERSION
+ARG PYTHON_WHEEL_VERSION
+
+RUN pip install -U pip
+RUN pip install pytest pytest-cov pytest-runner aymara
+RUN lima_models.py -l eng
+RUN pip uninstall -y aymara
+
+COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl /
+RUN pip install /aymara-${LIMA_PYTHON_VERSION}-cp37-abi3-manylinux_2_28_x86_64.whl
+RUN install -d /lima-python
+
+WORKDIR /lima-python
+COPY .coveragerc .
+RUN install -d /lima-python/tests
+COPY tests/* /lima-python/tests/
+COPY aymara/* /lima-python/aymara/
+RUN python3 -m pytest --cov=aymara --cov-config=.coveragerc --cov-report term-missing  tests/

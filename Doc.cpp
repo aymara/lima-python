@@ -1,5 +1,8 @@
-<?xml version="1.0"?>
-<!--
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -49,55 +52,91 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
--->
 
-<typesystem package="cpplima" exception-handling="on">
-<!--     <load-typesystem name="typesystem_core.xml" generate="no"/> -->
+#include "Doc.h"
+#include "Doc_private.h"
+#include "Token.h"
 
-    <primitive-type name="int"/>
-    <primitive-type name="bool"/>
-    <primitive-type name="std::map"/>
-    <primitive-type name="std::string"/>
-    <primitive-type name="std::vector"/>
+#include "common/MediaticData/mediaticData.h"
+#include <common/ProcessUnitFramework/AnalysisContent.h>
+#include <linguisticProcessing/common/linguisticData/LimaStringText.h>
+#include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
+
+#include <iostream>
+#include <vector>
+
+using namespace Lima::LinguisticProcessing;
+using MedData = Lima::Common::MediaticData::MediaticData ;
 
 
-    <value-type name="Span" exception-handling="on"/>
-    <value-type name="Token" exception-handling="on"/>
-    <value-type name="Doc" exception-handling="on"/>
+Doc::Doc(bool error, const std::string& errorMessage)
+{
+  m_d = new DocPrivate();
+  m_d->error = error;
+  m_d->errorMessage = errorMessage;
+}
 
-<!--    <container-type name="Doc" type="list">
-        <conversion-rule>
-            <native-to-target>
-                <insert-template name="shiboken_conversion_cppsequence_to_pylist"/>
-            </native-to-target>
-            <target-to-native>
-                <add-conversion type="PySequence">
-                    <insert-template name="shiboken_conversion_pyiterable_to_cppsequentialcontainer_reserve"/>
-                </add-conversion>
-            </target-to-native>
-        </conversion-rule>
-    </container-type>-->
+Doc::~Doc()
+{
+  delete m_d;
+}
 
-<!--<container-type name="std::vector" type="vector" opaque-containers="Token:Doc">
-    <include file-name="vector" location="global"/>
-    <conversion-rule>
-        <native-to-target>
-            <insert-template name="shiboken_conversion_cppsequence_to_pylist"/>
-        </native-to-target>
-        <target-to-native>
-            <add-conversion type="PySequence">
-                <insert-template name="shiboken_conversion_pyiterable_to_cppsequentialcontainer"/>
-            </add-conversion>
-        </target-to-native>
-    </conversion-rule>
-</container-type>-->
+Doc::Doc(const Doc& a) : m_d(new DocPrivate(*a.m_d))
+{
+  // std::cerr << "Doc::Doc copy constructor" << std::endl;
+}
 
-    <value-type name="LimaAnalyzer"  exception-handling="on"/>
-<!--<value-type name="LimaAnalyzer">
-    <modify-function signature="operator()(std::string, std::string pipeline, std::string)">
-        <modify-argument index="return">
-            <replace-type modified-type="Doc" />
-        </modify-argument>
-    </modify-function>
-</value-type>-->
-</typesystem>
+Doc& Doc::operator=(const Doc& a)
+{
+  // std::cerr << "Doc::operator=" << std::endl;
+  *m_d = *a.m_d;
+  return *this;
+}
+
+bool Doc::error() const
+{
+  return m_d->error;
+}
+
+std::string Doc::errorMessage() const
+{
+  return m_d->errorMessage;
+}
+
+Token& Doc::operator[](int i)
+{
+  return m_d->tokens[i];
+}
+
+Token& Doc::at(int i)
+{
+  return m_d->tokens[i];
+}
+
+int Doc::len()
+{
+  return m_d->tokens.size();
+}
+
+std::string Doc::text()
+{
+  auto originalText = std::dynamic_pointer_cast<LimaStringText>(m_d->analysis->getData("Text"));
+  if (originalText == nullptr)
+  {
+    std::cerr << "There is no doc text available" << std::endl;
+    m_d->error = true;
+    m_d->errorMessage = "There is no doc text available";
+    return "";
+  }
+  return originalText->toStdString();
+}
+
+const std::vector<Span>& Doc::sentences() const
+{
+  return m_d->sentences;
+}
+
+const std::string& Doc::language() const
+{
+  return m_d->language;
+}

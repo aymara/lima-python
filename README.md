@@ -72,6 +72,10 @@ Note that some error messages could be displayed during the Lima object instanti
 
 You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline. This is the same for `ud-fra` and `fre`. Note that legacy pipelines do not use the Universal Dependencies tagset, but a proprietary one.
 
+## Python bindings API documentation
+
+The Lima python API documentation is [on readthedocs](https://lima-python.readthedocs.io/en/port-to-qt6/).
+
 ## Configuration and customization
 
 To configure finely LIMA for your needs, follow the same instructions as for the native C++ tools, available here: [[https://github.com/aymara/lima/wiki/LIMA-User-Manual]].
@@ -93,4 +97,47 @@ Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the
 
 ```bash
 ./deploy-manylinux_2_28.sh
+```
+
+# Developper Notes
+To see the wheels accepted on current system:
+
+```
+>>> from packaging.tags import sys_tags
+>>> [str(t) for t in sys_tags()]
+```
+
+See: 
+  * https://cibuildwheel.readthedocs.io/en/stable/
+  * https://wiki.qt.io/Qt_for_Python
+  * https://www.qt.io/blog/2018/05/31/write-python-bindings
+
+
+# License notes
+
+Some part of this API are largely inspired by the spaCy one and some text of the documentation are reproduced from the
+spaCy documentation. spaCy is also released under the MIT license. We thus reproduce its copyright notice below:
+
+```
+The MIT License (MIT)
+
+Copyright (C) 2016-2022 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 ```

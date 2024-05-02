@@ -1,3 +1,34 @@
+## 0.5.0b6 - 20240430
+
+* Update to latest Lima
+* Switch to deepud-based Lima
+* Switch to Qt 6.5.2
+
+## 0.5.0b5 - 20230623
+
+* Update to latest Lima
+* Correct ud languages init
+
+## 0.5.0b4 - 20221222
+
+* Update to latest Lima
+
+## 0.5.0b3 - 20221012
+
+* More unit tests with several analyzers
+
+## 0.5.0b2 - 20221012
+
+* Unit tests with coverage at 100% for main API
+
+## 0.5.0b1 - 20221006
+
+* New API inspired by spaCy
+  Most important parts of Lima (equivalent to Language), Doc, Span and Token are implemented.
+* Complete model management API
+* API documentation on readthedocs (https://lima-python.readthedocs.io/en/port-to-qt6/)
+* Unit tests with coverage (currently 80%)
+
 ## 0.4.1 - 20220728
 
 * abi3-based wheel usable on all python >= 3.7, < 4

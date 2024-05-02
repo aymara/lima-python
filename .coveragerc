@@ -1,0 +1,6 @@
+[run]
+omit = 
+    tests/*
+    aymara/version.py
+    aymara/__init__.py
+

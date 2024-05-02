@@ -2,77 +2,89 @@
 # SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
 #
 # SPDX-License-Identifier: MIT
-ARG PYTHON_VERSION=3.8
-ARG QT_VERSION=5.15
-FROM aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}:latest
-# as aymara_lima-manylinux_2_28-qt-python
-
-# FROM quay.io/pypa/manylinux_2_28_x86_64
+ARG PYTHON_VERSION
+ARG QT_VERSION
+FROM aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}:latest AS aymara_lima_manylinux_2_28_qt_python
 
 ARG LIMA_PYTHON_VERSION
-ARG PYSIDE_VERSION="2"
-ARG PYTHON_VERSION="3.8"
-ARG PYTHON_SHORT_VERSION="cp38-cp38"
-ARG PYTHON_WHEEL_VERSION="cp38-abi3"
-# For python 3.7, it is 3.7.13
-# For python 3.8, it is 3.8.12
-ARG PYTHON_FULL_VERSION="3.8.12"
+ARG QT_FULL_VERSION
+ARG PYSIDE_VERSION
+ARG PYTHON_VERSION
+ARG PYTHON_SHORT_VERSION
+ARG PYTHON_WHEEL_VERSION
+ARG PYTHON_FULL_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN yum install -y wget gcc-toolset-10.x86_64 ninja-build libicu-devel.x86_64  "qt5-*.x86_64" qt5-devel.noarch \
-    clang.x86_64 python3-clang.x86_64 llvm-devel.x86_64 clang-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 \
-    python3-sphinx.noarch
-RUN ln -s /usr/bin/uic-qt5 /usr/bin/uic && \
-    ln -s /usr/bin/rcc-qt5 /usr/bin/rcc && \
-    ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
+RUN yum update -y --nogpgcheck  && yum install -y --nogpgcheck wget zip libicu-devel.x86_64 clang.x86_64 python3-clang.x86_64 \
+    llvm-devel.x86_64 clang-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 \
+    python3-sphinx.noarch && yum -y clean all  && rm -rf /var/cache
+RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
-RUN python${PYTHON_VERSION} -m pip install scikit-build
-ENV PATH="/opt/_internal/cpython-${PYTHON_FULL_VERSION}/bin:/opt/python/${PYTHON_SHORT_VERSION}/bin:${PATH}"
+RUN python${PYTHON_VERSION} -m pip install --upgrade pip
+RUN python${PYTHON_VERSION} -m pip install scikit-build pyconll pydantic requests
+RUN yum remove -y ninja-build
+RUN python${PYTHON_VERSION} -m pip install ninja
 
-ENV NLTK_PTB_DP_FILE=/nltk_data/corpora/dependency_treebank/nltk-ptb.dp \
-    LIMA_DISABLE_FSW_TESTING=true \
-    LIMA_DISABLE_CPACK_DEBIAN_PACKAGE_SHLIBDEPS=true \
+RUN echo "QT_FULL_VERSION=${QT_FULL_VERSION}"
+ENV QT_FULL_VERSION=${QT_FULL_VERSION}
+
+RUN python${PYTHON_VERSION} -m pip install \
+    shiboken${PYSIDE_VERSION}==${QT_FULL_VERSION} pyside${PYSIDE_VERSION}==${QT_FULL_VERSION}  \
+    PySide${PYSIDE_VERSION}==${QT_FULL_VERSION} PySide${PYSIDE_VERSION}==${QT_FULL_VERSION}
+
+RUN python${PYTHON_VERSION} -m pip install \
+    --index-url=http://download.qt.io/official_releases/QtForPython/ \
+    --trusted-host download.qt.io \
+    shiboken${PYSIDE_VERSION}_generator==${QT_FULL_VERSION}
+
+
+ENV PATH=/opt/_internal/cpython-${PYTHON_FULL_VERSION}/bin:/opt/python/${PYTHON_SHORT_VERSION}/bin:/opt/qt6/bin:/opt/llvm/bin:/opt/lima/bin:${PATH} \
     LIMA_DIST=/opt/lima \
     LIMA_CONF=/opt/lima/share/config/lima \
     LIMA_RESOURCES=/opt/lima/share/apps/lima/resources \
-    PATH=/opt/llvm/bin:/opt/lima/bin:${PATH} \
-    LD_LIBRARY_PATH=/opt/lima/lib:/opt/lima/lib64:${LD_LIBRARY_PATH} \
+    LD_LIBRARY_PATH=/opt/qt6/lib:/usr/lib:/opt/lima/lib:/opt/lima/lib64:${LD_LIBRARY_PATH} \
     PYTHON_VERSION=$PYTHON_VERSION \
     PYTHON_SHORT_VERSION=$PYTHON_SHORT_VERSION \
     PYTHON_FULL_VERSION=$PYTHON_FULL_VERSION \
     PYTHON_WHEEL_VERSION=$PYTHON_WHEEL_VERSION \
-    LIMA_PYTHON_VERSION=$LIMA_PYTHON_VERSION
+    LIMA_PYTHON_VERSION=$LIMA_PYTHON_VERSION \
+    Qt_INSTALL_DIR=/opt/qt6
 
 # Build LIMA wheel
-RUN install -d /lima-python/scripts
+RUN install -d /lima-python/scripts /lima-python/clib/lib /lima-python/aymaralima \
+                /lima-python/aymaralima/config /lima-python/aymara
 COPY scripts/linuxdeploy.py /lima-python/scripts
 WORKDIR /lima-python
-RUN install -d clib/lib
-RUN install -d /lima-python/aymaralima
 RUN cp -R /opt/lima/share/apps/lima/resources /lima-python/aymaralima
-RUN install -d /lima-python/aymaralima/config
 RUN cp -R /opt/lima/share/config/lima/* /lima-python/aymaralima/config
+
 RUN python${PYTHON_VERSION} /lima-python/scripts/linuxdeploy.py /opt/lima/lib/liblima*.so -d clib -o clib/libs.json
 RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
-COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp macros.h manageQt5.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
-RUN install -d /lima-python/aymara
-COPY aymara/* /lima-python/aymara
 
+FROM aymara_lima_manylinux_2_28_qt_python
+
+COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Span.h Span.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
+# RUN install -d /lima-python/tests
+# COPY tests/* /lima-python/tests/
+COPY aymara/* /lima-python/aymara/
 RUN python${PYTHON_VERSION} setup.py bdist_wheel
 ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-build:$LD_LIBRARY_PATH
+# RUN python${PYTHON_VERSION} setup.py test
 # RUN auditwheel show /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 # RUN pip install auditwheel-symbols
 # RUN auditwheel-symbols -m 2_28 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+RUN python${PYTHON_VERSION} -m pip install unix_ar
+RUN python${PYTHON_VERSION} -m pip install /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+WORKDIR /lima-python
+ENV LD_LIBRARY_PATH=/opt/_internal/cpython-3.7.15/lib/python3.7/site-packages/shiboken6:$LD_LIBRARY_PATH
+RUN python${PYTHON_VERSION} -m pip install auditwheel
+
 RUN auditwheel repair --plat manylinux_2_28_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
 RUN rm -f aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
 WORKDIR /lima-python/wheelhouse/aymaralima
-RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
+RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so libEGL.so libGLX.so libsvmtool.so libc10.so libtorch* libconvert_from_torch-shared.so libOpenGL.so libxcb.so liblimabinding.so libGLdispatch.so
 WORKDIR /lima-python/wheelhouse
 RUN sed -ie "s/cp37m/abi3/" aymara-${LIMA_PYTHON_VERSION}.dist-info/WHEEL
 RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl -r *
-# RUN mv aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
-# WORKDIR /lima-python
-#
-# WORKDIR /

@@ -1,0 +1,13 @@
+pyconll
+pydantic
+requests
+shiboken6
+tqdm
+unix_ar
+scikit-build
+pytest
+pytest-cov
+sphinx-test-reports
+sphinxcontrib-needs
+sphinxcontrib-plantuml
+numpy

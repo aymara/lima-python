@@ -57,15 +57,12 @@
 #define LIMAANALYZER_H
 
 #include "macros.h"
+#include "Doc.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-// namespace Lima
-// {
-//   class AnalysisContent;
-// }
 
 class LimaAnalyzerPrivate;
 class BINDINGS_API LimaAnalyzer
@@ -78,68 +75,28 @@ public:
                const std::string& user_config_path="",
                const std::string& user_resources_path="",
                const std::string& meta="");
-  virtual ~LimaAnalyzer();
-  LimaAnalyzer(const LimaAnalyzer&_a);
-  LimaAnalyzer operator=(const LimaAnalyzer&_a);
-//   virtual LimaAnalyzer *clone();
+
+  ~LimaAnalyzer();
+  LimaAnalyzer(const LimaAnalyzer& a) ;
+  LimaAnalyzer& operator=(const LimaAnalyzer& a) ;
+
   std::string analyzeText(const std::string& text,
-                                        const std::string& lang="eng",
-                                        const std::string& pipeline="main",
-                                        const std::string& meta="") const;
-//   std::shared_ptr<Lima::AnalysisContent> operator()(const std::string& text,
-//                                                      const std::string& lang="eng",
-//                                                      const std::string& pipeline="main",
-//                                                      const std::string& meta="") const;
+                          const std::string& lang="",
+                          const std::string& pipeline="",
+                          const std::string& meta="");
+  Doc operator()(
+    const std::string& text,
+                 const std::string& lang="",
+                 const std::string& pipeline="",
+                 const std::string& meta="");
+
+  /** return true if an error occured */
+  bool error();
+  /** return the error message if an error occured and reset the error state */
+  std::string errorMessage();
 
 private:
   LimaAnalyzerPrivate* m_d;
 };
-
-// class Doc;
-// class TokenPrivate;
-// class BINDINGS_API Token
-// {
-//   friend class TokenPrivate;
-// public:
-//   Token();
-//   virtual ~Token();
-//   Token(const Token&_a);
-//   Token operator=(const Token&_a);
-//   virtual Token* clone();
-//   int len();
-//   std::string text();
-//   std::vector<Token> children();
-//   Doc& doc();
-//   Token head();
-//   int i();
-//   std::string lemma();
-//   std::string pos();
-//   std::string tag();
-//   std::string dep();
-//
-//
-// private:
-//   TokenPrivate* m_d;
-// };
-//
-// class DocPrivate;
-// class BINDINGS_API Doc
-// {
-//   friend class DocPrivate;
-// public:
-//   Doc();
-//   virtual ~Doc();
-//   Doc(const Doc&_a);
-//   Doc operator=(const Doc&_a);
-//   virtual Doc* clone();
-//   Token operator[](int i);
-//   int len();
-//   std::string text();
-//   std::vector<Token> span(int i, int j);
-//
-// private:
-//   DocPrivate* m_d;
-// };
-
 
 #endif // LIMAANALYZER_H

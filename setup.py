@@ -17,10 +17,10 @@ with open(ver_path) as ver_file:
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+# The environment variable below must be defined. Fail if not
+QT_FULL_VERSION = os.environ["QT_FULL_VERSION"]
 PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "3.8")
 PYTHON_SHORT_VERSION = os.environ.get("PYTHON_SHORT_VERSION", "cp38-cp38")
-# For python 3.7, it is 3.7.13
-# For python 3.8, it is 3.8.12
 PYTHON_FULL_VERSION = os.environ.get("PYTHON_FULL_VERSION", "3.8.12")
 
 include_dir = f"/opt/python/{PYTHON_SHORT_VERSION}/include/python{PYTHON_VERSION}"
@@ -55,7 +55,10 @@ setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
     ],
     python_requires=f">={PYTHON_VERSION}",
@@ -65,7 +68,7 @@ setup(
         'pyconll',
         'pydantic',
         'requests',
-        'shiboken2',
+        f'shiboken6=={QT_FULL_VERSION}',
         'tqdm',
         'unix_ar',
         ],
@@ -84,8 +87,10 @@ setup(
 
     #    cmake_install_dir= 'aymara/',
     cmake_minimum_required_version='3.15',
-    setup_requires=['cmake', ],
-    cmake_args=['-DCMAKE_BUILD_TYPE=Release',
+    setup_requires=['cmake', 'pytest', 'pytest-cov', 'pytest-runner', 'pytest-depends'],
+    tests_require=['pytest', 'pytest-cov', 'pytest-depends', 'sphinx-test-reports',
+                   'pyconll', 'pydantic', f'shiboken6=={QT_FULL_VERSION}'],
+    cmake_args=['-DCMAKE_BUILD_TYPE=RelWithDebInfo',
                 '-DCMAKE_GENERATOR=Ninja',
                 f"-DPython3_INCLUDE_DIR={include_dir}",
                 f"-DPython3_LIBRARY={library_dir}"],

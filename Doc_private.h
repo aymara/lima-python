@@ -1,5 +1,8 @@
-<?xml version="1.0"?>
-<!--
+// Copyright 2019-2022 CEA LIST
+// SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
+//
+// SPDX-License-Identifier: MIT
+
 /****************************************************************************
 **
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -49,55 +52,30 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
--->
 
-<typesystem package="cpplima" exception-handling="on">
-<!--     <load-typesystem name="typesystem_core.xml" generate="no"/> -->
+#include <iostream>
+#include <memory>
+#include <vector>
 
-    <primitive-type name="int"/>
-    <primitive-type name="bool"/>
-    <primitive-type name="std::map"/>
-    <primitive-type name="std::string"/>
-    <primitive-type name="std::vector"/>
+namespace Lima {
+  class AnalysisContent;
+}
 
+class Doc;
+class Span;
+class DocPrivate
+{
+  friend class Doc;
+public:
+  DocPrivate() = default;
+  ~DocPrivate() = default;
+  DocPrivate(const DocPrivate& a) = default;
+  DocPrivate& operator=(const DocPrivate& a) = default;
 
-    <value-type name="Span" exception-handling="on"/>
-    <value-type name="Token" exception-handling="on"/>
-    <value-type name="Doc" exception-handling="on"/>
-
-<!--    <container-type name="Doc" type="list">
-        <conversion-rule>
-            <native-to-target>
-                <insert-template name="shiboken_conversion_cppsequence_to_pylist"/>
-            </native-to-target>
-            <target-to-native>
-                <add-conversion type="PySequence">
-                    <insert-template name="shiboken_conversion_pyiterable_to_cppsequentialcontainer_reserve"/>
-                </add-conversion>
-            </target-to-native>
-        </conversion-rule>
-    </container-type>-->
-
-<!--<container-type name="std::vector" type="vector" opaque-containers="Token:Doc">
-    <include file-name="vector" location="global"/>
-    <conversion-rule>
-        <native-to-target>
-            <insert-template name="shiboken_conversion_cppsequence_to_pylist"/>
-        </native-to-target>
-        <target-to-native>
-            <add-conversion type="PySequence">
-                <insert-template name="shiboken_conversion_pyiterable_to_cppsequentialcontainer"/>
-            </add-conversion>
-        </target-to-native>
-    </conversion-rule>
-</container-type>-->
-
-    <value-type name="LimaAnalyzer"  exception-handling="on"/>
-<!--<value-type name="LimaAnalyzer">
-    <modify-function signature="operator()(std::string, std::string pipeline, std::string)">
-        <modify-argument index="return">
-            <replace-type modified-type="Doc" />
-        </modify-argument>
-    </modify-function>
-</value-type>-->
-</typesystem>
+  std::vector<Token> tokens;
+  std::shared_ptr<Lima::AnalysisContent> analysis;
+  std::vector<Span> sentences;
+  std::string language;
+  bool error = false;
+  std::string errorMessage = "";
+};

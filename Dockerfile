@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
 #
 # SPDX-License-Identifier: MIT
+ARG QT_VERSION=5.12
 ARG PYTHON_VERSION=3.8
 ARG QT_VERSION=5.15
 FROM aymara/lima-manylinux_2_24-qt${QT_VERSION}-python${PYTHON_VERSION}:latest
@@ -10,11 +11,14 @@ FROM aymara/lima-manylinux_2_24-qt${QT_VERSION}-python${PYTHON_VERSION}:latest
 RUN echo "PYTHON_VERSION=${PYTHON_VERSION}"
 
 ARG PYTHON_VERSION=3.8
-ARG PYTHON_SHORT_VERSION=38
+ARG PYTHON_SHORT_VERSION="cp38-cp38"
+ARG PYTHON_WHEEL_VERSION="cp38-abi3"
 # For python 3.7, it is 3.7.13
 # For python 3.8, it is 3.8.12
 ARG PYTHON_FULL_VERSION=3.8.12
 ENV DEBIAN_FRONTEND=noninteractive
+
+ARG LIMA_PYTHON_VERSION
 
 
 # ENV PYTHON_VERSION=$PYTHON_VERSION
@@ -44,21 +48,20 @@ RUN install -d /lima-python/aymaralima/config
 RUN cp -R /usr/share/config/lima/* /lima-python/aymaralima/config
 RUN python${PYTHON_VERSION} /lima-python/scripts/linuxdeploy.py /usr/lib/liblima*.so -d clib -o clib/libs.json
 RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
-ARG LIMA_PYTHON_VERSION
 COPY scripts tests utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp macros.h manageQt5.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
 RUN install -d /lima-python/aymara
 COPY aymara/* /lima-python/aymara
-# ENV PATH=/opt/llvm/bin:$PATH
-# RUN python${PYTHON_VERSION} setup.py bdist_wheel
-# ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-build:$LD_LIBRARY_PATH
-# RUN auditwheel repair /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
-# WORKDIR /lima-python/wheelhouse
-# RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
-# RUN rm aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
-# WORKDIR /lima-python/wheelhouse/aymaralima
-# RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
-# WORKDIR /lima-python/wheelhouse
-# RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl -r *
-# WORKDIR /lima-python
+ENV PATH=/opt/llvm/bin:$PATH
+RUN python${PYTHON_VERSION} setup.py bdist_wheel
+ENV LD_LIBRARY_PATH=/lima-python/_skbuild/linux-x86_64-${PYTHON_VERSION}/cmake-build:$LD_LIBRARY_PATH
+RUN auditwheel repair /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+WORKDIR /lima-python/wheelhouse
+RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
+RUN rm aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
+WORKDIR /lima-python/wheelhouse/aymaralima
+RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
+WORKDIR /lima-python/wheelhouse
+RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_24_x86_64.whl -r *
+WORKDIR /lima-python
 
 # WORKDIR /
