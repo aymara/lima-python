@@ -2,6 +2,10 @@ on:
   push:
     branches:
       - port-to-qt6
+  workflow_run:
+    workflows: ["Source Workflow"]
+    types:
+      - completed
 #     workflow_dispatch:
 #
 #     # Allows external webhook trigger
@@ -119,3 +123,10 @@ jobs:
 
       - name: "Build image"
         run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl"
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          prerelease: true
