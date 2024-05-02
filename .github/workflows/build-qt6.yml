@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - port-to-qt6
+      - master
   repository_dispatch:
     types: [trigger_workflow]
 
