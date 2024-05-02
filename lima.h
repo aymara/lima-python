@@ -83,7 +83,7 @@ public:
   std::string analyzeText(const std::string& text,
                           const std::string& lang="",
                           const std::string& pipeline="",
-                          const std::string& meta="");
+                          const std::string& meta="") const;
   Doc operator()(
     const std::string& text,
                  const std::string& lang="",
