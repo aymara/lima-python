@@ -118,7 +118,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl"
+          artifacts: "aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl.zip"
           allowUpdates: true
           artifactErrorsFailBuild: true
           prerelease: true
