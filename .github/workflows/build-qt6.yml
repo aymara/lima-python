@@ -119,10 +119,11 @@ jobs:
         run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
 
       # Retrieve artifact from build job
-      - uses: actions/download-artifact@v3
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
         with:
-          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
           path: dist
+          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
       # - run: zip -r dist.zip dist/
       - uses: ncipollo/release-action@v1
         with:
