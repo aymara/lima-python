@@ -122,3 +122,5 @@ jobs:
           allowUpdates: true
           artifactErrorsFailBuild: true
           prerelease: true
+          tag: continuous
+          commit: ${{ github.ref_name }}
