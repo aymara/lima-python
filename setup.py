@@ -95,4 +95,10 @@ setup(
                 f"-DPython3_INCLUDE_DIR={include_dir}",
                 f"-DPython3_LIBRARY={library_dir}"],
     scripts=['aymara/lima_models.py'],
+    entry_points={
+        'console_scripts': [
+            'lima = aymara.lima:main',
+            'lima_models = aymara.lima_models:main'
+        ]
+    },
 )

@@ -548,7 +548,7 @@ def remove_language(language: str, dest: str = None, force: bool = False) -> boo
             and _remove_deep_model(target_dir, code, corpus))
 
 
-if __name__ == "__main__":  # pragma: no cover
+def main():  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-a",
@@ -612,3 +612,7 @@ if __name__ == "__main__":  # pragma: no cover
         sys.exit(0)
     parser.print_help()
     sys.exit(0)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()
