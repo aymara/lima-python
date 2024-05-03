@@ -86,6 +86,8 @@ jobs:
     name: "Build the lima-python test image with Qt ${QT_VERSION} for python ${PYTHON_VERSION}"
     runs-on: ubuntu-latest
     needs: lima-python
+    permissions:
+      contents: write
 
     steps:
       -
@@ -116,9 +118,15 @@ jobs:
       - name: "Build image"
         run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
 
+      # Retrieve artifact from build job
+      - uses: actions/download-artifact@v3
+        with:
+          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
+          path: dist
+      # - run: zip -r dist.zip dist/
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl.zip"
+          artifacts: dist/aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
           allowUpdates: true
           artifactErrorsFailBuild: true
           prerelease: true
