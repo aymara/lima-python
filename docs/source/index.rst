@@ -38,6 +38,7 @@ ask you to download yourself the wheel and install it from your filesystem.
 Upgrading pip is fundamental in order to obtain the correct LIMA version
 
 .. code-block:: bash
+
    $ pip install --upgrade pip
    $ wget https://github.com/aymara/lima-python/releases/download/continuous/aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl
    $ pip install ./aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl
@@ -46,10 +47,13 @@ Upgrading pip is fundamental in order to obtain the correct LIMA version
 Either simply use the lima command to produce an analysis of a file in CoNLLU format:
 
 .. code-block:: bash
+
    $ lima <path to the file to analyse>
 
 Or use the python API:
+
 .. code-block:: bash
+
    $ python
    >>> import aymara.lima
    >>> nlp = aymara.lima.Lima("ud-eng")
