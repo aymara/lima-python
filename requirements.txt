@@ -1,4 +1,4 @@
 importlib-metadata
 colorama
 twine
-
+sphinx-rtd-theme
