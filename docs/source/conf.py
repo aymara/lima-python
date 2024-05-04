@@ -14,7 +14,7 @@
 #
 import os
 import sys
-from mock import Mock as MagicMock
+from unittest.mock import Mock as MagicMock
 
 
 class Mock(MagicMock):
@@ -36,13 +36,13 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'Lima'
-copyright = '2022, CEA LIST/LASTI'
+copyright = '2024, CEA LIST/LASTI'
 author = 'CEA LIST/LASTI'
 
 # The short X.Y version
-version = ''
+version = '0.5'
 # The full version, including alpha/beta/rc tags
-release = ''
+release = '0.5.0b6'
 
 
 # -- General configuration ---------------------------------------------------
