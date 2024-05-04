@@ -91,31 +91,39 @@ class Token:
 
     def __repr__(self) -> str:
         """
-        The representation of this token in CoNLL-U format. Tab separated columns:
-        ID: Word index, integer starting at 1 for each new sentence; may be a range for
-            multiword tokens; may be a decimal number for empty nodes (decimal numbers
-            can be lower than 1 but must be greater than 0).
+        The representation of this token in CoNLL-U format. Tab separated
+        columns:
+        ID: Word index, integer starting at 1 for each new sentence; may be a
+            range for multiword tokens; may be a decimal number for empty
+            nodes (decimal numbers can be lower than 1 but must be greater
+            than 0).
         FORM: Word form or punctuation symbol.
         LEMMA: Lemma or stem of word form.
         UPOS: Universal part-of-speech tag.
-        XPOS: always _ in LIMA. Language-specific part-of-speech tag; underscore if not
-            available.
-        FEATS: List of morphological features from the universal feature inventory or
-            from a defined language-specific extension; underscore if not available.
-        HEAD: Head of the current word, which is either a value of ID or zero (0).
-        DEPREL: Universal dependency relation to the HEAD (root iff HEAD = 0) or a
-            defined language-specific subtype of one.
-        DEPS: Enhanced dependency graph in the form of a list of head-deprel pairs.
+        XPOS: (always _ in LIMA) Language-specific part-of-speech tag;
+            underscore if not available.
+        FEATS: List of morphological features from the universal feature
+            inventory or from a defined language-specific extension; underscore
+            if not available.
+        HEAD: Head of the current word, which is either a value of ID or
+            zero (0).
+        DEPREL: Universal dependency relation to the HEAD (root iff HEAD = 0)
+            or a defined language-specific subtype of one.
+        DEPS: Enhanced dependency graph in the form of a list of head-deprel
+            pairs.
         MISC: Any other annotation.
 
         :return: return the CoNLL-U representation of this token
         :rtype: str
         """
+        head = (0 if self.dep == 'root'
+                else self.head+1 if self.head >= 0
+                else '_')
         return (f"{self.i}\t{self.token.text}\t{self.lemma}\t{self.pos}\t_\t"
                 + ("|".join([f'{k}:{v}' for k, v in self.features.items()])
                    if self.features else "_")
                 + "\t"
-                + f"{self.head if self.head > 0 else '_'}\t"
+                + f"{head}\t"
                 + f"{self.dep if self.dep else '_'}\t_\t"
                 + f"Pos={self.idx}|Len={len(self)}"
                 + (f"" if self.token.neIOB == 'O'
@@ -166,9 +174,10 @@ class Token:
             doc="Position of this token in its document text.")
 
     features = property(
-            fget=lambda self:  ({} if self.token.features == "_"
-                                else dict(x.split("=")
-                                          for x in self.token.features.split("|"))),
+            fget=lambda self:  (
+                {} if self.token.features == "_"
+                else dict(x.split("=")
+                          for x in self.token.features.split("|"))),
             doc="Morphlogical features of this token .")
 
     ent_type = property(
