@@ -30,28 +30,39 @@ LIMA python bindings are currently available **under Linux only** (x86_64).
 
 Under Linux with python >= 3.7 and < 4, and **upgraded pip**:
 
-.. code-block:: bash
+At time of writing, the current version cannot be installed using pip because
+the generated Python Wheel is larger than the limit. We are waiting for a
+validation of our demand for a higher limit. That's why instructions below
+ask you to download yourself the wheel and install it from your filesystem.
 
-   # Upgrading pip is fundamental in order to obtain the correct LIMA version
+Upgrading pip is fundamental in order to obtain the correct LIMA version
+
+.. code-block:: bash
    $ pip install --upgrade pip
-   $ pip install aymara==0.4.2
-   $ lima_models.py -i eng
-   $ python
+   $ wget https://github.com/aymara/lima-python/releases/download/continuous/aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl
+   $ pip install ./aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl
+   $ lima_models.py -l eng
+
+Either simply use the lima command to produce an analysis of a file in CoNLLU format:
 
 .. code-block:: bash
+   $ lima <path to the file to analyse>
 
+Or use the python API:
+.. code-block:: bash
+   $ python
    >>> import aymara.lima
-   >>> lima = aymara.lima.Lima("ud-eng")
-   >>> doc = lima('Hello, World!')
+   >>> nlp = aymara.lima.Lima("ud-eng")
+   >>> doc = nlp('Hello, World!')
    >>> print(doc[0].lemma)
    hello
    >>> print(repr(doc))
-   # sent_id = 1
-   # text = Hello, World!
-   1       Hello   hello   INTJ    _       _               0       root      _ Len=5|Pos=1|SpaceAfter=No
-   2       ,       ,       PUNCT   _       _               1       punct     _ Len=1|Pos=6
-   3       World   World   PROPN   _       Number=Sing     1       vocative  _ Len=5|Pos=8|SpaceAfter=No
-   4       !       !       PUNCT   _       _               1       punct     _ Len=1|Pos=13
+   1       Hello   hello   INTJ    _       _               0       root    _       Pos=0|Len=5
+   2       ,       ,       PUNCT   _       _               1       punct   _       Pos=5|Len=1
+   3       World   World   PROPN   _       Number:Sing     1       vocative        _       Pos=7|Len=5
+   4       !       !       PUNCT   _       _               1       punct   _       Pos=12|Len=1
+
+
 
 Introducing LIMA
 ================
