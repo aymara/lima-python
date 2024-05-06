@@ -20,10 +20,10 @@ $ pip install --upgrade pip # IMPORTANT: LIMA needs a recent pip
 $ pip install aymara
 ```
 
-You can use it like that in English (eng) or French (fre) but it is preferable to use deep-learning based models. To install them, use the `lima_models.py` script:
+You can use it like that in English (eng) or French (fre) but it is preferable to use deep-learning based models. To install them, use the `lima_models` and `deeplima_models` programs:
 
 ```bash
-$ lima_models.py -h
+$ lima_models -h
 usage: lima_models.py [-h] [-i] [-l LANG] [-d DEST] [-s SELECT] [-f] [-L]
 
 optional arguments:
@@ -44,10 +44,15 @@ For example:
 $ lima_models.py -l eng
 ```
 
+To use the deeplima pipelines (improved but experimental), you will have to
+install with both `lima_models` and `deeplima_models`.
+
 ## Running
 
 
 ```python
+$ lima <utf-8 text file to analyze>
+# OR
 $ python
 Python 3.8.10 (default, Nov 26 2021, 20:14:08)
 [GCC 9.3.0] on linux
@@ -88,12 +93,12 @@ To configure finely LIMA for your needs, follow the same instructions as for the
 Use docker using the `gbuild-manylinux_2_28.sh` script:
 
 ```bash
-./gbuild-manylinux_2_28.sh.sh
+./gbuild-manylinux_2_28.sh
 ```
 
 ## Deploying the wheel
 
-Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the `deploy.sh` script.
+Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the `deploy-manylinux_2_28.sh` script.
 
 ```bash
 ./deploy-manylinux_2_28.sh
