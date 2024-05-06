@@ -37,6 +37,7 @@ import sys
 
 from distutils.dir_util import copy_tree
 from pydantic import (parse_obj_as, ValidationError)
+from tqdm import tqdm
 from typing import (Dict, Tuple, Union)
 
 import aymaralima.cpplima
@@ -957,11 +958,24 @@ class Lima:
 def main():  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "-c",
+        "--config-path",
+        type=str,
+        default="",
+        help="set the user configuration path to use",
+    )
+    parser.add_argument(
         "-l",
         "--language",
         type=str,
         default="ud-eng",
         help="set the language to initialize",
+    )
+    parser.add_argument(
+        "-m",
+        "--meta",
+        type=str,
+        help="set metadata for the analyzer",
     )
     parser.add_argument(
         "-p",
@@ -971,16 +985,35 @@ def main():  # pragma: no cover
         help="set the pipeline to initialize",
     )
     parser.add_argument(
+        "-r",
+        "--resources-path",
+        type=str,
+        default="",
+        help="set the user resources path to use",
+    )
+    parser.add_argument(
         "file",
         type=str,
+        nargs="*",
         help="the file to analyze",
     )
     args = parser.parse_args()
-    nlp = Lima(args.language, args.pipeline)
-    with open(args.file) as text_file:
-        text = text_file.read()
-        r = nlp(text)
-        print(repr(r))
+    metadata = {}
+    if args.meta:
+        meta_list = args.meta.split(",")
+        for meta in meta_list:
+            k, v = meta.split(":")
+            metadata[k] = v
+    nlp = Lima(langs=args.language,
+               pipes=args.pipeline,
+               user_config_path=args.config_path,
+               user_resources_path=args.resources_path,
+               meta=metadata)
+    for file_name in tqdm(args.file):
+        with open(file_name) as text_file:
+            text = text_file.read()
+            r = nlp(text)
+            print(repr(r))
     sys.exit(0)
 
 

@@ -46,6 +46,7 @@ docker cp dummy:/lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_W
 docker rm -f dummy
 
 pip install ./aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl --force-reinstall
+pip install  pytest pytest-cov pytest-runner pytest-depends sphinx-test-reports
 pytest
 
 # docker build --no-cache -f Dockerfile-tests --build-arg PYTHON_VERSION=3.7 \

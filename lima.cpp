@@ -317,12 +317,12 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::cerr << "QsLog initialized" << std::endl;
   // Necessary to initialize factories
   Lima::AmosePluginsManager::single();
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
+  // std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
   if (!Lima::AmosePluginsManager::changeable().loadPlugins(configPath))
   {
     throw InvalidConfiguration("loadLibrary method failed.");
   }
-  std::cerr << "Amose plugins are now initialized hop" << std::endl;
+  // std::cerr << "Amose plugins are now initialized hop" << std::endl;
   qDebug() << "Amose plugins are now initialized";
 
 
@@ -345,15 +345,16 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::deque<std::string> langs;
   for (const auto& lang: qlangs)
     langs.push_back(lang.toStdString());
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() NEW VERSION !"
-            << resourcesPath.toUtf8().constData() << ", "
-            << configPath.toUtf8().constData() << ", "
-            << commonConfigFile << ", "
-            << langs.front() << std::endl;
-  std::cerr << "metadata:" << std::endl;
+  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate()"
+            << "\tresources path: " << resourcesPath.toUtf8().constData() << "," << std::endl
+            << "\tconfig path: " << configPath.toUtf8().constData() << "," << std::endl
+            << "\tconfig file: " << commonConfigFile << "," << std::endl
+            << "\tfirst lang: " << langs.front() << "," << std::endl
+            << "\tfirst pipeline: " << pipelines.front() << "," << std::endl
+            << "\tmetadata:" << std::endl;
   for (const auto& elem: metaData)
   {
-    std::cerr << "\t" << elem.first << " : " << elem.second << std::endl;
+    std::cerr << "\t\t" << elem.first << " : " << elem.second << std::endl;
   }
   // initialize common
   Common::MediaticData::MediaticData::changeable().init(
@@ -370,7 +371,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
     if (QFileInfo::exists(configDir + "/" + lpConfigFile.c_str()))
     {
       std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
-          << (configDir + "/" + lpConfigFile.c_str()).toUtf8().constData() << ", "
+          << (configDir + "/" + lpConfigFile.c_str()).toStdString() << ", "
           << clientId << std::endl;
 
       // initialize linguistic processing
