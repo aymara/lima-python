@@ -25,7 +25,7 @@ def test__get_target_dir():
 
 def test__find_lang_code():
     assert (aymara.lima_models._find_lang_code("no such language")
-            == (None, None, None))
+            == (None, None))
 
 
 def test_install_model():
