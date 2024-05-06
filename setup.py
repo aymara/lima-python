@@ -98,8 +98,8 @@ setup(
     entry_points={
         'console_scripts': [
             'lima = aymara.lima:main',
-            'lima_models = aymara.lima_models:main'
-            'deeplima_models = aymara.deeplima_models:main'
+            'lima_models = aymara.lima_models:main',
+            'deeplima_models = aymara.deeplima_models:main',
         ]
     },
 )
