@@ -13,39 +13,39 @@ For more information, detailed installation instructions and documentation, plea
 
 ## Installation
 
-LIMA python bindings are currently available for python >= 3.7 and < 4, under Linux. Install with:
+LIMA python bindings are currently available **under Linux only** (x86_64).
+
+Under Linux with python >= 3.7 and < 4, and **upgraded pip**:
+
+At time of writing, the current version cannot be installed using pip because
+the generated Python Wheel is larger than the limit. We are waiting for a
+validation of our demand for a higher limit. That's why instructions below
+ask you to download yourself the wheel and install it from your filesystem.
 
 ```bash
-$ pip install --upgrade pip # IMPORTANT: LIMA needs a recent pip
-$ pip install aymara
-```
-
-You can use it like that in English (eng) or French (fre) but it is preferable to use deep-learning based models. To install them, use the `lima_models` and `deeplima_models` programs:
-
-```bash
-$ lima_models -h
-usage: lima_models.py [-h] [-i] [-l LANG] [-d DEST] [-s SELECT] [-f] [-L]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -i, --info            print list of available languages and exit
-  -l LANG, --lang LANG  install model for the given language name or language code (example: 'english'
-                        or 'eng')
-  -d DEST, --dest DEST  destination directory
-  -s SELECT, --select SELECT
-                        select particular models to install: tokenizer, morphosyntax, lemmatizer
-                        (comma-separated list)
-  -f, --force           force reinstallation of existing files
-  -L, --list            list installed models
-```
-
-For example:
-```bash
+# Upgrading pip is fundamental in order to obtain the correct LIMA version
+$ pip install --upgrade pip
+$ wget https://github.com/aymara/lima-python/releases/download/continuous/aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl
+$ pip install ./aymara-0.5.0b6-cp37-abi3-manylinux_2_28_x86_64.whl
 $ lima_models.py -l eng
+# Either simply use the lima command to produce an analysis of a file in CoNLLU format:
+$ lima <path to the file to analyse>
+# Or use the python API:
+$ python
+>>> import aymara.lima
+>>> nlp = aymara.lima.Lima("ud-eng")
+>>> doc = nlp('Hello, World!')
+>>> print(doc[0].lemma)
+hello
+>>> print(repr(doc))
+1       Hello   hello   INTJ    _       _               0       root    _       Pos=0|Len=5
+2       ,       ,       PUNCT   _       _               1       punct   _       Pos=5|Len=1
+3       World   World   PROPN   _       Number:Sing     1       vocative        _       Pos=7|Len=5
+4       !       !       PUNCT   _       _               1       punct   _       Pos=12|Len=1
 ```
 
 To use the deeplima pipelines (improved but experimental), you will have to
-install with both `lima_models` and `deeplima_models`.
+install with both `lima_models` and `deeplima_models`. Check the [user manual](https://github.com/aymara/lima/wiki/LIMA-Python-User-Manual) for more information about using these models.
 
 ## Running
 
@@ -76,6 +76,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 Note that some error messages could be displayed during the Lima object instantiation. If you get a valid result, you can ignore them. Most of them are debug messages that will be removed in a later version.
 
 You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline. This is the same for `ud-fra` and `fre`. Note that legacy pipelines do not use the Universal Dependencies tagset, but a proprietary one.
+
 
 ## Python bindings API documentation
 

@@ -534,13 +534,13 @@ class _DocEntitiesIterator:
     def __next__(self) -> Span:
         """'Returns the next Span defining an entity in the document"""
         while self._index < len(self._doc):
-            print(f"doc entities loop {self._index}, {len(self._doc)}", file=sys.stderr)
+            # print(f"doc entities loop {self._index}, {len(self._doc)}", file=sys.stderr)
             if self._doc[self._index].ent_iob == "B":
                 start = self._doc[self._index].i
                 end = start
                 label = self._doc[self._index].ent_type
                 while self._index < len(self._doc):
-                    print(f"doc entities inner loop {self._index}, {len(self._doc)}", file=sys.stderr)
+                    # print(f"doc entities inner loop {self._index}, {len(self._doc)}", file=sys.stderr)
                     self._index += 1
                     if self._index < len(self._doc):
                         if self._doc[self._index].ent_iob == "I":
@@ -849,7 +849,7 @@ class Lima:
             empty string otherwise
         :rtype: str
         """
-        print(f"Lima.analyzeText {text}, {lang}, {pipeline}, {meta}", file=sys.stderr)
+        # print(f"Lima.analyzeText {text}, {lang}, {pipeline}, {meta}", file=sys.stderr)
         if self.analyzer.error():
             # Not covering line below because it is not easy to make lima fail at will
             raise LimaInternalError(self.analyzer.errorMessage())  # pragma: no cover

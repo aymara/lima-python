@@ -314,7 +314,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   auto resourcesPath = resourcesDirs.join(LIMA_PATH_SEPARATOR);
 
   QsLogging::initQsLog(configPath);
-  std::cerr << "QsLog initialized" << std::endl;
+  // std::cerr << "QsLog initialized" << std::endl;
   // Necessary to initialize factories
   Lima::AmosePluginsManager::single();
   // std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
@@ -345,17 +345,17 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   std::deque<std::string> langs;
   for (const auto& lang: qlangs)
     langs.push_back(lang.toStdString());
-  std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate()"
-            << "\tresources path: " << resourcesPath.toUtf8().constData() << "," << std::endl
-            << "\tconfig path: " << configPath.toUtf8().constData() << "," << std::endl
-            << "\tconfig file: " << commonConfigFile << "," << std::endl
-            << "\tfirst lang: " << langs.front() << "," << std::endl
-            << "\tfirst pipeline: " << pipelines.front() << "," << std::endl
-            << "\tmetadata:" << std::endl;
-  for (const auto& elem: metaData)
-  {
-    std::cerr << "\t\t" << elem.first << " : " << elem.second << std::endl;
-  }
+  // std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate()"
+  //           << "\tresources path: " << resourcesPath.toUtf8().constData() << "," << std::endl
+  //           << "\tconfig path: " << configPath.toUtf8().constData() << "," << std::endl
+  //           << "\tconfig file: " << commonConfigFile << "," << std::endl
+  //           << "\tfirst lang: " << langs.front() << "," << std::endl
+  //           << "\tfirst pipeline: " << pipelines.front() << "," << std::endl
+  //           << "\tmetadata:" << std::endl;
+  // for (const auto& elem: metaData)
+  // {
+  //   std::cerr << "\t\t" << elem.first << " : " << elem.second << std::endl;
+  // }
   // initialize common
   Common::MediaticData::MediaticData::changeable().init(
     resourcesPath.toUtf8().constData(),
@@ -363,16 +363,16 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
     commonConfigFile,
     langs,
     metaData);
-  std::cerr << "MediaticData initialized" << std::endl;
+  // std::cerr << "MediaticData initialized" << std::endl;
 
   bool clientFactoryConfigured = false;
   Q_FOREACH(QString configDir, configDirs)
   {
     if (QFileInfo::exists(configDir + "/" + lpConfigFile.c_str()))
     {
-      std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
-          << (configDir + "/" + lpConfigFile.c_str()).toStdString() << ", "
-          << clientId << std::endl;
+      // std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() configuring "
+      //     << (configDir + "/" + lpConfigFile.c_str()).toStdString() << ", "
+      //     << clientId << std::endl;
 
       // initialize linguistic processing
       Lima::Common::XMLConfigurationFiles::XMLConfigurationFileParser lpconfig(
@@ -393,7 +393,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
               << "and" << lpConfigFile << std::endl;
     throw LimaException("Configuration failure");
   }
-  std::cerr << "Client factory configured" << std::endl;
+  // std::cerr << "Client factory configured" << std::endl;
 
   m_client = std::dynamic_pointer_cast<AbstractLinguisticProcessingClient>(
     LinguisticProcessingClientFactory::single().createClient(clientId));
@@ -409,7 +409,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   handlers.insert(std::make_pair("fullXmlSimpleStreamHandler", fullXmlSimpleStreamHandler.get()));
   ltrTextHandler= std::make_unique<LTRTextHandler>();
   handlers.insert(std::make_pair("ltrTextHandler", ltrTextHandler.get()));
-  std::cerr << "LimaAnalyzerPrivate constructor done" << std::endl;
+  // std::cerr << "LimaAnalyzerPrivate constructor done" << std::endl;
 
 }
 
@@ -579,7 +579,7 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
                                     const std::string& pipeline,
                                     const std::string& meta) const
 {
-  std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
+  // std::cerr << "LimaAnalyzer::analyzeText" << std::endl;
   if (m_d == nullptr)
   {
     return "";
@@ -756,11 +756,11 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
   else
   {
     // analyze it
-    std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
+    // std::cerr << "Analyzing " << contentText.toStdString() << std::endl;
     m_client->analyze(contentText, localMetaData, localPipeline, handlers);
   }
   auto result = txtofs->str();
-  std::cerr << "LimaAnalyzerPrivate::analyzeText result: " << result << std::endl;
+  // std::cerr << "LimaAnalyzerPrivate::analyzeText result: " << result << std::endl;
   simpleStreamHandler->setOut(nullptr);
   return result;
 }
@@ -1363,7 +1363,7 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
     auto tStatus = ft->status().defaultKey();
     auto features = getFeats(*morphoData);
     auto [conllRelName, targetConllId] = getConllRelName(v);
-    std::cerr << "Token t: " << targetConllId << ", " << conllRelName.toStdString() << std::endl;
+    // std::cerr << "Token t: " << targetConllId << ", " << conllRelName.toStdString() << std::endl;
     Token t(len, inflectedToken, lemmatizedToken.toStdString(), tokenId++, pos,
             micro.toStdString(), targetConllId, conllRelName.toStdString(), features.toStdString(),
             neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
