@@ -90,6 +90,10 @@ public:
                  const std::string& pipeline="",
                  const std::string& meta="");
 
+  bool addPipelineUnit(const std::string& pipeline,
+                       const std::string& media,
+                       const std::string& jsonGroupString);
+
   /** return true if an error occured */
   bool error();
   /** return the error message if an error occured and reset the error state */

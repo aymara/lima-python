@@ -63,12 +63,14 @@
 #include "common/LimaVersion.h"
 #include "common/Data/strwstrtools.h"
 #include "common/MediaticData/mediaticData.h"
+#include "common/MediaProcessors/MediaProcessors.h"
 #include "common/MediaProcessors/MediaProcessUnit.h"
 #include <common/ProcessUnitFramework/AnalysisContent.h>
 #include "common/QsLog/QsLog.h"
 #include "common/QsLog/QsLogDest.h"
 #include "common/QsLog/QsLogCategories.h"
 #include "common/QsLog/QsDebugOutput.h"
+#include "common/XMLConfigurationFiles/groupConfigurationStructure.h"
 #include "common/XMLConfigurationFiles/xmlConfigurationFileParser.h"
 #include "common/time/traceUtils.h"
 #include "common/tools/FileUtils.h"
@@ -123,6 +125,7 @@ using LangData = Lima::Common::MediaticData::LanguageData;
 using MedData = Lima::Common::MediaticData::MediaticData ;
 using namespace Lima::Common::Misc;
 using namespace Lima::Common::PropertyCode;
+using namespace Lima::Common::XMLConfigurationFiles;
 using namespace Lima;
 
 struct character_escaper
@@ -170,6 +173,10 @@ public:
                  const std::string& lang="eng",
                  const std::string& pipeline="main",
                  const std::string& meta="");
+
+  bool addPipelineUnit(const std::string& pipeline,
+                       const std::string& media,
+                       const std::string& jsonGroupString);
 
   void collectDependencyInformations(std::shared_ptr<Lima::AnalysisContent> analysis);
   void collectVertexDependencyInformations(LinguisticGraphVertex v,
@@ -763,6 +770,45 @@ const std::string LimaAnalyzerPrivate::analyzeText(const std::string& text,
   // std::cerr << "LimaAnalyzerPrivate::analyzeText result: " << result << std::endl;
   simpleStreamHandler->setOut(nullptr);
   return result;
+}
+
+bool LimaAnalyzer::addPipelineUnit(const std::string& pipeline,
+                     const std::string& media,
+                     const std::string& jsonGroupString)
+{
+  if (! m_d->addPipelineUnit(pipeline, media, jsonGroupString))
+  {
+    m_d->error = true;
+    m_d->errorMessage = "addPipelineUnit: failed";
+    return false;
+  }
+  return true;
+}
+
+bool LimaAnalyzerPrivate::addPipelineUnit(const std::string& pipeline,
+                                          const std::string& media,
+                                          const std::string& jsonGroupString)
+{
+  auto jsonGroup = QJsonDocument::fromJson(QByteArray::fromStdString(jsonGroupString)).object();
+  auto mediaid = Lima::Common::MediaticData::MediaticData::single().getMediaId(media);
+  auto pipe = Lima::MediaProcessors::changeable().getPipelineForId(mediaid, pipeline);
+  auto managers = Lima::MediaProcessors::single().managers();
+    // QString jsonGroupString =
+    //     "{ \"name\":\"cpptftokenizer\", "
+    //     "  \"class\":\"CppUppsalaTensorFlowTokenizer\", "
+    //     "  \"model_prefix\": \"tokenizer-eng\" }";
+
+  GroupConfigurationStructure unitConfig(jsonGroup);
+
+  // managers (Manager*) used in init of ProcessUnits are stored in
+  // m_pipelineManagers of MediaProcessors
+  auto pu = MediaProcessUnit::Factory::getFactory(
+    jsonGroup["class"].toString().toStdString())->create(
+      unitConfig,
+      managers[mediaid]);
+  pipe->push_back(pu);
+
+  return true;
 }
 
 std::shared_ptr< std::ostringstream > openHandlerOutputString(

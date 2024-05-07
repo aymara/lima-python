@@ -887,6 +887,60 @@ class Lima:
             raise LimaInternalError(self.analyzer.errorMessage())
         return result
 
+    def add_pipeline_unit(self, pipeline: str, language: str, group: str):
+        """Add a pipeline unit defined by the group json string to the given
+        pipeline of the given language.
+        Media and pipeline must be already instantiated (defined in the LIMA
+        confiuration files). See LIMA documentation for the content of the
+        group.
+        The new pipeline unit is added at the end of the pipeline.
+
+        Example::
+
+                    import aymara.lima
+                    nlp = aymara.lima.Lima("ud-eng", "empty")
+                    group = {
+                        "name": "cpptftokenizer",
+                        "class": "CppUppsalaTensorFlowTokenizer",
+                        "model_prefix": "tokenizer-eng"
+                    }
+                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
+                    group = {
+                        "name": "tfmorphosyntax",
+                        "class": "TensorFlowMorphoSyntax",
+                        "model_prefix": "morphosyntax-eng",
+                        "embeddings": "fasttext-eng.bin"
+                    }
+                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
+                    group = {
+                        "name": "conllDumper",
+                        "class": "ConllDumper",
+                        "handler": "simpleStreamHandler"
+                        "fakeDependencyGraph": "false"
+                    }
+                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
+
+                    result = nlp.analyzeText("Give it back! He pleaded.")
+                    print(result)
+
+        :param pipeline: the pipeline to edit. Use "empty" to change the
+            initialy empty pipeline. It is currently not possible to create a
+            pipeline from scratch. You must add to a pipeline defined in
+            confiuration files
+        :type pipeline: str
+        :param language: the language to edit
+        :type language: str
+        :param group: a string dump of a json object representing the
+            configuration of the pipeline unit, as defined in XML in LIMA's
+            configuration files.
+        :type group: str
+        :return: True if successful and False otherwise
+        :rtype: bool
+
+        """
+        return self.analyzer.addPipelineUnit(pipeline, language, group)
+
+
     @staticmethod
     def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:
         """Export LIMA configuration files from the module system path to the given

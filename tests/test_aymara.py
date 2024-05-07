@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 import aymara.lima
+import json
 import pytest
 import sys
 from pathlib import Path
@@ -360,3 +361,29 @@ def test_get_system_paths():
     assert ress is not None
 
 
+def test_add_pipeline_unit():
+    lima = aymara.lima.Lima("ud-eng", pipes="empty")
+    group = {
+        "name": "cpptftokenizer",
+        "class": "CppUppsalaTensorFlowTokenizer",
+        "model_prefix": "tokenizer-eng"
+    }
+    assert lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
+    group = {
+        "name": "tfmorphosyntax",
+        "class": "TensorFlowMorphoSyntax",
+        "model_prefix": "morphosyntax-eng",
+        "embeddings": "fasttext-eng.bin"
+    }
+    assert lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
+    group = {
+        "name": "conllDumper",
+        "class": "ConllDumper",
+        "handler": "simpleStreamHandler",
+        "fakeDependencyGraph": "false"
+    }
+    assert lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
+
+    doc = lima(text)
+    assert doc is not None and type(doc) == aymara.lima.Doc
+    assert doc[0].text == "Give"
