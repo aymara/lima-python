@@ -15,17 +15,6 @@ def test__get_data_dir():
     assert aymara.lima._get_data_dir("lima").is_dir()
 
 
-def test_unknownLanguage():
-    print(f"test_unknownLanguage", file=sys.stderr)
-    with pytest.raises(aymara.lima.LimaInternalError):
-        aymara.lima.Lima(langs="this_is_not_a_language_name")
-
-
-def test_lang_no_prefix():
-    print(f"test_lang_no_prefix", file=sys.stderr)
-    with pytest.raises(aymara.lima.LimaInternalError):
-        aymara.lima.Lima(langs="cym")
-
 # TODO test with several ud languages
 
 
@@ -362,28 +351,41 @@ def test_get_system_paths():
 
 
 def test_add_pipeline_unit():
-    lima = aymara.lima.Lima("ud-eng", pipes="empty")
+    new_lima = aymara.lima.Lima("ud-eng", pipes="empty")
     group = {
         "name": "cpptftokenizer",
         "class": "CppUppsalaTensorFlowTokenizer",
         "model_prefix": "tokenizer-eng"
     }
-    assert lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
+    assert new_lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
     group = {
         "name": "tfmorphosyntax",
         "class": "TensorFlowMorphoSyntax",
         "model_prefix": "morphosyntax-eng",
         "embeddings": "fasttext-eng.bin"
     }
-    assert lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
+    assert new_lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
     group = {
         "name": "conllDumper",
         "class": "ConllDumper",
         "handler": "simpleStreamHandler",
         "fakeDependencyGraph": "false"
     }
-    assert lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
+    assert new_lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
 
-    doc = lima(text)
+    doc = new_lima(text)
     assert doc is not None and type(doc) == aymara.lima.Doc
     assert doc[0].text == "Give"
+
+
+def test_unknownLanguage():
+    print(f"test_unknownLanguage", file=sys.stderr)
+    with pytest.raises(aymara.lima.LimaInternalError):
+        aymara.lima.Lima(langs="this_is_not_a_language_name")
+
+
+def test_lang_no_prefix():
+    print(f"test_lang_no_prefix", file=sys.stderr)
+    with pytest.raises(aymara.lima.LimaInternalError):
+        aymara.lima.Lima(langs="cym")
+
