@@ -938,8 +938,11 @@ class Lima:
         :rtype: bool
 
         """
-        return self.analyzer.addPipelineUnit(pipeline, language, group)
-
+        result = self.analyzer.addPipelineUnit(pipeline, language, group)
+        if self.analyzer.error():
+            print(f"add_pipeline_unit raising LimaInternalError {self.analyzer.errorMessage()}", file=sys.stderr)
+            raise LimaInternalError(self.analyzer.errorMessage())
+        return result
 
     @staticmethod
     def export_system_conf(dir: pathlib.Path = None, lang: str = None) -> bool:

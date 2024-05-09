@@ -776,39 +776,61 @@ bool LimaAnalyzer::addPipelineUnit(const std::string& pipeline,
                      const std::string& media,
                      const std::string& jsonGroupString)
 {
-  if (! m_d->addPipelineUnit(pipeline, media, jsonGroupString))
-  {
-    m_d->error = true;
-    m_d->errorMessage = "addPipelineUnit: failed";
-    return false;
-  }
-  return true;
+  return m_d->addPipelineUnit(pipeline, media, jsonGroupString);
 }
 
 bool LimaAnalyzerPrivate::addPipelineUnit(const std::string& pipeline,
                                           const std::string& media,
                                           const std::string& jsonGroupString)
 {
-  auto jsonGroup = QJsonDocument::fromJson(QByteArray::fromStdString(jsonGroupString)).object();
-  auto mediaid = Lima::Common::MediaticData::MediaticData::single().getMediaId(media);
-  auto pipe = Lima::MediaProcessors::changeable().getPipelineForId(mediaid, pipeline);
-  auto managers = Lima::MediaProcessors::single().managers();
-    // QString jsonGroupString =
-    //     "{ \"name\":\"cpptftokenizer\", "
-    //     "  \"class\":\"CppUppsalaTensorFlowTokenizer\", "
-    //     "  \"model_prefix\": \"tokenizer-eng\" }";
+  try
+  {
+    QJsonParseError jsonError;
+    auto jsonDoc = QJsonDocument::fromJson(QByteArray::fromStdString(
+      jsonGroupString), &jsonError);
+    if (jsonDoc.isNull())
+    {
+      error = true;
+      errorMessage = std::string("Failed to load json " + jsonGroupString + ":\n" + jsonError.errorString().toStdString());
+      return false;
+    }
+    auto jsonGroup = jsonDoc.object();
+    auto mediaid = Lima::Common::MediaticData::MediaticData::single().getMediaId(
+      media);
+    auto pipe = Lima::MediaProcessors::changeable().getPipelineForId(mediaid,
+                                                                    pipeline);
+    auto managers = Lima::MediaProcessors::single().managers();
+      // QString jsonGroupString =
+      //     "{ \"name\":\"cpptftokenizer\", "
+      //     "  \"class\":\"CppUppsalaTensorFlowTokenizer\", "
+      //     "  \"model_prefix\": \"tokenizer-eng\" }";
 
-  GroupConfigurationStructure unitConfig(jsonGroup);
+    GroupConfigurationStructure unitConfig(jsonGroup);
 
-  // managers (Manager*) used in init of ProcessUnits are stored in
-  // m_pipelineManagers of MediaProcessors
-  auto pu = MediaProcessUnit::Factory::getFactory(
-    jsonGroup["class"].toString().toStdString())->create(
-      unitConfig,
-      managers[mediaid]);
-  pipe->push_back(pu);
+    // managers (Manager*) used in init of ProcessUnits are stored in
+    // m_pipelineManagers of MediaProcessors
+    auto pu = MediaProcessUnit::Factory::getFactory(
+      jsonGroup["class"].toString().toStdString())->create(
+        unitConfig,
+        managers[mediaid]);
+    pipe->push_back(pu);
 
-  return true;
+    return true;
+  }
+  catch (const Lima::LimaException& e)
+  {
+    std::cerr << "!!!!!!!!!!! Lima internal error: " << e.what() << std::endl;
+    error = true;
+    errorMessage = std::string("Lima internal error:") + e.what();
+    return false;
+  }
+  catch (const std::runtime_error& e)
+  {
+    std::cerr << "Lima internal error: " << e.what() << std::endl;
+    error = true;
+    errorMessage = std::string("Lima internal error:") + e.what();
+    return false;
+  }
 }
 
 std::shared_ptr< std::ostringstream > openHandlerOutputString(
