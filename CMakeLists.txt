@@ -181,10 +181,6 @@ target_link_libraries(${sample_library}
     lima-lp-se-person
     lima-lp-specificentities
     lima-lp-syntacticanalysis
-    lima-lp-tensorflowlemmatizer
-    lima-lp-tensorflowmorphosyntax
-    lima-lp-tensorflowspecificentities
-    lima-lp-tensorflowtokenizer
     lima-lp-textsegmentation
     lima-lp-tgv
     lima-lp-wordsensetagger
@@ -192,8 +188,6 @@ target_link_libraries(${sample_library}
     lima-xp-core
     lima-xp-documentsreader
     lima-xp-qtsgmlentities
-    tensorflow-for-lima
-
     Qt::Core
 )
 set_property(TARGET ${sample_library} PROPERTY PREFIX "")
@@ -303,10 +297,6 @@ target_link_libraries(${bindings_library} PRIVATE
     lima-lp-semanticanalysis
     lima-lp-specificentities
     lima-lp-syntacticanalysis
-    lima-lp-tensorflowlemmatizer
-    lima-lp-tensorflowmorphosyntax
-    lima-lp-tensorflowspecificentities
-    lima-lp-tensorflowtokenizer
     lima-lp-textsegmentation
     lima-lp-tgv
     lima-lp-wordsensetagger
@@ -315,7 +305,6 @@ target_link_libraries(${bindings_library} PRIVATE
     lima-xp-documentsreader
     lima-xp-qtsgmlentities
     svmtool
-    tensorflow-for-lima
     torch
     torch_cpu
     xcb

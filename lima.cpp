@@ -800,10 +800,6 @@ bool LimaAnalyzerPrivate::addPipelineUnit(const std::string& pipeline,
     auto pipe = Lima::MediaProcessors::changeable().getPipelineForId(mediaid,
                                                                     pipeline);
     auto managers = Lima::MediaProcessors::single().managers();
-      // QString jsonGroupString =
-      //     "{ \"name\":\"cpptftokenizer\", "
-      //     "  \"class\":\"CppUppsalaTensorFlowTokenizer\", "
-      //     "  \"model_prefix\": \"tokenizer-eng\" }";
 
     GroupConfigurationStructure unitConfig(jsonGroup);
 

@@ -59,7 +59,7 @@ WORKDIR /lima-python/wheelhouse
 RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
 RUN rm aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_24_x86_64.whl
 WORKDIR /lima-python/wheelhouse/aymaralima
-RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so  libtensorflow-for-lima.so
+RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so
 WORKDIR /lima-python/wheelhouse
 RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_24_x86_64.whl -r *
 WORKDIR /lima-python
