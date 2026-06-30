@@ -20,6 +20,26 @@ RUN yum update -y --nogpgcheck  && yum install -y --nogpgcheck --allowerasing --
     python3-sphinx.noarch && yum -y clean all  && rm -rf /var/cache
 RUN ln -s /usr/lib64/libclang.so.13 /usr/lib64/libclang.so.1
 
+# shiboken (from the PySide6 6.5 wheels) was built with gcc-toolset-10 and has
+# that compiler path baked into its host-compiler detection, which it runs to
+# discover the builtin include dir holding stddef.h. The manylinux_2_28 base
+# ships a different gcc-toolset, so expose a working compiler at the expected
+# location; otherwise the shiboken generator fails with "stddef.h file not found".
+RUN if [ ! -x /opt/rh/gcc-toolset-10/root/usr/bin/c++ ]; then \
+        mkdir -p /opt/rh/gcc-toolset-10/root/usr/bin && \
+        ln -sf "$(command -v gcc)" /opt/rh/gcc-toolset-10/root/usr/bin/gcc && \
+        ln -sf "$(command -v gcc)" /opt/rh/gcc-toolset-10/root/usr/bin/cc && \
+        ln -sf "$(command -v g++)" /opt/rh/gcc-toolset-10/root/usr/bin/g++ && \
+        ln -sf "$(command -v g++)" /opt/rh/gcc-toolset-10/root/usr/bin/c++; \
+    fi
+
+# Make libclang's builtin headers (stddef.h, ...) discoverable by shiboken under
+# /usr/lib64/clang/<ver>/include, in case the resource dir is versioned/elsewhere.
+RUN inc=$(ls -d /usr/lib64/clang/*/include /usr/lib/clang/*/include 2>/dev/null | head -n1) && \
+    if [ -n "$inc" ] && [ ! -e /usr/lib64/clang/13/include ]; then \
+        mkdir -p /usr/lib64/clang/13 && ln -sf "$inc" /usr/lib64/clang/13/include; \
+    fi || true
+
 RUN python${PYTHON_VERSION} -m pip install --upgrade pip
 RUN python${PYTHON_VERSION} -m pip install scikit-build pyconll pydantic requests
 RUN yum remove -y ninja-build
