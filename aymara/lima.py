@@ -898,18 +898,20 @@ class Lima:
         Example::
 
                     import aymara.lima
-                    nlp = aymara.lima.Lima("ud-eng", "empty")
+                    nlp = aymara.lima.Lima(
+                        "ud-eng", "empty",
+                        meta={"udlang": "eng-UD_English-EWT"})
                     group = {
-                        "name": "cpptftokenizer",
-                        "class": "CppUppsalaTensorFlowTokenizer",
-                        "model_prefix": "tokenizer-eng"
+                        "name": "rnntokenizer",
+                        "class": "RnnTokenizer",
+                        "model_prefix": "tokenizer-$udlang"
                     }
                     nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
                     group = {
-                        "name": "tfmorphosyntax",
-                        "class": "TensorFlowMorphoSyntax",
-                        "model_prefix": "morphosyntax-eng",
-                        "embeddings": "fasttext-eng.bin"
+                        "name": "rnntokensanalyzer",
+                        "class": "RnnTokensAnalyzer",
+                        "tagger_model_prefix": "tagger-$udlang",
+                        "lemmatizer_model_prefix": "lemmatizer-$udlang"
                     }
                     nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
                     group = {

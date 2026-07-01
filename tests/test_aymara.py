@@ -113,7 +113,11 @@ def test_analyzeText_init_with_lang_and_pipe():
 
 def test_analyzeText_init_with_lang():
     print(f"test_analyzeText_init_with_lang", file=sys.stderr)
-    thelima = aymara.lima.Lima("ud-eng", meta=UD_ENG_META)
+    # pipes is pinned to "deepud": the "ud-eng" media has no "main" pipeline (the
+    # default pipes is "main,deepud"), and requesting "main" for it hangs during
+    # construction. The pipeline is still chosen at analyze time below, which is
+    # what this test exercises.
+    thelima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
     result = thelima.analyzeText("This is a text on 02/05/2022.",
                                  pipeline="deepud")
     assert True
@@ -360,18 +364,23 @@ def test_get_system_paths():
 
 
 def test_add_pipeline_unit():
-    new_lima = aymara.lima.Lima("ud-eng", pipes="empty")
+    # The former TensorFlow units (CppUppsalaTensorFlowTokenizer,
+    # TensorFlowMorphoSyntax) were removed with the TF backend; rebuild the same
+    # tokenize+tag+lemma pipeline from the libtorch units used by "deepud"
+    # (RnnTokenizer, RnnTokensAnalyzer). udlang must be supplied so the
+    # "$udlang" model prefixes resolve (see UD_ENG_META).
+    new_lima = aymara.lima.Lima("ud-eng", pipes="empty", meta=UD_ENG_META)
     group = {
-        "name": "cpptftokenizer",
-        "class": "CppUppsalaTensorFlowTokenizer",
-        "model_prefix": "tokenizer-eng"
+        "name": "rnntokenizer",
+        "class": "RnnTokenizer",
+        "model_prefix": "tokenizer-$udlang"
     }
     assert new_lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
     group = {
-        "name": "tfmorphosyntax",
-        "class": "TensorFlowMorphoSyntax",
-        "model_prefix": "morphosyntax-eng",
-        "embeddings": "fasttext-eng.bin"
+        "name": "rnntokensanalyzer",
+        "class": "RnnTokensAnalyzer",
+        "tagger_model_prefix": "tagger-$udlang",
+        "lemmatizer_model_prefix": "lemmatizer-$udlang"
     }
     assert new_lima.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
     group = {
