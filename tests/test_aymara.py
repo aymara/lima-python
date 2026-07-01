@@ -20,6 +20,14 @@ def test__get_data_dir():
 
 text = "Give it back! He pleaded."
 
+# A registered UD media such as "ud-eng" does not auto-select a treebank, so the
+# deeplima models (installed by `deeplima_models -i eng`) must be selected
+# explicitly through the "udlang" metadata (the <code>-<corpus> stem of the
+# installed model, e.g. tokenizer-eng-UD_English-EWT.pt). This value must be
+# provided at construction time because the pipeline (and thus the model path)
+# is instantiated then.
+UD_ENG_META = {"udlang": "eng-UD_English-EWT"}
+
 
 def test_several_instances():
     # Test with several analyzer instantiated and called alternatively
@@ -92,25 +100,26 @@ def test_functor_pipeline_none_lang_eng():
 def test_functor_not_text():
     print(f"test_functor_not_text", file=sys.stderr)
     with pytest.raises(TypeError):
-        result = aymara.lima.Lima("ud-eng", pipes="deepud")(dict())
+        result = aymara.lima.Lima("ud-eng", pipes="deepud",
+                                  meta=UD_ENG_META)(dict())
 
 
 def test_analyzeText_init_with_lang_and_pipe():
     print(f"test_analyzeText_init_with_lang_and_pipe", file=sys.stderr)
-    thelima = aymara.lima.Lima("ud-eng", pipes="deepud")
+    thelima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
     result = thelima.analyzeText("This is a text on 02/05/2022.")
     assert True
 
 
 def test_analyzeText_init_with_lang():
     print(f"test_analyzeText_init_with_lang", file=sys.stderr)
-    thelima = aymara.lima.Lima("ud-eng")
+    thelima = aymara.lima.Lima("ud-eng", meta=UD_ENG_META)
     result = thelima.analyzeText("This is a text on 02/05/2022.",
                                  pipeline="deepud")
     assert True
 
 
-lima = aymara.lima.Lima("ud-eng", pipes="deepud")
+lima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
 
 
 def test_analyzeText_pipeline_not_avail():
