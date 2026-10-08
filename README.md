@@ -8,7 +8,7 @@ LIMA is a multilingual linguistic analyzer developed by the [CEA LIST](http://ww
 
 LIMA has [state of the art performance for more than 60 languages](https://github.com/aymara/lima-models/blob/master/eval.md) thanks to its recent deep learning (neural network) based modules. But it includes also a very powerful rules based mechanism called ModEx allowing to quickly extract information (entities, relations, events…) in new domains where annotated data does not exist.
 
-For more information, detailed installation instructions and documentation, please refer to [the LIMA Wiki](https://github.com/aymara/lima/wiki).
+For more information, detailed installation instructions and documentation, please refer to [the LIMA documentation](https://aymara.github.io/lima/).
 
 
 ## Installation
@@ -22,7 +22,7 @@ Under Linux with python >= 3.7 and < 4, and **upgraded pip**:
 # Upgrading pip is fundamental in order to obtain the correct LIMA version
 $ pip install --upgrade pip
 $ pip install aymara==0.5.0b6
-$ lima_models.py -l eng
+$ lima_models -i eng
 # Either simply use the lima command to produce an analysis of a file in CoNLLU format:
 $ lima <path to the file to analyse>
 # Or use the python API:
@@ -40,7 +40,7 @@ hello
 ```
 
 To use the deeplima pipelines (improved but experimental), you will have to
-install with both `lima_models` and `deeplima_models`. Check the [user manual](https://github.com/aymara/lima/wiki/LIMA-Python-User-Manual) for more information about using these models.
+install with both `lima_models` and `deeplima_models`. Check the [language models documentation](https://aymara.github.io/lima/usage/models/) for more information about using these models.
 
 ## Running
 
@@ -75,11 +75,12 @@ You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline
 
 ## Python bindings API documentation
 
-The Lima python API documentation is [on readthedocs](https://lima-python.readthedocs.io/en/port-to-qt6/).
+The Lima python API documentation is [part of the LIMA documentation](https://aymara.github.io/lima/reference/python-api/),
+along with a [user guide for Python](https://aymara.github.io/lima/usage/python/).
 
 ## Configuration and customization
 
-To configure finely LIMA for your needs, follow the same instructions as for the native C++ tools, available here: [[https://github.com/aymara/lima/wiki/LIMA-User-Manual]].
+To configure finely LIMA for your needs, follow the same instructions as for the native C++ tools, described in [Configuring LIMA](https://aymara.github.io/lima/usage/configuration/).
 
 
 # PySide LIMA python bindings build and deploy instructions

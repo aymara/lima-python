@@ -959,7 +959,7 @@ class Lima:
         the LIMA_CONF environment variable (or define it if it does not exist).
 
         Please refer to the
-        `LIMA documentation <https://github.com/aymara/lima/wiki/LIMA-User-Manual#configuring-lima>`_
+        `LIMA documentation <https://aymara.github.io/lima/usage/configuration/>`_
         for how to configure the analysis:
 
         Example::
