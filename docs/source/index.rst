@@ -69,5 +69,5 @@ LIMA is a multilingual linguistic analyzer developed by the `CEA LIST <http://ww
 
 LIMA has `state of the art performance for more than 60 languages <https://github.com/aymara/lima-models/blob/master/eval.md>`_ thanks to its recent deep learning (neural network) based modules. But it includes also a very powerful rules based mechanism called ModEx allowing to quickly extract information (entities, relations, events…) in new domains where annotated data does not exist.
 
-For more information, installation instructions and documentation, please refer to `the LIMA Wiki <https://github.com/aymara/lima/wiki>`_.
+For more information, installation instructions and documentation, please refer to `the LIMA documentation <https://aymara.github.io/lima/>`_.
 

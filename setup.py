@@ -51,7 +51,7 @@ setup(
     url="https://github.com/aymara/lima",
     project_urls={
         "Bug Tracker": "https://github.com/aymara/lima/issues",
-        "Wiki": "https://github.com/aymara/lima/wiki"
+        "Documentation": "https://aymara.github.io/lima/"
     },
     classifiers=[
         "Programming Language :: Python :: 3",
