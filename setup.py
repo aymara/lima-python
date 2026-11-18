@@ -67,10 +67,8 @@ setup(
         'pip>=22.0',
         'pyconll',
         'pydantic',
-        'requests',
         f'shiboken6=={QT_FULL_VERSION}',
         'tqdm',
-        'unix_ar',
         ],
     include_package_data=True,
 

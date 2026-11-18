@@ -29,9 +29,9 @@ def test__find_lang_code():
 
 
 def test_install_model():
-    """Test installation of models for a language. We use Wolof because it is currently
-    the smallest in file size."""
-    assert aymara.lima_models.install_language("pcm", force=True)
+    """Test installation of models for a language. We use Amharic because it is
+    currently the smallest complete model (about 24 MB with its embeddings)."""
+    assert aymara.lima_models.install_language("amh", force=True)
 
 
 # @pytest.mark.depends(on=['test_install_model'])
@@ -44,10 +44,10 @@ def test_installed_model():
     #               "Gànnaar (Gànnaar Wolof), ak Senegaal (Senegaal Wolof).",
     #               pipeline="deepud")
 
-    lima = aymara.lima.Lima("ud-pcm", pipes="deepud")
-    result = lima("Rivers and soakaways don overflow, roads don become "
-                  "waterways and homes don destroy.",
-                  pipeline="deepud")
+    # No udlang: the default model installed for the language is used
+    assert aymara.lima_models.default_udlang("amh") == "amh-UD_Amharic-ATT"
+    lima = aymara.lima.Lima("ud-amh", pipes="deepud")
+    result = lima("ኢትዮጵያ በአፍሪካ ቀንድ የምትገኝ አገር ናት።", pipeline="deepud")
 
     print(repr(result))
     assert len(result) > 0
@@ -58,7 +58,7 @@ def test_install_already_installed_model():
     # Test 2 things: trying to reinstall a model without forcing and use the
     # complete language name instead of the trigram code
     # TODO Understand why the error is not the one expected
-    assert aymara.lima_models.install_language("naija", force=False) is False
+    assert aymara.lima_models.install_language("amharic", force=False) is False
 
 
 @pytest.mark.depends(on=['test_install_model'])
@@ -72,7 +72,7 @@ def test_install_inexistent_language():
 def test_list_installed_models(capsys):
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
-    assert "(pcm)" in captured.out
+    assert "(amh)" in captured.out
 
 
 @pytest.mark.depends(on=['test_installed_model', 'test_list_installed_models',
@@ -87,10 +87,10 @@ def test_remove_model(capsys):
     # # set back initial permissions…
     # os.chmod(target, mask)
     # # … such that we can (hopfully) remove the language
-    assert aymara.lima_models.remove_language("pcm", force=True)
+    assert aymara.lima_models.remove_language("amh", force=True)
     aymara.lima_models.list_installed_models()
     captured = capsys.readouterr()
-    assert "(wol)" not in captured.out
+    assert "(amh)" not in captured.out
 
 
 def test_remove_model_say_no(monkeypatch):
