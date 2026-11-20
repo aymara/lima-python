@@ -735,6 +735,17 @@ class Lima:
         """
         # print(f"Lima __init__: calling LimaAnalyzer constructor {langs}, {pipes}",
         #       file=sys.stderr)
+        # A "ud-<code>" language without an explicit udlang uses the default
+        # model installed for it by lima_models (its model paths are set here,
+        # when the pipeline is built)
+        if "udlang" not in meta:
+            from aymara.lima_models import default_udlang
+            for lang in langs.split(","):
+                udlang = (default_udlang(lang[3:], user_resources_path or None)
+                          if lang.startswith("ud-") else None)
+                if udlang:
+                    meta = {**meta, "udlang": udlang}
+                    break
         self.analyzer = aymaralima.cpplima.LimaAnalyzer(
             langs,
             pipes,

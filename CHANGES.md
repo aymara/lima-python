@@ -1,3 +1,19 @@
+## Unreleased
+
+* LIMA built from the current code: libtorch-based neural pipeline, multiword
+  tokens, multithreaded dependency parsing, lemmatizer, parser and tagger fixes
+* New models release (aymaralima/deeplima on Hugging Face, tag v0.3.0): 2026
+  campaign models, one default model per language, more accurate variants and
+  treebank-specific models, licenses and scores in models.json
+* `lima_models` rewritten: installs from the models.json manifest (checksums,
+  shared embeddings, per-language defaults); `deeplima_models` is now a synonym
+  and the former TensorFlow models are no longer supported
+* `Lima("ud-<code>")` uses the default model installed for the language when
+  no udlang is given
+* Correct token offsets (spans cut words after a space or a non-ASCII
+  character) and the missing dependency trees of the ud-eng pipeline (LIMA)
+* Dependencies: requests and unix_ar are no longer needed
+
 ## 0.5.0b6 - 20240430
 
 * Update to latest Lima

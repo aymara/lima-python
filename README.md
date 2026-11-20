@@ -6,7 +6,7 @@
 
 LIMA is a multilingual linguistic analyzer developed by the [CEA LIST](http://www-list.cea.fr/en), [LASTI laboratory](http://www.kalisteo.fr/en/index.htm) (French acronym for Text and Image Semantic Analysis Laboratory). LIMA is Free Software, available under the MIT license.
 
-LIMA has [state of the art performance for more than 60 languages](https://github.com/aymara/lima-models/blob/master/eval.md) thanks to its recent deep learning (neural network) based modules. But it includes also a very powerful rules based mechanism called ModEx allowing to quickly extract information (entities, relations, events…) in new domains where annotated data does not exist.
+LIMA has [state of the art performance for more than 60 languages](https://huggingface.co/aymaralima/deeplima) thanks to its recent deep learning (neural network) based modules. But it includes also a very powerful rules based mechanism called ModEx allowing to quickly extract information (entities, relations, events…) in new domains where annotated data does not exist.
 
 For more information, detailed installation instructions and documentation, please refer to [the LIMA documentation](https://aymara.github.io/lima/).
 
@@ -39,8 +39,9 @@ hello
 4       !       !       PUNCT   _       _               1       punct   _       Pos=12|Len=1
 ```
 
-To use the deeplima pipelines (improved but experimental), you will have to
-install with both `lima_models` and `deeplima_models`. Check the [language models documentation](https://aymara.github.io/lima/usage/models/) for more information about using these models.
+`lima_models -i eng` installs the default English model, which
+`aymara.lima.Lima("ud-eng")` then uses (`lima_models -a` lists the languages
+and models available). Check the [language models documentation](https://aymara.github.io/lima/usage/models/) for more information about using these models.
 
 ## Running
 
