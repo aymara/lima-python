@@ -234,7 +234,8 @@ def test_token_properties():
     assert token.pos == "VERB"
     assert token.head == 0
     assert token.dep == "root"
-    assert token.features == {'Mood': 'Ind', 'Tense': 'Past', 'VerbForm': 'Fin'}
+    assert token.features == {'Mood': 'Ind', 'Number': 'Sing', 'Person': '3', 'Tense': 'Past',
+                              'VerbForm': 'Fin'}
     assert token.t_status == 't_small'
     assert token.is_alpha is True
     assert token.is_digit is False
