@@ -35,7 +35,7 @@ Upgrading pip is fundamental in order to obtain the correct LIMA version
 .. code-block:: bash
 
    $ pip install --upgrade pip
-   $ pip install aymara==0.5.0b6
+   $ pip install aymara==0.5.0
    $ lima_models -l eng
 
 Either simply use the lima command to produce an analysis of a file in CoNLLU format:
