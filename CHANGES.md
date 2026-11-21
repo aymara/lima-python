@@ -1,4 +1,4 @@
-## Unreleased
+## 0.5.0 - 20261121
 
 * LIMA built from the current code: libtorch-based neural pipeline, multiword
   tokens, multithreaded dependency parsing, lemmatizer, parser and tagger fixes
@@ -12,7 +12,12 @@
   no udlang is given
 * Correct token offsets (spans cut words after a space or a non-ASCII
   character) and the missing dependency trees of the ud-eng pipeline (LIMA)
+* All the languages of the models release have a `ud-<code>` language, `ud-amh`,
+  `ud-ben`, `ud-ekk`, `ud-isl` and `ud-nor` included (LIMA)
 * Dependencies: requests and unix_ar are no longer needed
+* Releases: a version tag publishes the tested wheel to PyPI
+* Known issue: each `Lima` analyzer with a deep pipeline uses about 3 GB, not
+  released when it is deleted: create one per process and reuse it
 
 ## 0.5.0b6 - 20240430
 
