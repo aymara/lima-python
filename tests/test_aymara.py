@@ -97,17 +97,22 @@ def test_functor_pipeline_none_lang_eng():
         thelima("This is a text on 02/05/2022.", lang="eng", pipeline=None)
 
 
+# One deepud analyzer for all the tests below: each new instance loads the
+# English models and embeddings again (about 3.5 GB) and its memory is not
+# released, which exhausted the 16 GB of the CI runners (exit code 137)
+lima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
+
+
 def test_functor_not_text():
     print(f"test_functor_not_text", file=sys.stderr)
     with pytest.raises(TypeError):
-        result = aymara.lima.Lima("ud-eng", pipes="deepud",
-                                  meta=UD_ENG_META)(dict())
+        result = lima(dict())
 
 
 def test_analyzeText_init_with_lang_and_pipe():
     print(f"test_analyzeText_init_with_lang_and_pipe", file=sys.stderr)
-    thelima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
-    result = thelima.analyzeText("This is a text on 02/05/2022.")
+    # lima was initialized with a language and a pipeline
+    result = lima.analyzeText("This is a text on 02/05/2022.")
     assert True
 
 
@@ -117,13 +122,9 @@ def test_analyzeText_init_with_lang():
     # default pipes is "main,deepud"), and requesting "main" for it hangs during
     # construction. The pipeline is still chosen at analyze time below, which is
     # what this test exercises.
-    thelima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
-    result = thelima.analyzeText("This is a text on 02/05/2022.",
-                                 pipeline="deepud")
+    result = lima.analyzeText("This is a text on 02/05/2022.",
+                              pipeline="deepud")
     assert True
-
-
-lima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
 
 
 def test_analyzeText_pipeline_not_avail():
