@@ -33,9 +33,9 @@ Classes:
 import argparse
 import os
 import pathlib
+import shutil
 import sys
 
-from distutils.dir_util import copy_tree
 from pydantic import (parse_obj_as, ValidationError)
 from tqdm import tqdm
 from typing import (Dict, Tuple, Union)
@@ -65,6 +65,21 @@ def _get_data_dir(appname: str):
     else:
         ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
     return ans.joinpath(appname)
+
+
+def _copy_tree(src, dst) -> None:
+    """Copies the directory src into dst, which may exist, merging them, as
+    distutils.dir_util.copy_tree did (distutils is gone since Python 3.12;
+    shutil.copytree's dirs_exist_ok needs Python 3.8)."""
+    src, dst = pathlib.Path(src), pathlib.Path(dst)
+    if sys.version_info >= (3, 8):
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        return
+    for root, _dirs, files in os.walk(src):  # pragma: no cover
+        target = dst / pathlib.Path(root).relative_to(src)
+        target.mkdir(parents=True, exist_ok=True)
+        for f in files:
+            shutil.copy2(os.path.join(root, f), target / f)
 
 
 class Token:
@@ -997,12 +1012,12 @@ class Lima:
         fromDirectory = pathlib.Path(list(aymaralima.__path__)[-1]) / "config"
         toDirectory = dir / "config"
         print(f"Copying {str(fromDirectory)} to {str(toDirectory)}")
-        copy_tree(str(fromDirectory), str(toDirectory))
+        _copy_tree(fromDirectory, toDirectory)
 
         fromDirectory = pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"
         toDirectory = dir / "resources"
         print(f"Copying {str(fromDirectory)} to {str(toDirectory)}")
-        copy_tree(str(fromDirectory), str(toDirectory))
+        _copy_tree(fromDirectory, toDirectory)
         return True
 
     @staticmethod
