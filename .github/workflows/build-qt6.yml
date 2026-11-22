@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - master
-    # A version tag (v0.5.0) also publishes the tested wheel to PyPI (job pypi)
+    # A version tag (v0.5.0) also publishes the tested wheels to PyPI (job pypi)
     tags:
       - 'v*'
   repository_dispatch:
@@ -16,32 +16,62 @@ on:
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
-  MANYLINUX_TAG: "2022-10-25-fbea779"
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-  # The Python the abi3 wheel is built with, the oldest Qt 6.9.3's shiboken6
-  # supports (3.9-3.13); the tests run on the oldest and the newest
-  PYTHON_VERSION: "3.9"
-  PYTHON_SHORT_VERSION: "cp39-cp39"
-  PYTHON_WHEEL_VERSION: "cp39-abi3"
-  PYTHON_FULL_VERSION: "3.9.15"
   PYSIDE_VERSION: "6"
   QT_VERSION_MAJOR: "6"
-  QT_VERSION_MINOR: "9"
-  QT_VERSION_PATCH: "3"
-  QT_VERSION: "6.9"
-  QT_FULL_VERSION: "6.9.3"
-  GCC_VERSION: "11.2.1"
   LLVM_VERSION: "13.0.1"
   # LIMA_PYTHON_VERSION: read by each job from aymara/version.py, the only
   # source of the version (step "Version")
+  # The two wheels, their Qt and Python, are in the matrices of the jobs:
+  # - manylinux_2_28 + Qt 6.9.3, built with Python 3.9: Python 3.9-3.13 on
+  #   glibc >= 2.28
+  # - manylinux_2_34 + Qt 6.12.0, built with Python 3.10: Python 3.10-3.15 on
+  #   glibc >= 2.34 (Qt >= 6.10's PySide6 wheels are manylinux_2_34 only)
+  # pip chooses: on glibc >= 2.34 and Python >= 3.10, the second (cp310-abi3
+  # ranks before cp39-abi3), otherwise the first. They are built on the images
+  # of aymara/lima's build-qt6.yml (aymara/lima-<manylinux>-qt<x.y>-python<v>).
 
 
 jobs:
 
   lima-python:
-    name: "Build the lima-python image with Qt ${QT_VERSION} for python ${PYTHON_VERSION}"
+    name: "Build the ${{ matrix.manylinux }} wheel (Qt 6.${{ matrix.qt_minor }}, Python ${{ matrix.python }})"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - manylinux: manylinux_2_28
+            manylinux_tag: "2022-10-25-fbea779"
+            python: "3.9"
+            python_short: "cp39-cp39"
+            python_wheel: "cp39-abi3"
+            python_full: "3.9.15"
+            qt_minor: "9"
+            qt_patch: "3"
+            gcc_version: "11.2.1"
+          - manylinux: manylinux_2_34
+            manylinux_tag: "2026.11.14-1"
+            python: "3.10"
+            python_short: "cp310-cp310"
+            python_wheel: "cp310-abi3"
+            python_full: "3.10.22"
+            qt_minor: "12"
+            qt_patch: "0"
+            gcc_version: "14.2.1"
+    env:
+      MANYLINUX: ${{ matrix.manylinux }}
+      MANYLINUX_TAG: ${{ matrix.manylinux_tag }}
+      PYTHON_VERSION: ${{ matrix.python }}
+      PYTHON_SHORT_VERSION: ${{ matrix.python_short }}
+      PYTHON_WHEEL_VERSION: ${{ matrix.python_wheel }}
+      PYTHON_FULL_VERSION: ${{ matrix.python_full }}
+      QT_VERSION_MINOR: ${{ matrix.qt_minor }}
+      QT_VERSION_PATCH: ${{ matrix.qt_patch }}
+      QT_VERSION: "6.${{ matrix.qt_minor }}"
+      QT_FULL_VERSION: "6.${{ matrix.qt_minor }}.${{ matrix.qt_patch }}"
+      GCC_VERSION: ${{ matrix.gcc_version }}
     steps:
       -
         name: Login to DockerHub
@@ -71,7 +101,7 @@ jobs:
           swap-storage: true
 
       - name: "Build image"
-        run: docker build -f Dockerfile-manylinux_2_28 --build-arg MANYLINUX_TAG="${MANYLINUX_TAG}" --build-arg PYSIDE_VERSION="${PYSIDE_VERSION}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_SHORT_VERSION=${PYTHON_SHORT_VERSION} --build-arg PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION} --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg BRANCH="${{ github.ref_name }}" --build-arg QT_FULL_VERSION="${QT_FULL_VERSION}" --build-arg QT_VERSION_MAJOR="${QT_VERSION_MAJOR}" --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" --build-arg QT_VERSION="${QT_VERSION}" -t aymara/lima-python${PYTHON_VERSION}:latest .
+        run: docker build -f Dockerfile-manylinux_2_28 --build-arg MANYLINUX="${MANYLINUX}" --build-arg MANYLINUX_TAG="${MANYLINUX_TAG}" --build-arg PYSIDE_VERSION="${PYSIDE_VERSION}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_SHORT_VERSION=${PYTHON_SHORT_VERSION} --build-arg PYTHON_FULL_VERSION=${PYTHON_FULL_VERSION} --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg BRANCH="${{ github.ref_name }}" --build-arg QT_FULL_VERSION="${QT_FULL_VERSION}" --build-arg QT_VERSION_MAJOR="${QT_VERSION_MAJOR}" --build-arg QT_VERSION_MINOR="${QT_VERSION_MINOR}" --build-arg QT_VERSION_PATCH="${QT_VERSION_PATCH}" --build-arg QT_VERSION="${QT_VERSION}" -t aymara/lima-python${PYTHON_VERSION}:latest .
 
       - name: "Push image"
         run: docker push aymara/lima-python${PYTHON_VERSION}:latest
@@ -79,34 +109,37 @@ jobs:
       - uses: shrink/actions-docker-extract@v2
         id: extract
         with:
-          image: aymara/lima-python${PYTHON_VERSION}:latest
-          path: /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+          image: aymara/lima-python${{ env.PYTHON_VERSION }}:latest
+          path: /lima-python/wheelhouse/aymara-${{ env.LIMA_PYTHON_VERSION }}-${{ env.PYTHON_WHEEL_VERSION }}-${{ env.MANYLINUX }}_x86_64.whl
           destination: dist
-
-      # - name: move wheel
-      #   run: mv .extracted-*/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl ${{ github.workspace }}/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
 
       - name: upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
+          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{ env.PYTHON_WHEEL_VERSION }}-${{ env.MANYLINUX }}_x86_64.whl
           path: dist
           if-no-files-found: error
           overwrite: true
           compression-level: 0 # wheels are already zip files
 
   lima-python-tests:
-    name: "Test the wheel with Qt ${QT_VERSION} on Python ${{ matrix.test_python }}"
+    name: "Test the ${{ matrix.manylinux }} wheel on Python ${{ matrix.test_python }}"
     runs-on: ubuntu-latest
     needs: lima-python
     strategy:
       fail-fast: false
       matrix:
-        # The oldest and the newest Python shiboken6 ${QT_FULL_VERSION} supports:
+        # Each wheel on the oldest and the newest Python its shiboken6 supports:
         # the abi3 wheel built with the first must work with all of them
-        test_python: ["3.9", "3.13"]
-    permissions:
-      contents: write
+        include:
+          - {manylinux: manylinux_2_28, python: "3.9", python_wheel: "cp39-abi3", test_python: "3.9"}
+          - {manylinux: manylinux_2_28, python: "3.9", python_wheel: "cp39-abi3", test_python: "3.13"}
+          - {manylinux: manylinux_2_34, python: "3.10", python_wheel: "cp310-abi3", test_python: "3.10"}
+          - {manylinux: manylinux_2_34, python: "3.10", python_wheel: "cp310-abi3", test_python: "3.15"}
+    env:
+      MANYLINUX: ${{ matrix.manylinux }}
+      PYTHON_VERSION: ${{ matrix.python }}
+      PYTHON_WHEEL_VERSION: ${{ matrix.python_wheel }}
 
     steps:
       -
@@ -137,36 +170,42 @@ jobs:
           swap-storage: true
 
       - name: "Build image"
-        run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg TEST_PYTHON_VERSION="${{ matrix.test_python }}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
+        run: docker build -f Dockerfile-tests-actions --build-arg MANYLINUX="${MANYLINUX}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg TEST_PYTHON_VERSION="${{ matrix.test_python }}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
 
-      # Retrieve artifact from build job
-      - name: Download wheel artifact
+  # The continuous prerelease follows master, with both wheels; a version tag
+  # gets its own release (job pypi). commit is the SHA: a tag name
+  # (github.ref_name on a tag) is not a valid target_commitish (error 422)
+  continuous:
+    name: "Update the continuous prerelease"
+    runs-on: ubuntu-latest
+    needs: lima-python-tests
+    if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download the wheels
         uses: actions/download-artifact@v4
         with:
           path: dist
-          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
-      # - run: zip -r dist.zip dist/
-      # The continuous prerelease follows master; a version tag gets its own
-      # release (job pypi). commit is the SHA: a tag name (github.ref_name on a
-      # tag) is not a valid target_commitish (error 422)
+          pattern: aymara-*.whl
+          merge-multiple: true
+      - run: ls -l dist
       - uses: ncipollo/release-action@v1
-        # once (on the test of the Python the wheel is built with)
-        if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' && matrix.test_python == env.PYTHON_VERSION }}
         with:
-          artifacts: dist/aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
+          artifacts: dist/*.whl
           allowUpdates: true
           artifactErrorsFailBuild: true
           prerelease: true
           tag: continuous
           commit: ${{ github.sha }}
 
-  # On a version tag only, once the wheel is tested: publish it to PyPI with
+  # On a version tag only, once the wheels are tested: publish them to PyPI with
   # trusted publishing (no token stored here: PyPI trusts this workflow, see
   # https://docs.pypi.org/trusted-publishers/; to set up once on PyPI, project
   # aymara, Publishing: owner aymara, repository lima-python, workflow
-  # build-qt6.yml, environment pypi), and make it a GitHub release
+  # build-qt6.yml, environment pypi), and make them a GitHub release
   pypi:
-    name: "Publish the wheel to PyPI"
+    name: "Publish the wheels to PyPI"
     runs-on: ubuntu-latest
     needs: lima-python-tests
     if: startsWith(github.ref, 'refs/tags/v')
@@ -189,18 +228,23 @@ jobs:
           fi
       - name: "Release notes: this version's section of CHANGES.md"
         run: awk '/^## /{n++} n==1' CHANGES.md > release-notes.md && cat release-notes.md
-      - name: Download wheel artifact
+      - name: Download the wheels
         uses: actions/download-artifact@v4
         with:
           path: dist
-          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
+          pattern: aymara-${{ env.LIMA_PYTHON_VERSION }}-*.whl
+          merge-multiple: true
+      - name: "Both wheels are there"
+        run: |
+          ls -l dist
+          [ "$(ls dist/*.whl | wc -l)" -eq 2 ] || { echo "Expected 2 wheels" >&2; exit 1; }
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: dist/aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
+          artifacts: dist/*.whl
           bodyFile: release-notes.md
           prerelease: false
           tag: ${{ github.ref_name }}

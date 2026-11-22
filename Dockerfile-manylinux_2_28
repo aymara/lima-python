@@ -4,7 +4,10 @@
 # SPDX-License-Identifier: MIT
 ARG PYTHON_VERSION
 ARG QT_VERSION
-FROM aymara/lima-manylinux_2_28-qt${QT_VERSION}-python${PYTHON_VERSION}:latest AS aymara_lima_manylinux_2_28_qt_python
+# The manylinux base of the LIMA image and of the wheel: manylinux_2_28 (Qt 6.9)
+# or manylinux_2_34 (Qt 6.12)
+ARG MANYLINUX=manylinux_2_28
+FROM aymara/lima-${MANYLINUX}-qt${QT_VERSION}-python${PYTHON_VERSION}:latest AS aymara_lima_manylinux_2_28_qt_python
 
 ARG LIMA_PYTHON_VERSION
 ARG QT_FULL_VERSION
@@ -82,6 +85,7 @@ RUN python${PYTHON_VERSION} /lima-python/scripts/linuxdeploy.py /opt/lima/lib/li
 RUN /usr/bin/strip --strip-unneeded clib/lib/*.so
 
 FROM aymara_lima_manylinux_2_28_qt_python
+ARG MANYLINUX
 
 COPY utils bindings.h bindings.xml c2lc.txt CHANGES.md CMakeLists.txt deploy.sh LICENCE lima.h lima.cpp Doc.h Doc_private.h Doc.cpp Span.h Span.cpp Token.h Token.cpp macros.h manageQt.cmake MANIFEST.in python_env.sh README.md setup.py /lima-python/
 # RUN install -d /lima-python/tests
@@ -99,14 +103,14 @@ WORKDIR /lima-python
 ENV LD_LIBRARY_PATH=/opt/_internal/cpython-${PYTHON_FULL_VERSION}/lib/python${PYTHON_VERSION}/site-packages/shiboken6:$LD_LIBRARY_PATH
 RUN python${PYTHON_VERSION} -m pip install auditwheel
 
-RUN auditwheel repair --plat manylinux_2_28_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
+RUN auditwheel repair --plat ${MANYLINUX}_x86_64 /lima-python/dist/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-linux_x86_64.whl
 WORKDIR /lima-python/wheelhouse
-RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
-RUN rm -f aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-manylinux_2_28_x86_64.whl
+RUN unzip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-${MANYLINUX}_x86_64.whl
+RUN rm -f aymara-${LIMA_PYTHON_VERSION}-${PYTHON_SHORT_VERSION}-${MANYLINUX}_x86_64.whl
 WORKDIR /lima-python/wheelhouse/aymaralima
 RUN rm -f liblima-* libgomp* libQt* libboost* libicu* libfasttext-lima.so libEGL.so libGLX.so libsvmtool.so libc10.so libtorch* libconvert_from_torch-shared.so libOpenGL.so libxcb.so liblimabinding.so libGLdispatch.so
 WORKDIR /lima-python/wheelhouse
 # Tag: cp39-cp39-manylinux... -> cp39-abi3-manylinux... (the ABI part of
 # PYTHON_SHORT_VERSION, e.g. cp39 or cp37m, becomes abi3)
 RUN sed -i "s/-${PYTHON_SHORT_VERSION#*-}-/-abi3-/" aymara-${LIMA_PYTHON_VERSION}.dist-info/WHEEL && grep "^Tag:" aymara-${LIMA_PYTHON_VERSION}.dist-info/WHEEL
-RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl -r *
+RUN zip aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl -r *
