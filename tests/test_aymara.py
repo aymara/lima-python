@@ -412,3 +412,13 @@ def test_lang_no_prefix():
     with pytest.raises(aymara.lima.LimaInternalError):
         aymara.lima.Lima(langs="cym")
 
+
+
+def test_lazy_submodules():
+    # import aymara is enough to reach aymara.lima (PEP 562 __getattr__)
+    import importlib
+    package = importlib.import_module("aymara")
+    assert package.lima is aymara.lima
+    assert package.lima_models.default_udlang is not None
+    with pytest.raises(AttributeError):
+        package.no_such_submodule

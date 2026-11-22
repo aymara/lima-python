@@ -6,11 +6,10 @@
 import os
 import sys
 
-from distutils.util import convert_path
 from skbuild import setup  # This line replaces 'from setuptools import setup'
 
 main_ns = {}
-ver_path = convert_path('aymara/version.py')
+ver_path = os.path.join('aymara', 'version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
