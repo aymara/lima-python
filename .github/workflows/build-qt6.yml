@@ -128,14 +128,18 @@ jobs:
           path: dist
           name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
       # - run: zip -r dist.zip dist/
+      # The continuous prerelease follows master; a version tag gets its own
+      # release (job pypi). commit is the SHA: a tag name (github.ref_name on a
+      # tag) is not a valid target_commitish (error 422)
       - uses: ncipollo/release-action@v1
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           artifacts: dist/aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
           allowUpdates: true
           artifactErrorsFailBuild: true
           prerelease: true
           tag: continuous
-          commit: ${{ github.ref_name }}
+          commit: ${{ github.sha }}
 
   # On a version tag only, once the wheel is tested: publish it to PyPI with
   # trusted publishing (no token stored here: PyPI trusts this workflow, see
