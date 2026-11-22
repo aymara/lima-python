@@ -1,4 +1,4 @@
-## Unreleased
+## 0.6.0 - 20261122
 
 * Qt 6.9.3: Python 3.9 to 3.13 (3.7 and 3.8 are no longer supported), on the same
   Linux distributions as before (glibc >= 2.28)
