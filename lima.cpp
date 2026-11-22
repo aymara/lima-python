@@ -170,8 +170,8 @@ public:
                                 const std::string& meta);
 
   Doc operator()(const std::string& text,
-                 const std::string& lang="eng",
-                 const std::string& pipeline="main",
+                 const std::string& lang="ud-eng",
+                 const std::string& pipeline="deepud",
                  const std::string& meta="");
 
   bool addPipelineUnit(const std::string& pipeline,
@@ -214,6 +214,15 @@ public:
   std::pair<QString, int> getConllRelName(LinguisticGraphVertex v);
 
   const SpecificEntityAnnotation* getSpecificEntityAnnotation(LinguisticGraphVertex v) const;
+
+  /** Appends to @ref out the token vertices dumped for the PosGraph vertex
+   * @ref v: its component tokens (recursively) if it holds a specific entity
+   * recognized on the PosGraph (ModEx rules applied after the deeplima
+   * analysis), @ref v itself otherwise.
+   */
+  void entityTokenVertices(LinguisticGraphVertex v,
+                           std::vector<LinguisticGraphVertex>& out,
+                           int depth = 0) const;
 
   bool hasSpaceAfter(LinguisticGraphVertex v, LinguisticGraph* graph);
 
@@ -951,15 +960,17 @@ void LimaAnalyzerPrivate::collectDependencyInformations(std::shared_ptr<Lima::An
         {
           if (annotationData->hasAnnotation(vx, QString::fromUtf8("SpecificEntity")))
           {
-            auto se = annotationData->annotation(vx, QString::fromUtf8("SpecificEntity"))
-              .pointerValue<SpecificEntityAnnotation>();
-            previousNeType = "O";
-            bool first = true;
-            for (const auto& vse : se->vertices())
+            // One token per component of the entity, nested entities
+            // included, as dumped by dumpNamedEntity: number them and collect
+            // their dependencies (the parser ran before the entity was created)
+            std::vector<LinguisticGraphVertex> tokenVertices;
+            entityTokenVertices(v, tokenVertices);
+            vertexToToken[v] = tokenId;
+            for (const auto& tv : tokenVertices)
             {
-              collectVertexDependencyInformations(vse, analysis);
-              vertexToToken[vse] = tokenId;
-              first = false;
+              collectVertexDependencyInformations(tv, analysis);
+              vertexToToken[tv] = tokenId;
+              tokenId++;
             }
             break;
           }
@@ -1229,7 +1240,23 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
     // recursively) but also AnalysisGraph vertices. In the latter case, data
     // come partly from the AnalysisGraph and partly from the PosGraph
     // Furthermore, named entities can be recursive...
-    if (neType != "_")
+    const SpecificEntityAnnotation* nestedEntity = nullptr;
+    if (neType != "_" && !parentNeType.isEmpty())
+    {
+      nestedEntity = getSpecificEntityAnnotation(v);
+    }
+    if (nestedEntity != nullptr)
+    {
+      // Entity recognized on the PosGraph inside another one (e.g. a number in
+      // a date): its tokens are part of the enclosing entity
+      bool firstNested = first;
+      for (const auto& vse : nestedEntity->vertices())
+      {
+        dumpPosGraphVertex(doc, vse, tokenId, vEndDone, parentNeType, firstNested);
+        firstNested = false;
+      }
+    }
+    else if (neType != "_")
     {
       dumpNamedEntity(doc, v, tokenId, vEndDone, neType);
     }
@@ -1570,6 +1597,24 @@ const SpecificEntityAnnotation* LimaAnalyzerPrivate::getSpecificEntityAnnotation
   }
   return nullptr;
 
+}
+
+void LimaAnalyzerPrivate::entityTokenVertices(
+  LinguisticGraphVertex v,
+  std::vector<LinguisticGraphVertex>& out,
+  int depth) const
+{
+  const auto se = (depth < 16 && annotationData != nullptr)
+      ? getSpecificEntityAnnotation(v) : nullptr;
+  if (se == nullptr || se->vertices().empty())
+  {
+    out.push_back(v);
+    return;
+  }
+  for (const auto& vse : se->vertices())
+  {
+    entityTokenVertices(vse, out, depth + 1);
+  }
 }
 
 bool LimaAnalyzerPrivate::hasSpaceAfter(LinguisticGraphVertex v, LinguisticGraph* graph)

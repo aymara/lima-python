@@ -29,43 +29,77 @@ text = "Give it back! He pleaded."
 UD_ENG_META = {"udlang": "eng-UD_English-EWT"}
 
 
+# One deepud analyzer for most of the tests below: each new instance loads the
+# English models and embeddings again (about 3.5 GB) and its memory is not
+# released, which exhausted the 16 GB of the CI runners (exit code 137)
+lima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
+
+
+def test_legacy_names_mapping():
+    # The legacy media and pipelines are deprecated: their names select the
+    # deeplima-backed UD media and pipelines
+    with pytest.warns(DeprecationWarning):
+        assert aymara.lima._media("eng") == "ud-eng"
+    with pytest.warns(DeprecationWarning):
+        assert aymara.lima._media("fre") == "ud-fra"
+    with pytest.warns(DeprecationWarning):
+        assert aymara.lima._media("por") == "ud-por"
+    assert aymara.lima._media("ud-fra") == "ud-fra"
+    with pytest.warns(DeprecationWarning):
+        assert aymara.lima._pipeline("main") == "deepud"
+    with pytest.warns(DeprecationWarning):
+        assert aymara.lima._pipeline("ner-rules-pretok") == "deepud-pretok"
+    assert aymara.lima._pipeline("deepud") == "deepud"
+
+
+def test_several_ud_languages_warning():
+    # The deeplima model (udlang) is shared by the languages of an analyzer
+    with pytest.warns(UserWarning):
+        with pytest.raises(aymara.lima.LimaInternalError):
+            aymara.lima.Lima("ud-eng,ud-fra", pipes="")
+
+
 def test_several_instances():
-    # Test with several analyzer instantiated and called alternatively
+    # Test with several analyzer instantiated and called alternatively, the
+    # French one through the deprecated legacy names (French default model,
+    # installed by "lima_models -i fra")
     print(f"test_several_instances", file=sys.stderr)
-    lima1 = aymara.lima.Lima("eng", pipes="main")
-    doc1 = lima1(text)
+    with pytest.warns(DeprecationWarning):
+        lima2 = aymara.lima.Lima("fre", pipes="main")
+    assert lima2.langs == ["ud-fra"] and lima2.pipes == ["deepud"]
+    doc1 = lima(text)
     assert doc1 is not None and type(doc1) == aymara.lima.Doc
-    lima2 = aymara.lima.Lima("fre", pipes="main")
-    doc2 = lima2("Et maintenant, du français.")
+    doc2 = lima2("Jean Dupont a visité Paris le 12 janvier 2021.")
     assert doc2 is not None and type(doc2) == aymara.lima.Doc
+    # The French ModEx rules run after the deeplima analysis
+    assert [ent.label for ent in doc2.ents] == ["Person.PERSON", "Location.CITY",
+                                                "DateTime.DATE"]
 
 
 def test_analyzeText_lang_not_str():
     print(f"test_analyzeText_lang_not_str", file=sys.stderr)
     with pytest.raises(TypeError):
-        aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.",
-                                       lang=dict(), pipeline="main")
+        lima.analyzeText("This is a text on 02/05/2022.", lang=dict(),
+                         pipeline="deepud")
 
 
 def test_functor_lang_not_str():
     print(f"test_functor_lang_not_str", file=sys.stderr)
     with pytest.raises(TypeError):
-        aymara.lima.Lima()("This is a text on 02/05/2022.", lang=dict(),
-                           pipeline="main")
+        lima("This is a text on 02/05/2022.", lang=dict(), pipeline="deepud")
 
 
 def test_analyzeText_lang_not_init():
     print(f"test_analyzeText_lang_not_init", file=sys.stderr)
     with pytest.raises(aymara.lima.LimaInternalError):
-        aymara.lima.Lima().analyzeText("This is a text on 02/05/2022.",
-                                       lang="wol", pipeline="main")
+        lima.analyzeText("This is a text on 02/05/2022.", lang="wol",
+                         pipeline="deepud")
 
 
 def test_functor_lang_not_init():
     print(f"test_functor_lang_not_init", file=sys.stderr)
     with pytest.raises(aymara.lima.LimaInternalError):
-        aymara.lima.Lima()("This is a text on 02/05/2022.",
-                           lang="wol", pipeline="main")
+        lima("This is a text on 02/05/2022.", lang="wol", pipeline="deepud")
 
 
 def test_analyzeText_pipeline_none_lang_ud():
@@ -84,23 +118,29 @@ def test_functor_pipeline_none_lang_ud():
 
 
 def test_analyzeText_pipeline_none_lang_eng():
+    # The deprecated "eng" is "ud-eng"
     print(f"test_analyzeText_pipeline_none_lang_eng", file=sys.stderr)
-    with pytest.raises(aymara.lima.LimaInternalError):
-        thelima = aymara.lima.Lima("eng", pipes="")
-        thelima.analyzeText("This is a text on 02/05/2022.", lang="eng", pipeline=None)
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(aymara.lima.LimaInternalError):
+            thelima = aymara.lima.Lima("eng", pipes="")
+            thelima.analyzeText("This is a text on 02/05/2022.", lang="eng",
+                                pipeline=None)
 
 
 def test_functor_pipeline_none_lang_eng():
     print(f"test_functor_pipeline_none_lang_eng", file=sys.stderr)
-    with pytest.raises(aymara.lima.LimaInternalError):
-        thelima = aymara.lima.Lima("eng", pipes="")
-        thelima("This is a text on 02/05/2022.", lang="eng", pipeline=None)
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(aymara.lima.LimaInternalError):
+            thelima = aymara.lima.Lima("eng", pipes="")
+            thelima("This is a text on 02/05/2022.", lang="eng", pipeline=None)
 
 
-# One deepud analyzer for all the tests below: each new instance loads the
-# English models and embeddings again (about 3.5 GB) and its memory is not
-# released, which exhausted the 16 GB of the CI runners (exit code 137)
-lima = aymara.lima.Lima("ud-eng", pipes="deepud", meta=UD_ENG_META)
+def test_analyzeText_legacy_names():
+    # The deprecated legacy language and pipeline names still work
+    with pytest.warns(DeprecationWarning):
+        result = lima.analyzeText("This is a text on 02/05/2022.", lang="eng",
+                                  pipeline="main")
+    assert "02/05/2022" in result
 
 
 def test_functor_not_text():
@@ -118,10 +158,7 @@ def test_analyzeText_init_with_lang_and_pipe():
 
 def test_analyzeText_init_with_lang():
     print(f"test_analyzeText_init_with_lang", file=sys.stderr)
-    # pipes is pinned to "deepud": the "ud-eng" media has no "main" pipeline (the
-    # default pipes is "main,deepud"), and requesting "main" for it hangs during
-    # construction. The pipeline is still chosen at analyze time below, which is
-    # what this test exercises.
+    # The pipeline is chosen at analyze time
     result = lima.analyzeText("This is a text on 02/05/2022.",
                               pipeline="deepud")
     assert True

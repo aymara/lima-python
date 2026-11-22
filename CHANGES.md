@@ -1,3 +1,22 @@
+## Unreleased
+
+* LIMA without its legacy rule-based pipelines (deprecated, aymara/lima#211): the
+  whole analysis uses the deeplima backend
+* `Lima()` defaults to `ud-eng` and the `deepud` pipeline (was `fre,eng` and
+  `main,deepud`)
+* The legacy languages `eng`, `fre` and `por` are replaced by `ud-eng`, `ud-fra`
+  and `ud-por`, and the legacy pipelines (`main`, `ner-rules`...) by `deepud` (or
+  `deepud-pretok`), with a `DeprecationWarning`
+* French named entities: the `deepud` pipeline of `ud-fra` runs the French ModEx
+  rules (LIMA)
+* Named entities recognized after the deeplima analysis: correct dependency heads
+  in the documents (they were shifted after an entity) and nested entities (a
+  number in a date) are part of the enclosing one; complete dates and times and
+  normalized values (LIMA)
+* A warning when several `ud-<code>` languages share an analyzer: they use the
+  same deeplima model
+* `examples/build-pipeline.py` uses the libtorch units
+
 ## 0.6.0 - 20261122
 
 * Qt 6.9.3: Python 3.9 to 3.13 (3.7 and 3.8 are no longer supported), on the same

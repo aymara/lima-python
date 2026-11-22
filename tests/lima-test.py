@@ -9,6 +9,7 @@
 import aymara.lima
 
 lima = aymara.lima.Lima()
-result = lima.analyzeText("This is a text on 02/05/2022.", lang="eng", pipeline="main")
-print(result.conll())
+result = lima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
+                          pipeline="deepud")
+print(result)
 

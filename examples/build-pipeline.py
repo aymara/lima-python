@@ -1,19 +1,22 @@
 import aymara.lima
 import json
 
-lima = aymara.lima.Lima("ud-eng", pipes="empty")
+# The deeplima models are selected by the udlang metadata (here the English
+# default model, installed by "lima_models -i eng")
+lima = aymara.lima.Lima("ud-eng", pipes="empty",
+                        meta={"udlang": "eng-UD_English-MERGE"})
 
 pipeline = {
     "tokenizer": {
-        "name": "cpptftokenizer",
-        "class": "CppUppsalaTensorFlowTokenizer",
-        "model_prefix": "tokenizer-eng"
+        "name": "rnntokenizer",
+        "class": "RnnTokenizer",
+        "model_prefix": "tokenizer-$udlang"
             },
     "morphosyntax": {
-        "name": "tfmorphosyntax",
-        "class": "TensorFlowMorphoSyntax",
-        "model_prefix": "morphosyntax-eng",
-        "embeddings": "fasttext-eng.bin"
+        "name": "rnntokensanalyzer",
+        "class": "RnnTokensAnalyzer",
+        "tagger_model_prefix": "tagger-$udlang",
+        "lemmatizer_model_prefix": "lemmatizer-$udlang"
             },
     "dumper": {
         "name": "conllDumper",
