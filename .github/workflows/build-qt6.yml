@@ -26,7 +26,8 @@ env:
   QT_FULL_VERSION: "6.5.2"
   GCC_VERSION: "11.2.1"
   LLVM_VERSION: "13.0.1"
-  LIMA_PYTHON_VERSION: "0.5.0"
+  # LIMA_PYTHON_VERSION: read by each job from aymara/version.py, the only
+  # source of the version (step "Version")
 
 
 jobs:
@@ -44,6 +45,8 @@ jobs:
 
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Version (aymara/version.py)"
+        run: echo "LIMA_PYTHON_VERSION=$(python3 aymara/version.py)" >> "$GITHUB_ENV"
 
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.2.0
@@ -102,6 +105,8 @@ jobs:
 
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Version (aymara/version.py)"
+        run: echo "LIMA_PYTHON_VERSION=$(python3 aymara/version.py)" >> "$GITHUB_ENV"
 
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.2.0
@@ -153,19 +158,21 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
-      url: https://pypi.org/project/aymara/${{ env.LIMA_PYTHON_VERSION }}/
+      url: https://pypi.org/project/aymara/
     permissions:
       id-token: write   # trusted publishing
       contents: write   # the GitHub release
     steps:
+      - name: "Checkout code"   # aymara/version.py, CHANGES.md
+        uses: actions/checkout@v4
+      - name: "Version (aymara/version.py)"
+        run: echo "LIMA_PYTHON_VERSION=$(python3 aymara/version.py)" >> "$GITHUB_ENV"
       - name: "The tag is the version"
         run: |
           if [ "${GITHUB_REF_NAME#v}" != "${LIMA_PYTHON_VERSION}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match LIMA_PYTHON_VERSION ${LIMA_PYTHON_VERSION}" >&2
+            echo "Tag ${GITHUB_REF_NAME} does not match aymara/version.py (${LIMA_PYTHON_VERSION})" >&2
             exit 1
           fi
-      - name: "Checkout code"   # CHANGES.md, the release notes
-        uses: actions/checkout@v4
       - name: "Release notes: this version's section of CHANGES.md"
         run: awk '/^## /{n++} n==1' CHANGES.md > release-notes.md && cat release-notes.md
       - name: Download wheel artifact

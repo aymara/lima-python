@@ -39,10 +39,13 @@ project = 'Lima'
 copyright = '2024, CEA LIST/LASTI'
 author = 'CEA LIST/LASTI'
 
-# The short X.Y version
-version = '0.5'
-# The full version, including alpha/beta/rc tags
-release = '0.5.0'
+# The version is the package's: aymara/version.py (its only source)
+import os as _os
+import re as _re
+with open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                        "..", "..", "aymara", "version.py")) as _f:
+    release = _re.search(r'__version__ = "([^"]+)"', _f.read()).group(1)
+version = ".".join(release.split(".")[:2])
 
 
 # -- General configuration ---------------------------------------------------
