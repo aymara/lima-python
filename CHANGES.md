@@ -1,3 +1,8 @@
+## Unreleased
+
+* `repr()` of a document or span: the root of a sentence after the first one
+  had a negative head instead of 0
+
 ## 0.5.0 - 20261121
 
 * LIMA built from the current code: libtorch-based neural pipeline, multiword
