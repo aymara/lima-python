@@ -201,6 +201,9 @@ def test_doc_repr():
     print(f"test_doc_repr '{repr(doc)}'", file=sys.stderr)
     # There is 7 tokens and an empty line separating the 2 sentences
     assert len(repr(doc).split("\n")) == 8
+    # Sentence roots have head 0, in the second sentence too (it was -4)
+    lines = [line.split("\t") for line in repr(doc).split("\n") if line]
+    assert all(cols[6] == "0" for cols in lines if cols[7] == "root")
 
 
 def test_doc_iter():

@@ -480,7 +480,9 @@ class Span:
         for token_repr in tokens_repr:
             cols = token_repr.split("\t")
             cols[0] = str(id)
-            if cols[6] != "_":
+            # 0 is the root: not renumbered (it was negative in the sentences
+            # after the first one)
+            if cols[6] not in ("_", "0"):
                 cols[6] = str(int(cols[6]) - first_tid)
             id += 1
             token_repr = "\t".join(cols)
