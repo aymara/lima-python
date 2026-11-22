@@ -14,16 +14,18 @@ env:
   MANYLINUX_TAG: "2022-10-25-fbea779"
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-  PYTHON_VERSION: "3.7"
-  PYTHON_SHORT_VERSION: "cp37-cp37m"
-  PYTHON_WHEEL_VERSION: "cp37-abi3"
-  PYTHON_FULL_VERSION: "3.7.15"
+  # The Python the abi3 wheel is built with, the oldest Qt 6.9.3's shiboken6
+  # supports (3.9-3.13); the tests run on the oldest and the newest
+  PYTHON_VERSION: "3.9"
+  PYTHON_SHORT_VERSION: "cp39-cp39"
+  PYTHON_WHEEL_VERSION: "cp39-abi3"
+  PYTHON_FULL_VERSION: "3.9.15"
   PYSIDE_VERSION: "6"
   QT_VERSION_MAJOR: "6"
-  QT_VERSION_MINOR: "5"
-  QT_VERSION_PATCH: "2"
-  QT_VERSION: "6.5"
-  QT_FULL_VERSION: "6.5.2"
+  QT_VERSION_MINOR: "9"
+  QT_VERSION_PATCH: "3"
+  QT_VERSION: "6.9"
+  QT_FULL_VERSION: "6.9.3"
   GCC_VERSION: "11.2.1"
   LLVM_VERSION: "13.0.1"
   # LIMA_PYTHON_VERSION: read by each job from aymara/version.py, the only
@@ -89,9 +91,15 @@ jobs:
           compression-level: 0 # wheels are already zip files
 
   lima-python-tests:
-    name: "Build the lima-python test image with Qt ${QT_VERSION} for python ${PYTHON_VERSION}"
+    name: "Test the wheel with Qt ${QT_VERSION} on Python ${{ matrix.test_python }}"
     runs-on: ubuntu-latest
     needs: lima-python
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest and the newest Python shiboken6 ${QT_FULL_VERSION} supports:
+        # the abi3 wheel built with the first must work with all of them
+        test_python: ["3.9", "3.13"]
     permissions:
       contents: write
 
@@ -124,7 +132,7 @@ jobs:
           swap-storage: true
 
       - name: "Build image"
-        run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
+        run: docker build -f Dockerfile-tests-actions --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg TEST_PYTHON_VERSION="${{ matrix.test_python }}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
 
       # Retrieve artifact from build job
       - name: Download wheel artifact
@@ -137,7 +145,8 @@ jobs:
       # release (job pypi). commit is the SHA: a tag name (github.ref_name on a
       # tag) is not a valid target_commitish (error 422)
       - uses: ncipollo/release-action@v1
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        # once (on the test of the Python the wheel is built with)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.test_python == env.PYTHON_VERSION }}
         with:
           artifacts: dist/aymara-${{ env.LIMA_PYTHON_VERSION }}-${{env.PYTHON_WHEEL_VERSION}}-manylinux_2_28_x86_64.whl
           allowUpdates: true

@@ -2,11 +2,15 @@
 # SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
 #
 # SPDX-License-Identifier: MIT
-ARG PYTHON_VERSION=3.7
+# PYTHON_VERSION: the Python the wheel was built with (the lima-python image);
+# TEST_PYTHON_VERSION: the one it is tested with (the abi3 wheel works with
+# all the Pythons shiboken6 supports)
+ARG PYTHON_VERSION=3.9
+ARG TEST_PYTHON_VERSION=${PYTHON_VERSION}
 FROM aymara/lima-python${PYTHON_VERSION}:latest AS lima_python
 
-ARG PYTHON_VERSION=3.7
-FROM python:${PYTHON_VERSION}
+ARG TEST_PYTHON_VERSION
+FROM python:${TEST_PYTHON_VERSION}
 
 ARG LIMA_PYTHON_VERSION
 ARG PYTHON_WHEEL_VERSION
@@ -20,7 +24,7 @@ RUN pip install -U pip
 RUN pip install pytest pytest-cov pytest-runner pytest-depends
 
 COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl /
-RUN pip install /aymara-${LIMA_PYTHON_VERSION}-cp37-abi3-manylinux_2_28_x86_64.whl
+RUN pip install /aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
 RUN install -d /lima-python
 # test_aymara.py analyzes with this model (named by its udlang)
 RUN lima_models -i eng-UD_English-EWT

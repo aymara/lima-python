@@ -1,5 +1,7 @@
 ## Unreleased
 
+* Qt 6.9.3: Python 3.9 to 3.13 (3.7 and 3.8 are no longer supported), on the same
+  Linux distributions as before (glibc >= 2.28)
 * `import aymara` is enough: `aymara.lima`, `aymara.lima_models`... are imported on
   first use
 * No distutils (removed in Python 3.12): `export_system_conf` uses shutil
