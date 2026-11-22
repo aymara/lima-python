@@ -21,7 +21,7 @@ Under Linux with python >= 3.7 and < 4, and **upgraded pip**:
 ```bash
 # Upgrading pip is fundamental in order to obtain the correct LIMA version
 $ pip install --upgrade pip
-$ pip install aymara==0.5.0
+$ pip install aymara
 $ lima_models -i eng
 # Either simply use the lima command to produce an analysis of a file in CoNLLU format:
 $ lima <path to the file to analyse>

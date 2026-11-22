@@ -3,26 +3,6 @@
 #
 # SPDX-License-Identifier: MIT
 
-[tool.poetry]
-name = "aymara"
-version = "0.5.0"
-description = "Python bindings to the LIMA linguistic analyzer"
-authors = ["Gael de Chalendar <gael.de-chalendar@cea.fr>"]
-
-[tool.poetry.dependencies]
-pip = "^22.0"
-pydantic = "^1.8.2"
-python = ">=3.7,<4"
-pyconll = "^2.0"
-shiboken6 = "^6.5"
-tqdm = "^4.56.0"
-unix-ar = "^0.2.1b"
-
-
-[tool.poetry.dev-dependencies]
-PySide6 = "^6.3"
-pytest = "^3.0"
-
 [tool.isort]
 multi_line_output = 3
 include_trailing_comma = true

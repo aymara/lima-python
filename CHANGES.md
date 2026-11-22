@@ -1,5 +1,7 @@
 ## Unreleased
 
+* The version is set in `aymara/version.py` only: the build, the CI, the PyPI
+  publishing and the documentation read it there
 * `repr()` of a document or span: the root of a sentence after the first one
   had a negative head instead of 0
 
