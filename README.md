@@ -71,7 +71,20 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 Note that some error messages could be displayed during the Lima object instantiation. If you get a valid result, you can ignore them. Most of them are debug messages that will be removed in a later version.
 
-You can replace the language (`ud-eng`) used by `eng` to use the legacy pipeline. This is the same for `ud-fra` and `fre`. Note that legacy pipelines do not use the Universal Dependencies tagset, but a proprietary one.
+For French, use `ud-fra` (after `lima_models -i fra`). The `deepud` pipeline of
+`ud-eng` and `ud-fra` also recognizes named entities (persons, locations,
+organizations, dates, amounts...), available as `doc.ents`:
+
+```python
+>>> nlp = aymara.lima.Lima("ud-fra")
+>>> doc = nlp("Jean Dupont a visité Paris le 12 janvier 2021.")
+>>> [(ent.text, ent.label) for ent in doc.ents]
+```
+
+The legacy rule-based languages `eng`, `fre` and `por` and their pipelines
+(`main`...) are deprecated and no longer distributed: these names now select
+`ud-eng`, `ud-fra` and `ud-por` and the `deepud` pipeline, with a
+`DeprecationWarning`.
 
 
 ## Python bindings API documentation

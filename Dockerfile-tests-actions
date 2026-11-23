@@ -28,6 +28,9 @@ RUN pip install /aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux
 RUN install -d /lima-python
 # test_aymara.py analyzes with this model (named by its udlang)
 RUN lima_models -i eng-UD_English-EWT
+# and with the French default model (the deprecated "fre" is ud-fra, whose
+# deepud pipeline runs the French named entities rules)
+RUN lima_models -i fra
 
 WORKDIR /lima-python
 COPY .coveragerc .

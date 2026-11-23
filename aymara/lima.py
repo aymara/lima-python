@@ -35,6 +35,7 @@ import os
 import pathlib
 import shutil
 import sys
+import warnings
 
 from pydantic import (parse_obj_as, ValidationError)
 from tqdm import tqdm
@@ -707,6 +708,50 @@ class LimaInternalError(Exception):
     pass
 
 
+# The legacy rule-based media (eng, fre, por) are deprecated and no longer built
+# in LIMA: their codes select the media analyzing with the deeplima backend
+# (tokenization, tagging, lemmatization, parsing) and, for ud-eng and ud-fra,
+# the ModEx named entities.
+_LEGACY_MEDIA = {"eng": "ud-eng", "fre": "ud-fra", "por": "ud-por"}
+# Legacy pipelines and the deeplima pipeline doing the same analysis
+_LEGACY_PIPELINES = {
+    "main": "deepud",
+    "ner-rules": "deepud",
+    "ner-deep": "deepud",
+    "ner-fusion": "deepud",
+    "ner-rules-pretok": "deepud-pretok",
+    "ner-deep-pretok": "deepud-pretok",
+    "ner-fusion-pretok": "deepud-pretok",
+}
+
+
+def _media(lang: str) -> str:
+    """Returns the LIMA media for the language code lang: a legacy code (eng, fre,
+    por) is replaced, with a deprecation warning, by the matching UD media."""
+    if lang in _LEGACY_MEDIA:
+        warnings.warn(f"The legacy LIMA language '{lang}' is deprecated: using "
+                      f"'{_LEGACY_MEDIA[lang]}' instead", DeprecationWarning,
+                      stacklevel=3)
+        return _LEGACY_MEDIA[lang]
+    return lang
+
+
+def _pipeline(pipeline: str) -> str:
+    """Returns the pipeline to use for pipeline: a legacy pipeline name is
+    replaced, with a deprecation warning, by the matching deeplima pipeline."""
+    if pipeline in _LEGACY_PIPELINES:
+        warnings.warn(f"The legacy LIMA pipeline '{pipeline}' is deprecated: using "
+                      f"'{_LEGACY_PIPELINES[pipeline]}' instead",
+                      DeprecationWarning, stacklevel=3)
+        return _LEGACY_PIPELINES[pipeline]
+    return pipeline
+
+
+def _unique(items):
+    """The items, without duplicates, in their order."""
+    return list(dict.fromkeys(items))
+
+
 class Lima:
     """A text-processing pipeline
 
@@ -723,19 +768,23 @@ class Lima:
 
     """
     def __init__(self,
-                 langs: str = "fre,eng",
-                 pipes: str = "main,deepud",
+                 langs: str = "ud-eng",
+                 pipes: str = "deepud",
                  user_config_path: str = "",
                  user_resources_path: str = "",
                  meta: Dict[str, str] = {}):
         """
         Initialize the Lima analyzer
 
-        :param langs: a comma-separated list of language trigrams to initialize
-            (Default value = "fre,eng")
+        :param langs: a comma-separated list of languages to initialize, e.g. "ud-eng"
+            or "ud-fra" (Default value = "ud-eng"). The deprecated legacy codes "eng",
+            "fre" and "por" are replaced by "ud-eng", "ud-fra" and "ud-por". The
+            deeplima model ("udlang" metadata) is shared by all the languages of an
+            analyzer: use one analyzer per registered UD language.
         :type langs: str
         :param pipes: a comma-separated list of Lima pipelines to analyze (Default value =
-            "main,deepud")
+            "deepud"). The deprecated legacy pipelines ("main", "ner-rules"...) are
+            replaced by "deepud" (or "deepud-pretok").
         :type pipes: str
         :param user_config_path: a path where Lima configuration files will be searched
             for. This allows to override default configurations. (Default value = an empty
@@ -752,6 +801,14 @@ class Lima:
         """
         # print(f"Lima __init__: calling LimaAnalyzer constructor {langs}, {pipes}",
         #       file=sys.stderr)
+        langs = ",".join(_unique(_media(lang) for lang in langs.split(",") if lang))
+        pipes = ",".join(_unique(_pipeline(pipe) for pipe in pipes.split(",")))
+        ud_codes = _unique(lang[3:] for lang in langs.split(",")
+                           if lang.startswith("ud-"))
+        if "udlang" not in meta and len(ud_codes) > 1:
+            warnings.warn(f"The languages {langs} share one deeplima model (the "
+                          f"default one of '{ud_codes[0]}'): use one Lima "
+                          f"instance per language", UserWarning, stacklevel=2)
         # A "ud-<code>" language without an explicit udlang uses the default
         # model installed for it by lima_models (its model paths are set here,
         # when the pipeline is built)
@@ -796,15 +853,15 @@ class Lima:
         :param text: the text to analyze
         :type text: str
         :param lang: the language of the text. If none, will backup to the first element
-            of the langs member or to eng if empty (Default value = `None`). Its value
-            can be one of the three historic pre-Universal Dependencies languages
-            ("eng", "fre" and "por") or the value "ud". In the latter case, the meta
-            parameter must include a pair "udlang":"<trigram for the language>", e.g.:
-            "udlang":"fra".
+            of the langs member or to ud-eng if empty (Default value = `None`). A
+            language code without the "ud-" prefix gets it ("fra" is "ud-fra"); the
+            deprecated legacy codes "eng", "fre" and "por" are replaced by "ud-eng",
+            "ud-fra" and "ud-por".
         :type lang: str
         :param pipeline: the Lima pipeline to use for analysis. If none, will backup to
-            the first element of the pipelines member or to main if empty (Default
-            value = `None`).
+            the first element of the pipelines member or to deepud if empty (Default
+            value = `None`). The deprecated legacy pipelines ("main"...) are replaced
+            by "deepud".
         :type pipeline: str
         :param meta: a dict of named metadata values (Default value = an empty dictionary).
         :type meta: Dict[str, str]
@@ -813,23 +870,19 @@ class Lima:
         :rtype: Doc
         """
         if lang is None:
-            lang = self.langs[0] if self.langs else "eng"
+            lang = self.langs[0] if self.langs else "ud-eng"
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
-        if (lang not in ["eng", "fre", "por"] and not lang.startswith("ud-")
-                and lang != "ud"):
+        lang = _media(lang)
+        if not lang.startswith("ud-") and lang != "ud":
             lang = "ud-" + lang
         if pipeline is None:
-            if self.pipes:
-                pipeline = self.pipes[0]
-            elif lang.startswith("ud-"):
-                pipeline = "deepud"
-            else:
-                pipeline = "main"
+            pipeline = self.pipes[0] if self.pipes else "deepud"
         if not isinstance(pipeline, str):
             raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
                             f"not {type(pipeline)}")
+        pipeline = _pipeline(pipeline)
         if not isinstance(text, str):
             raise TypeError(f"Lima.analyzeText text parameter must be str, "
                             f"not {type(text)}")
@@ -864,11 +917,14 @@ class Lima:
         :param text: the text to analyze
         :type text: str
         :param lang: the language of the text. If none, will backup to the first element
-            of the langs member or to eng if empty (Default value = `None`).
+            of the langs member or to ud-eng if empty (Default value = `None`). The
+            deprecated legacy codes "eng", "fre" and "por" are replaced by "ud-eng",
+            "ud-fra" and "ud-por".
         :type lang: str
         :param pipeline: the Lima pipeline to use for analysis. If none, will backup to
-            the first element of the pipelines member or to main if empty (Default
-            value = `None`).
+            the first element of the pipelines member or to deepud if empty (Default
+            value = `None`). The deprecated legacy pipelines ("main"...) are replaced
+            by "deepud".
         :type pipeline: str
         :param meta: a dict of named metadata values (Default value = an empty
             dictionary).
@@ -882,23 +938,19 @@ class Lima:
             # Not covering line below because it is not easy to make lima fail at will
             raise LimaInternalError(self.analyzer.errorMessage())  # pragma: no cover
         if lang is None:
-            lang = self.langs[0] if self.langs else "eng"
+            lang = self.langs[0] if self.langs else "ud-eng"
         if not isinstance(lang, str):
             raise TypeError(f"Lima.analyzeText lang parameter must be str, "
                             f"not {type(lang)}")
-        if (lang not in ["eng", "fre", "por"] and not lang.startswith("ud-")
-                and lang != "ud"):
+        lang = _media(lang)
+        if not lang.startswith("ud-") and lang != "ud":
             lang = "ud-" + lang
         if pipeline is None:
-            if self.pipes:
-                pipeline = self.pipes[0]
-            elif lang.startswith("ud-"):
-                pipeline = "deepud"
-            else:
-                pipeline = "main"
+            pipeline = self.pipes[0] if self.pipes else "deepud"
         if not isinstance(pipeline, str):
             raise TypeError(f"Lima.analyzeText pipeline parameter must be str, "
                             f"not {type(pipeline)}")
+        pipeline = _pipeline(pipeline)
         if not isinstance(text, str):
             print(f"Lima.analyzeText text ({text}) is not a string. Raising.", file=sys.stderr)
             raise TypeError(f"Lima.analyzeText text parameter must be str, "

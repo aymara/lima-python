@@ -22,7 +22,7 @@ So the dependency direction is: user code → `aymara.lima` (Python) → `aymara
 LIMA ships **no language models** in the wheel. Users download them at runtime:
 - `aymara/lima_models.py` (`lima_models` console script) — legacy + UD pipeline models.
 - `aymara/deeplima_models.py` (`deeplima_models` console script) — experimental deeplima models.
-Language naming: legacy pipelines use codes like `eng`/`fre` (proprietary tagset); Universal Dependencies pipelines use `ud-eng`/`ud-fra` (UD tagset). The `Lima(...)` constructor and `analyzeText(..., lang=...)` take these codes.
+Language naming: the media are `ud-eng`/`ud-fra`/`ud-<code>` (UD tagset, deeplima backend; `ud-eng`/`ud-fra` also run the ModEx named entities). The legacy codes `eng`/`fre`/`por` and pipelines (`main`...) are deprecated and no longer in the wheel: `aymara.lima` maps them to `ud-eng`/`ud-fra`/`ud-por` and `deepud` (`_media`, `_pipeline`) with a DeprecationWarning. One deeplima model (`udlang`) per `Lima` instance.
 
 ### Console entry points (from setup.py)
 - `lima = aymara.lima:main`

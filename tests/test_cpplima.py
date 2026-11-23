@@ -20,8 +20,8 @@ def test_analyzeText():
     lima = aymaralima.cpplima.LimaAnalyzer("ud-eng", "deepud",
                                            list(aymaralima.__path__)[-1])
 
-    result = lima.analyzeText("This is a text on 02/05/2022.", lang="eng",
-                              pipeline="main")
+    result = lima.analyzeText("This is a text on 02/05/2022.", lang="ud-eng",
+                              pipeline="deepud", meta="")
     print(result, file=sys.stderr)
     assert True
 
