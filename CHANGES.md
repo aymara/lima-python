@@ -1,3 +1,13 @@
+## Unreleased
+
+* Memory: deleting a `Lima` instance frees its models (about 3 GB for a deepud
+  analyzer) once no other instance uses its language, and creating a new
+  instance of a language replaces the models of the previous one instead of
+  adding to them (they were never freed). Needs the LIMA fix of
+  `MediaProcessors` (initMedia releases the former process units; new
+  `releaseMedia`). Memory is returned to glibc: the process RSS may stay high
+  until it is reused or `malloc_trim` is called.
+
 ## 0.7.1 - 20261123
 
 * Python 3.9 gets the manylinux_2_28 wheel again: 0.7.0 required Python >= 3.10
