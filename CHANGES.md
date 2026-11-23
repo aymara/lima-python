@@ -1,3 +1,9 @@
+## 0.7.1 - 20261123
+
+* Python 3.9 gets the manylinux_2_28 wheel again: 0.7.0 required Python >= 3.10
+  on PyPI (the Requires-Python of its manylinux_2_34 wheel), so pip installed
+  0.6.0 on Python 3.9
+
 ## 0.7.0 - 20261123
 
 * A second Linux wheel, manylinux_2_34 with Qt 6.12: Python 3.10 to 3.15 on

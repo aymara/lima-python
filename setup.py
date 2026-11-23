@@ -64,7 +64,11 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
     ],
-    python_requires=f">={PYTHON_VERSION}",
+    # The same for all the wheels of a version: PyPI keeps one Requires-Python
+    # per version, the first uploaded wheel's (0.7.0 got >=3.10 from the
+    # manylinux_2_34 wheel and was hidden from Python 3.9). Each wheel's
+    # cp3x-abi3 tag already restricts it to its own Pythons
+    python_requires=">=3.9",
     packages=['aymara', 'aymaralima'],
     install_requires=[
         'pip>=22.0',
