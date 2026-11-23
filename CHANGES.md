@@ -1,4 +1,4 @@
-## Unreleased
+## 0.7.0 - 20261123
 
 * A second Linux wheel, manylinux_2_34 with Qt 6.12: Python 3.10 to 3.15 on
   glibc >= 2.34 (Ubuntu 22.04+, Debian 12+, RHEL 9+...). pip chooses: the
