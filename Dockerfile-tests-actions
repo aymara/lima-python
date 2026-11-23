@@ -14,6 +14,8 @@ FROM python:${TEST_PYTHON_VERSION}
 
 ARG LIMA_PYTHON_VERSION
 ARG PYTHON_WHEEL_VERSION
+# The wheel's manylinux base (its file name)
+ARG MANYLINUX=manylinux_2_28
 
 # The models release to test with (a tag of the aymaralima/deeplima Hugging
 # Face repository; default: the one aymara.lima_models names)
@@ -23,8 +25,8 @@ ENV LIMA_MODELS_REVISION=${LIMA_MODELS_REVISION}
 RUN pip install -U pip
 RUN pip install pytest pytest-cov pytest-runner pytest-depends
 
-COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl /
-RUN pip install /aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-manylinux_2_28_x86_64.whl
+COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl /
+RUN pip install /aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl
 RUN install -d /lima-python
 # test_aymara.py analyzes with this model (named by its udlang)
 RUN lima_models -i eng-UD_English-EWT

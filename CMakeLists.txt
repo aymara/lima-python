@@ -118,7 +118,15 @@ set(_site_packages "/opt/_internal/cpython-$ENV{PYTHON_FULL_VERSION}/lib/python$
 set(shiboken_module_path "${_site_packages}/shiboken6")
 set(shiboken_generator_path "/opt/_internal/cpython-$ENV{PYTHON_FULL_VERSION}/bin")
 set(python_include_dir "${PYTHON_INCLUDE_DIR}")
-set(shiboken_include_dir "${_site_packages}/shiboken6_generator/include")
+# The headers are in the generator package up to Qt 6.9, in the shiboken6
+# package (include/shiboken6) since Qt 6.10
+find_path(shiboken_include_dir shiboken.h NO_DEFAULT_PATH PATHS
+  "${_site_packages}/shiboken6_generator/include"
+  "${_site_packages}/shiboken6/include/shiboken6"
+  "${_site_packages}/shiboken6/include")
+if(NOT shiboken_include_dir)
+  message(FATAL_ERROR "shiboken.h not found under ${_site_packages}")
+endif()
 set(shiboken_shared_libraries "${_site_packages}/shiboken6/libshiboken6.abi3.so.${_qt_major_minor}")
 set(pyside_link "${_site_packages}/PySide6/libpyside6.abi3.so.${_qt_major_minor}")
 # pyside_config(--shiboken-module-path shiboken_module_path)
@@ -245,6 +253,9 @@ add_library(${bindings_library} MODULE ${${bindings_library}_sources})
 target_include_directories(${bindings_library} PRIVATE ${python_include_dir})
 target_include_directories(${bindings_library} PRIVATE ${PYSIDE6_DIR}/include/)
 target_include_directories(${bindings_library} PRIVATE ${PYSIDE6_DIR}/include/QtCore)
+# Since Qt 6.10, PySide6's own headers are in include/PySide6
+target_include_directories(${bindings_library} PRIVATE ${PYSIDE6_DIR}/include/PySide6)
+target_include_directories(${bindings_library} PRIVATE ${PYSIDE6_DIR}/include/PySide6/QtCore)
 target_include_directories(${bindings_library} PRIVATE ${shiboken_include_dir})
 target_include_directories(${bindings_library} PRIVATE ${CMAKE_SOURCE_DIR})
 

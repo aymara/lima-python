@@ -1,5 +1,9 @@
 ## Unreleased
 
+* A second Linux wheel, manylinux_2_34 with Qt 6.12: Python 3.10 to 3.15 on
+  glibc >= 2.34 (Ubuntu 22.04+, Debian 12+, RHEL 9+...). pip chooses: the
+  manylinux_2_28 wheel (Qt 6.9, Python 3.9 to 3.13) remains for older systems
+  and Python 3.9
 * LIMA without its legacy rule-based pipelines (deprecated, aymara/lima#211): the
   whole analysis uses the deeplima backend
 * `Lima()` defaults to `ud-eng` and the `deepud` pipeline (was `fre,eng` and
