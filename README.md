@@ -15,7 +15,13 @@ For more information, detailed installation instructions and documentation, plea
 
 LIMA python bindings are currently available **under Linux only** (x86_64).
 
-Under Linux with python >= 3.7 and < 4, and **upgraded pip**:
+Under Linux with Python >= 3.9 and an **upgraded pip**, which picks the right
+one of the two wheels of each release:
+
+| Wheel | Qt | Python | Systems |
+| --- | --- | --- | --- |
+| `manylinux_2_34` | 6.12 | 3.10 to 3.15 | glibc >= 2.34 (Ubuntu 22.04+, Debian 12+, RHEL 9+...) |
+| `manylinux_2_28` | 6.9 | 3.9 to 3.13 | glibc >= 2.28 (older systems, and Python 3.9) |
 
 
 ```bash
@@ -50,9 +56,6 @@ and models available). Check the [language models documentation](https://aymara.
 $ lima <utf-8 text file to analyze>
 # OR
 $ python
-Python 3.8.10 (default, Nov 26 2021, 20:14:08)
-[GCC 9.3.0] on linux
-Type "help", "copyright", "credits" or "license" for more information.
 >>> import aymara.lima
 >>> l = aymara.lima.Lima("ud-eng")
 >>> r = l.analyzeText("The author wrote a novel.", lang="ud-eng")
@@ -70,6 +73,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 Note that some error messages could be displayed during the Lima object instantiation. If you get a valid result, you can ignore them. Most of them are debug messages that will be removed in a later version.
+
+Create a `Lima` analyzer once and reuse it: initialization loads the models,
+and an analyzer with a neural pipeline (`deepud`) uses about 3 GB of memory. Up
+to aymara 0.7.1, this memory is not freed when the analyzer is deleted, so
+avoid creating several in one process. From the next version, deleting the last
+analyzer of a language frees its models.
 
 For French, use `ud-fra` (after `lima_models -i fra`). The `deepud` pipeline of
 `ud-eng` and `ud-fra` also recognizes named entities (persons, locations,
@@ -101,21 +110,30 @@ To configure finely LIMA for your needs, follow the same instructions as for the
 
 ## Building the wheel
 
-Use docker using the `gbuild-manylinux_2_28.sh` script:
+The CI (`.github/workflows/build-qt6.yml`) builds both wheels, on the LIMA
+images of the same configuration (built by aymara/lima's own `build-qt6.yml`):
+
+- `manylinux_2_28`, Qt 6.9.3, built with Python 3.9 (`cp39-abi3`), tested on
+  Python 3.9 and 3.13;
+- `manylinux_2_34`, Qt 6.12.0, built with Python 3.10 (`cp310-abi3`), tested on
+  Python 3.10 and 3.15.
+
+The wheels of the `master` branch are published in the
+[`continuous` prerelease](https://github.com/aymara/lima-python/releases/tag/continuous).
+
+To build the `manylinux_2_28` wheel locally, with Docker:
 
 ```bash
 ./gbuild-manylinux_2_28.sh
 ```
 
-## Deploying the wheel
+## Releasing
 
-Use Twine (`pip install twine`) to deploy the whell to PyPI with the help of the `deploy-manylinux_2_28.sh` script.
+The version is set in `aymara/version.py` only. Update it and `CHANGES.md`, then
+push a `v<version>` tag (e.g. `v0.7.1`): the CI builds and tests both wheels and
+publishes them to PyPI. The tag must match `aymara/version.py`.
 
-```bash
-./deploy-manylinux_2_28.sh
-```
-
-# Developper Notes
+# Developer Notes
 To see the wheels accepted on current system:
 
 ```

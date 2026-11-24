@@ -1,5 +1,12 @@
 ## Unreleased
 
+* Multiword tokens: a token the tokenizer flags as multiword but missing from
+  the language's dictionary is split by affix rules learned from that
+  dictionary (LIMA, aymara/lima#217): more correct words and dependencies in
+  Amharic, Tamil, Marathi, Arabic, Polish... The rules are stored in the
+  tokenizer's `.mwt` file, which the v0.3.0 models have without rules: they
+  need a models release that includes them
+
 * Memory: deleting a `Lima` instance frees its models (about 3 GB for a deepud
   analyzer) once no other instance uses its language, and creating a new
   instance of a language replaces the models of the previous one instead of
