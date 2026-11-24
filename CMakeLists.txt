@@ -32,6 +32,11 @@ set(CMAKE_PREFIX_PATH
 )
 
 add_definitions(-D QT_NO_KEYWORDS)
+if (MSVC)
+  # As LIMA itself is built (see LIMA's SetCompilerFlags.cmake)
+  add_compile_options(/utf-8 /bigobj /EHsc)
+  add_compile_definitions(NOMINMAX BOOST_ALL_NO_LIB BOOST_ALL_DYN_LINK)
+endif()
 include(${CMAKE_SOURCE_DIR}/manageQt.cmake)
 addQtModules(Core Xml Test Qml Quick QuickTest Gui Widgets)
 
@@ -107,17 +112,42 @@ set(PYSIDE6_DIR ${Python3_SITELIB}/PySide6)
 #     endif()
 # endmacro()
 
-# The Python and Qt of the build (the manylinux image's environment)
-foreach(_var PYTHON_FULL_VERSION PYTHON_VERSION QT_FULL_VERSION)
-  if("$ENV{${_var}}" STREQUAL "")
-    message(FATAL_ERROR "${_var} is not set in the environment")
-  endif()
-endforeach()
-string(REGEX MATCH "^[0-9]+\\.[0-9]+" _qt_major_minor "$ENV{QT_FULL_VERSION}")
+# The Python, shiboken and PySide of the build. In the manylinux build image
+# they are at fixed locations; elsewhere (Windows, macOS) they are queried from
+# the Python interpreter running the build.
 set(_site_packages "/opt/_internal/cpython-$ENV{PYTHON_FULL_VERSION}/lib/python$ENV{PYTHON_VERSION}/site-packages")
-set(shiboken_module_path "${_site_packages}/shiboken6")
-set(shiboken_generator_path "/opt/_internal/cpython-$ENV{PYTHON_FULL_VERSION}/bin")
-set(python_include_dir "${PYTHON_INCLUDE_DIR}")
+if (NOT WIN32 AND NOT APPLE)
+  foreach(_var PYTHON_FULL_VERSION PYTHON_VERSION QT_FULL_VERSION)
+    if("$ENV{${_var}}" STREQUAL "")
+      message(FATAL_ERROR "${_var} is not set in the environment")
+    endif()
+  endforeach()
+  string(REGEX MATCH "^[0-9]+\\.[0-9]+" _qt_major_minor "$ENV{QT_FULL_VERSION}")
+  set(shiboken_module_path "${_site_packages}/shiboken6")
+  set(shiboken_generator_path "/opt/_internal/cpython-$ENV{PYTHON_FULL_VERSION}/bin")
+  set(python_include_dir "${PYTHON_INCLUDE_DIR}")
+  set(shiboken_shared_libraries "${_site_packages}/shiboken6/libshiboken6.abi3.so.${_qt_major_minor}")
+  set(pyside_link "${_site_packages}/PySide6/libpyside6.abi3.so.${_qt_major_minor}")
+  set(shiboken_path "${shiboken_generator_path}/shiboken6")
+else()
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_paths()['purelib'])"
+    OUTPUT_VARIABLE _site_packages OUTPUT_STRIP_TRAILING_WHITESPACE)
+  file(TO_CMAKE_PATH "${_site_packages}" _site_packages)
+  set(PYSIDE6_DIR ${_site_packages}/PySide6)
+  set(shiboken_module_path "${_site_packages}/shiboken6")
+  set(python_include_dir "${Python3_INCLUDE_DIRS}")
+  find_program(shiboken_path NAMES shiboken6 NO_DEFAULT_PATH
+    PATHS "${_site_packages}/shiboken6_generator")
+  if (WIN32)
+    set(shiboken_shared_libraries "${_site_packages}/shiboken6/shiboken6.abi3.lib")
+    set(pyside_link "${_site_packages}/PySide6/pyside6.abi3.lib")
+  else()
+    file(GLOB shiboken_shared_libraries "${_site_packages}/shiboken6/libshiboken6.abi3.*.dylib")
+    file(GLOB pyside_link "${_site_packages}/PySide6/libpyside6.abi3.*.dylib")
+  endif()
+endif()
+message(STATUS "shiboken site-packages: ${_site_packages}")
 # The headers are in the generator package up to Qt 6.9, in the shiboken6
 # package (include/shiboken6) since Qt 6.10
 find_path(shiboken_include_dir shiboken.h NO_DEFAULT_PATH PATHS
@@ -127,17 +157,7 @@ find_path(shiboken_include_dir shiboken.h NO_DEFAULT_PATH PATHS
 if(NOT shiboken_include_dir)
   message(FATAL_ERROR "shiboken.h not found under ${_site_packages}")
 endif()
-set(shiboken_shared_libraries "${_site_packages}/shiboken6/libshiboken6.abi3.so.${_qt_major_minor}")
-set(pyside_link "${_site_packages}/PySide6/libpyside6.abi3.so.${_qt_major_minor}")
-# pyside_config(--shiboken-module-path shiboken_module_path)
-# pyside_config(--shiboken-generator-path shiboken_generator_path)
-# pyside_config(--python-include-path python_include_dir)
-# pyside_config(--shiboken-generator-include-path shiboken_include_dir 1)
-# pyside_config(--shiboken-module-shared-libraries-cmake shiboken_shared_libraries 0)
-# pyside_config(--pyside-shared-libraries-cmake pyside_link 0)
-#
-set(shiboken_path "${shiboken_generator_path}/shiboken6")
-if(NOT EXISTS ${shiboken_path})
+if(NOT EXISTS "${shiboken_path}")
     message(FATAL_ERROR "Shiboken executable not found at path: ${shiboken_path}")
 endif()
 
@@ -146,9 +166,33 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH ${shiboken_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${QtCore_libdir})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+# On Windows, only link the LIMA libraries that have an import library: the
+# plugins exporting no symbols have none (and are not needed at link time).
+# _scope is PUBLIC/PRIVATE/INTERFACE, or NONE for the plain signature.
+macro(lima_link_libraries _target _scope)
+  if ("${_scope}" STREQUAL "NONE")
+    set(_kw "")
+  else()
+    set(_kw ${_scope})
+  endif()
+  if (WIN32)
+    set(_libs "")
+    foreach(_lib ${ARGN})
+      if (TARGET ${_lib} OR EXISTS "${LIMACOMMON_LIBRARY_DIRS}/${_lib}.lib")
+        list(APPEND _libs ${_lib})
+      elseif (NOT _lib MATCHES "^(lima-|fasttext|svmtool$|xcb$|torch)")
+        list(APPEND _libs ${_lib})
+      endif()
+    endforeach()
+    target_link_libraries(${_target} ${_kw} ${_libs})
+  else()
+    target_link_libraries(${_target} ${_kw} ${ARGN})
+  endif()
+endmacro()
+
 set(${sample_library}_sources lima.cpp Doc.cpp Span.cpp Token.cpp)
 add_library(${sample_library} SHARED ${${sample_library}_sources})
-target_link_libraries(${sample_library}
+lima_link_libraries(${sample_library} NONE
     fasttext-lima
     lima-common-datahandler
     lima-common-data
@@ -166,6 +210,7 @@ target_link_libraries(${sample_library}
     lima-lp-analysisdict
     lima-lp-analysisdumpers
     lima-lp-analysishandlers
+    lima-lp-annotationgraph
     lima-lp-applyrecognizer
     lima-lp-automatoncompiler
     lima-lp-automaton
@@ -227,6 +272,7 @@ set(shiboken_options --generator-set=shiboken
     ${lib_includes}
     -I${CMAKE_SOURCE_DIR}
     -I/opt/lima/include/
+    -I${LIMACOMMON_INCLUDE_DIR}
     -I/opt/qt6/include/
     -I/opt/qt6/include/QtCore
     -T${CMAKE_SOURCE_DIR}
@@ -262,7 +308,7 @@ target_include_directories(${bindings_library} PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(${bindings_library} PRIVATE ${shiboken_shared_libraries})
 target_link_libraries(${bindings_library} PRIVATE ${sample_library})
 target_link_libraries(${bindings_library} PRIVATE ${pyside_link})
-target_link_libraries(${bindings_library} PRIVATE
+lima_link_libraries(${bindings_library} PRIVATE
     fasttext-lima
     lima-common-data
     lima-common-datahandler
@@ -332,6 +378,13 @@ target_link_libraries(${bindings_library} PRIVATE
 set_property(TARGET ${bindings_library} PROPERTY PREFIX "")
 set_property(TARGET ${bindings_library} PROPERTY OUTPUT_NAME
              "${bindings_library}${PYTHON_EXTENSION_SUFFIX}")
+if (WIN32)
+  set_property(TARGET ${bindings_library} PROPERTY SUFFIX ".pyd")
+  # A real abi3 module: the stable ABI makes pyconfig.h link python3.lib
+  # instead of python3XY.lib, so the module loads with any Python >= 3.10.
+  target_compile_definitions(${bindings_library} PRIVATE Py_LIMITED_API=0x030A0000)
+  target_link_directories(${bindings_library} PRIVATE ${Python3_LIBRARY_DIRS})
+endif()
 
 
 #set(site_packages "${Python3_SITELIB}")
@@ -342,10 +395,31 @@ install(FILES aymara/lima.py aymara/lima_models.py aymara/deeplima_models.py DES
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
 install(FILES ${LIB_FILES} DESTINATION aymaralima)
 
+if (WIN32)
+  # liblimabinding.dll is vendored by delvewheel with the other DLLs (from the
+  # build directory): delvewheel can only rename the dependencies of the DLLs it
+  # vendors, and the third-party DLLs must be renamed (e.g. so as not to clash
+  # with the torch_cpu.dll of PyTorch in the same process).
+  install(TARGETS ${bindings_library}
+          LIBRARY DESTINATION aymaralima
+          RUNTIME DESTINATION aymaralima
+          )
+else()
 install(TARGETS ${bindings_library} ${sample_library}
         LIBRARY DESTINATION aymaralima
         RUNTIME DESTINATION aymaralima
         )
+endif()
+
+if (WIN32)
+  # The DLLs (LIMA's, unmangled as its plugins are loaded by name, and the
+  # third-party ones) are vendored by delvewheel. Configuration and resources
+  # as in the Linux wheel.
+  get_filename_component(_lima_prefix "${LIMACOMMON_INCLUDE_DIR}" DIRECTORY)
+  install(DIRECTORY "${_lima_prefix}/share/config/lima/" DESTINATION aymaralima/config)
+  install(DIRECTORY "${_lima_prefix}/share/apps/lima/resources/" DESTINATION aymaralima/resources)
+  install(FILES aymaralima_init_windows.py DESTINATION aymaralima RENAME __init__.py)
+endif()
 
 
 

@@ -28,6 +28,16 @@ if PYTHON_VERSION == "3.6" or PYTHON_VERSION == "3.7":
 library_dir = f"/opt/python/{PYTHON_SHORT_VERSION}/lib/python{PYTHON_VERSION}"
 
 
+cmake_args = ['-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DCMAKE_GENERATOR=Ninja']
+if sys.platform.startswith("linux"):
+    # The manylinux build image's Python (elsewhere, CMake finds the Python
+    # running this script)
+    cmake_args += [f"-DPython3_INCLUDE_DIR={include_dir}",
+                   f"-DPython3_LIBRARY={library_dir}"]
+else:
+    cmake_args += [f"-DPython3_EXECUTABLE={sys.executable}"]
+
+
 def package_files(directory):
     paths = []
     for (path, directories, filenames) in os.walk(directory):
@@ -63,6 +73,7 @@ setup(
         "Programming Language :: Python :: 3.15",
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
+        "Operating System :: Microsoft :: Windows",
     ],
     # The same for all the wheels of a version: PyPI keeps one Requires-Python
     # per version, the first uploaded wheel's (0.7.0 got >=3.10 from the
@@ -95,10 +106,7 @@ setup(
     setup_requires=['cmake', 'pytest', 'pytest-cov', 'pytest-runner', 'pytest-depends'],
     tests_require=['pytest', 'pytest-cov', 'pytest-depends', 'sphinx-test-reports',
                    'pyconll', 'pydantic', f'shiboken6=={QT_FULL_VERSION}'],
-    cmake_args=['-DCMAKE_BUILD_TYPE=RelWithDebInfo',
-                '-DCMAKE_GENERATOR=Ninja',
-                f"-DPython3_INCLUDE_DIR={include_dir}",
-                f"-DPython3_LIBRARY={library_dir}"],
+    cmake_args=cmake_args,
     scripts=['aymara/lima_models.py', 'aymara/deeplima_models.py', 'aymara/lima.py', ],
     entry_points={
         'console_scripts': [

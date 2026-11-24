@@ -47,7 +47,8 @@ macro(addQtModules)
 
       get_target_property(QtModule_location Qt${QT_VERSION_MAJOR}::${_module} LOCATION)
 
-      if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+      # In the Python wheel, delvewheel vendors the Qt DLLs: nothing to install here
+      if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND DEFINED LIB_INSTALL_DIR)
         install(FILES ${QtModule_location}
                 DESTINATION ${LIB_INSTALL_DIR}
                 COMPONENT runtime)
