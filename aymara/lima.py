@@ -46,25 +46,16 @@ import aymaralima.cpplima
 
 def _get_data_dir(appname: str):
     """
-    This private function returns the application's data dir as defined by the OS.
+    This private function returns the user data dir of LIMA (and of the models).
 
     :param appname: the name of the application.
     :type appname: str
     :return: the application's data dir.
     :rtype: str
     """
-    if sys.platform == "win32":  # pragma: no cover
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
-        )
-        dir_, _ = winreg.QueryValueEx(key, "Local AppData")
-        ans = pathlib.Path(dir_).resolve(strict=False)
-    elif sys.platform == 'darwin':  # pragma: no cover
-        ans = pathlib.Path('~/Library/Application Support/').expanduser()
-    else:
-        ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
+    # The same directory as the one LIMA itself reads (getDataHome in its
+    # FileUtils.cpp) and lima_models installs the models in, on all platforms
+    ans = pathlib.Path(os.getenv('XDG_DATA_HOME', "~/.local/share")).expanduser()
     return ans.joinpath(appname)
 
 
