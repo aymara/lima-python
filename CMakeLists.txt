@@ -395,10 +395,21 @@ install(FILES aymara/lima.py aymara/lima_models.py aymara/deeplima_models.py DES
 file(GLOB LIB_FILES ${PROJECT_SOURCE_DIR}/clib/lib/lib*.so*)
 install(FILES ${LIB_FILES} DESTINATION aymaralima)
 
+if (WIN32)
+  # liblimabinding.dll is vendored by delvewheel with the other DLLs (from the
+  # build directory): delvewheel can only rename the dependencies of the DLLs it
+  # vendors, and the third-party DLLs must be renamed (e.g. so as not to clash
+  # with the torch_cpu.dll of PyTorch in the same process).
+  install(TARGETS ${bindings_library}
+          LIBRARY DESTINATION aymaralima
+          RUNTIME DESTINATION aymaralima
+          )
+else()
 install(TARGETS ${bindings_library} ${sample_library}
         LIBRARY DESTINATION aymaralima
         RUNTIME DESTINATION aymaralima
         )
+endif()
 
 if (WIN32)
   # The DLLs (LIMA's, unmangled as its plugins are loaded by name, and the

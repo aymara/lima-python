@@ -59,6 +59,7 @@
 #include "Span.h"
 #include "Token.h"
 #include "common/AbstractFactoryPattern/AmosePluginsManager.h"
+#include "common/AbstractFactoryPattern/DynamicLibrariesManager.h"
 #include "common/LimaCommon.h"
 #include "common/LimaVersion.h"
 #include "common/Data/strwstrtools.h"
@@ -351,6 +352,11 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   QsLogging::initQsLog(configPath);
   // std::cerr << "QsLog initialized" << std::endl;
   // Necessary to initialize factories
+  // The plugins that no other library uses are in the package directory
+  // (on Windows; see scripts/prepare_wheel_windows.py), the other ones next to the LIMA
+  // libraries (found by DynamicLibrariesManager itself).
+  Lima::Common::DynamicLibrariesManager::changeable().addSearchPath(
+    modulePath.toStdString());
   Lima::AmosePluginsManager::single();
   // std::cerr << "LimaAnalyzerPrivate::LimaAnalyzerPrivate() plugins manager created" << std::endl;
   if (!Lima::AmosePluginsManager::changeable().loadPlugins(configPath))
