@@ -167,7 +167,8 @@ set(CMAKE_INSTALL_RPATH ${shiboken_module_path} ${CMAKE_CURRENT_SOURCE_DIR} ${Qt
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # On Windows, only link the LIMA libraries that have an import library: the
-# plugins exporting no symbols have none (and are not needed at link time).
+# plugins exporting no symbols have none (and are not needed at link time). On
+# Windows and macOS, the Linux-only libraries (xcb, svmtool...) are skipped.
 # _scope is PUBLIC/PRIVATE/INTERFACE, or NONE for the plain signature.
 macro(lima_link_libraries _target _scope)
   if ("${_scope}" STREQUAL "NONE")
@@ -175,10 +176,16 @@ macro(lima_link_libraries _target _scope)
   else()
     set(_kw ${_scope})
   endif()
-  if (WIN32)
+  if (WIN32 OR APPLE)
+    if (WIN32)
+      set(_libfmt "<name>.lib")
+    else()
+      set(_libfmt "lib<name>.dylib")
+    endif()
     set(_libs "")
     foreach(_lib ${ARGN})
-      if (TARGET ${_lib} OR EXISTS "${LIMACOMMON_LIBRARY_DIRS}/${_lib}.lib")
+      string(REPLACE "<name>" "${_lib}" _libfile "${_libfmt}")
+      if (TARGET ${_lib} OR EXISTS "${LIMACOMMON_LIBRARY_DIRS}/${_libfile}")
         list(APPEND _libs ${_lib})
       elseif (NOT _lib MATCHES "^(lima-|fasttext|svmtool$|xcb$|torch)")
         list(APPEND _libs ${_lib})
@@ -384,6 +391,16 @@ if (WIN32)
   # instead of python3XY.lib, so the module loads with any Python >= 3.10.
   target_compile_definitions(${bindings_library} PRIVATE Py_LIMITED_API=0x030A0000)
   target_link_directories(${bindings_library} PRIVATE ${Python3_LIBRARY_DIRS})
+elseif (APPLE)
+  # A real abi3 module, not linked with a given Python (its symbols are
+  # resolved in the interpreter loading it)
+  set_property(TARGET ${bindings_library} PROPERTY SUFFIX ".abi3.so")
+  target_compile_definitions(${bindings_library} PRIVATE Py_LIMITED_API=0x030A0000)
+  target_link_options(${bindings_library} PRIVATE -undefined dynamic_lookup)
+  # The vendored libraries are next to the module; libshiboken6 comes from
+  # the shiboken6 package
+  set_property(TARGET ${bindings_library} APPEND PROPERTY INSTALL_RPATH
+               "@loader_path" "@loader_path/../shiboken6")
 endif()
 
 
@@ -411,13 +428,16 @@ install(TARGETS ${bindings_library} ${sample_library}
         )
 endif()
 
-if (WIN32)
-  # The DLLs (LIMA's, unmangled as its plugins are loaded by name, and the
-  # third-party ones) are vendored by delvewheel. Configuration and resources
-  # as in the Linux wheel.
+if (WIN32 OR APPLE)
+  # The libraries are vendored by delvewheel (Windows: LIMA's DLLs unmangled,
+  # as its plugins are loaded by name, and the third-party ones) or by
+  # scripts/prepare_wheel_macos.py (macOS). Configuration and resources as in
+  # the Linux wheel.
   get_filename_component(_lima_prefix "${LIMACOMMON_INCLUDE_DIR}" DIRECTORY)
   install(DIRECTORY "${_lima_prefix}/share/config/lima/" DESTINATION aymaralima/config)
   install(DIRECTORY "${_lima_prefix}/share/apps/lima/resources/" DESTINATION aymaralima/resources)
+endif()
+if (WIN32)
   install(FILES aymaralima_init_windows.py DESTINATION aymaralima RENAME __init__.py)
 endif()
 

@@ -10,7 +10,6 @@ the others are vendored (unrenamed, --no-mangle) as dependencies.
 
 Usage: prepare_wheel.py <wheel> <LIMA bin dir> <dir of liblimabinding.dll> <out dir>
 """
-import os
 import pathlib
 import shutil
 import subprocess
@@ -43,5 +42,6 @@ with tempfile.TemporaryDirectory() as tmp:
     for p in leaves:
         shutil.copy2(p, root / "aymaralima" / p.name)
     outdir.mkdir(parents=True, exist_ok=True)
-    subprocess.run([sys.executable, "-m", "wheel", "pack", "-d", str(outdir), str(root)],
-                   check=True)
+    subprocess.run(
+        [sys.executable, "-m", "wheel", "pack", "-d", str(outdir), str(root)],
+        check=True)
