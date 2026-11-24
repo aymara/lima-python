@@ -313,6 +313,10 @@ jobs:
           if (-not $boostVersion) { throw "Boost headers not found in vcpkg's installed tree" }
           $include = $boostVersion.Directory.Parent.FullName
           Write-Host "Boost and ICU headers in $include"
+          # shiboken's parser (libclang) must not use the headers of another clang
+          # (e.g. Visual Studio's Clang 19: "undeclared __builtin_ia32_..."):
+          # build without any clang in the PATH, as on a plain Build Tools install
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '\\Llvm\\|\\LLVM\\' }) -join ';'
           ./scripts/build-wheel-windows.ps1 -LimaDist $env:LIMA_DIST `
             -QtDir "$env:DEPS\Qt\$env:QT_VERSION\msvc2022_64" `
             -ExtraInclude $include -OutDir dist-windows
