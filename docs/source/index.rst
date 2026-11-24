@@ -28,7 +28,9 @@ TL;DR
 
 LIMA python bindings are currently available **under Linux only** (x86_64).
 
-Under Linux with python >= 3.7 and < 4, and **upgraded pip**:
+Under Linux with Python >= 3.9 and an **upgraded pip**, which picks the right
+wheel: ``manylinux_2_34`` (Qt 6.12, Python 3.10 to 3.15, glibc >= 2.34) or
+``manylinux_2_28`` (Qt 6.9, Python 3.9 to 3.13, glibc >= 2.28).
 
 Upgrading pip is fundamental in order to obtain the correct LIMA version
 
@@ -36,7 +38,7 @@ Upgrading pip is fundamental in order to obtain the correct LIMA version
 
    $ pip install --upgrade pip
    $ pip install aymara
-   $ lima_models -l eng
+   $ lima_models -i eng
 
 Either simply use the lima command to produce an analysis of a file in CoNLLU format:
 

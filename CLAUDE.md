@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Python bindings for **LIMA**, a multilingual linguistic analyzer written in C++/Qt by CEA LIST. The package is published on PyPI as **`aymara`** (the import name is also `aymara`). It is **Linux x86_64 only**, Python >=3.7,<4.
+Python bindings for **LIMA**, a multilingual linguistic analyzer written in C++/Qt by CEA LIST. The package is published on PyPI as **`aymara`** (the import name is also `aymara`). It is **Linux x86_64 only**, Python >=3.9, with two wheels per release: `manylinux_2_28` (Qt 6.9.3, `cp39-abi3`, Python 3.9-3.13) and `manylinux_2_34` (Qt 6.12.0, `cp310-abi3`, Python 3.10-3.15). `python_requires` must stay the constant `>=3.9`: PyPI keeps one Requires-Python per version, the one of the first wheel uploaded.
 
 The public Python API deliberately mirrors spaCy (`Lima` ≈ `nlp`, `Doc`, `Span`, `Token`), including parts of its documentation.
 
@@ -20,9 +20,9 @@ So the dependency direction is: user code → `aymara.lima` (Python) → `aymara
 
 ### Models are separate from code
 LIMA ships **no language models** in the wheel. Users download them at runtime:
-- `aymara/lima_models.py` (`lima_models` console script) — legacy + UD pipeline models.
-- `aymara/deeplima_models.py` (`deeplima_models` console script) — experimental deeplima models.
-Language naming: the media are `ud-eng`/`ud-fra`/`ud-<code>` (UD tagset, deeplima backend; `ud-eng`/`ud-fra` also run the ModEx named entities). The legacy codes `eng`/`fre`/`por` and pipelines (`main`...) are deprecated and no longer in the wheel: `aymara.lima` maps them to `ud-eng`/`ud-fra`/`ud-por` and `deepud` (`_media`, `_pipeline`) with a DeprecationWarning. One deeplima model (`udlang`) per `Lima` instance.
+- `aymara/lima_models.py` (`lima_models` console script) — installs the deeplima models of a Hugging Face release (aymaralima/deeplima, tag `MODELS_REVISION`) from its `models.json` manifest. Stdlib only, kept identical to LIMA's `DeepLimaUnits/scripts/lima_models.py`.
+- `aymara/deeplima_models.py` (`deeplima_models` console script) — former name, a synonym of `lima_models`.
+Language naming: the media are `ud-eng`/`ud-fra`/`ud-<code>` (UD tagset, deeplima backend; `ud-eng`/`ud-fra` also run the ModEx named entities). The legacy codes `eng`/`fre`/`por` and pipelines (`main`...) are deprecated and no longer in the wheel: `aymara.lima` maps them to `ud-eng`/`ud-fra`/`ud-por` and `deepud` (`_media`, `_pipeline`) with a DeprecationWarning. One deeplima model (`udlang`) per `Lima` instance. A deepud analyzer holds about 3 GB of models: `LimaAnalyzer` (`lima.cpp`, also present in LIMA's client, keep both in sync) counts the living analyzers of each media and calls `MediaProcessors::releaseMedia` when the last one is destroyed (needs a LIMA with that fix; before, nothing was ever freed).
 
 ### Console entry points (from setup.py)
 - `lima = aymara.lima:main`
@@ -37,7 +37,7 @@ pytest                      # full suite (configured via pytest.ini: tests/, -v,
 pytest tests/test_aymara.py # one file
 pytest tests/test_aymara.py::test_several_instances   # one test
 ```
-Note there are **two pytest configs** (`pytest.ini` and the `[tool.pytest.ini_options]` block in `pyproject.toml`) with different `addopts`; `pytest.ini` is the one that takes effect. Tests require an installed wheel **and** at least the `eng`/`fre`/UD models downloaded — they actually run the analyzer.
+Note there are **two pytest configs** (`pytest.ini` and the `[tool.pytest.ini_options]` block in `pyproject.toml`) with different `addopts`; `pytest.ini` is the one that takes effect. Tests require an installed wheel **and** the models the CI installs (`lima_models -i eng-UD_English-EWT` and `lima_models -i fra`, see `Dockerfile-tests-actions`) — they actually run the analyzer.
 
 ### Lint
 ```bash
@@ -52,16 +52,15 @@ isort .       # config in pyproject.toml
 ./gbuild-manylinux_2_28.sh   # Qt6 build: sources python_env_qt6.sh, builds in manylinux_2_28 container,
                              # copies the wheel out, pip-installs it, then runs pytest
 ```
-`python_env_qt6.sh` / `python_env.sh` set the Qt/PySide/Python version env vars consumed by the build. `gbuild.sh` is the older variant.
+`python_env_qt6.sh` / `python_env.sh` set the Qt/PySide/Python version env vars consumed by the build. `gbuild.sh` is the older variant. The script builds only the `manylinux_2_28` wheel.
 
-### Deploy
-```bash
-./deploy-manylinux_2_28.sh   # twine upload to PyPI
-```
+The CI (`.github/workflows/build-qt6.yml`) builds both wheels as a matrix (`Dockerfile-manylinux_2_28` with `MANYLINUX`/`MANYLINUX_TAG` build args), on the `aymara/lima-<manylinux>-qt<x.y>-python<v>` images of aymara/lima's own `build-qt6.yml` (it waits for that workflow on master), tests each on its oldest and newest Python (`Dockerfile-tests-actions`), and updates the `continuous` prerelease from master.
+
+### Release
+Bump `aymara/version.py`, add the `CHANGES.md` section, then push a `v<version>` tag: the CI checks that the tag matches the version, takes the release notes from `CHANGES.md` and publishes both wheels to PyPI (trusted publishing; the `pypi` job requires exactly 2 wheels). `deploy-manylinux_2_28.sh` (twine) is the former manual way.
 
 ## Working notes
 
 - **Version** lives in `aymara/version.py` (`__version__`); `python aymara/version.py` prints it and the build scripts rely on that.
 - When changing the Python API, edit `aymara/lima.py`. Changing the C++ surface (new methods on `LimaAnalyzer`/`Doc`/`Span`/`Token`) requires editing the matching `.cpp/.h` **and** `bindings.xml`, then rebuilding in the container.
-- The large `aymara-0.5.0b6-*.whl` checked into the repo root is a prebuilt artifact, not source.
 - README documents the user-facing install/usage flow and is the source of truth for supported platforms and the spaCy-derived license notice.
