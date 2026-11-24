@@ -313,10 +313,21 @@ jobs:
           if (-not $boostVersion) { throw "Boost headers not found in vcpkg's installed tree" }
           $include = $boostVersion.Directory.Parent.FullName
           Write-Host "Boost and ICU headers in $include"
-          # shiboken's parser (libclang) must not use the headers of another clang
-          # (e.g. Visual Studio's Clang 19: "undeclared __builtin_ia32_..."):
-          # build without any clang in the PATH, as on a plain Build Tools install
-          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '\\Llvm\\|\\LLVM\\' }) -join ';'
+          # shiboken's parser (libclang >= 20) must not use the built-in headers
+          # of an older clang (e.g. Visual Studio's Clang 19: "undeclared
+          # __builtin_ia32_..."): point it to the runner's LLVM if recent enough,
+          # else to no clang at all (as on a plain Build Tools install)
+          $llvm = "C:\Program Files\LLVM"
+          $major = 0
+          if (Test-Path "$llvm\bin\clang.exe") {
+              $v = & "$llvm\bin\clang.exe" --version | Select-Object -First 1
+              if ($v -match 'version (\d+)') { $major = [int]$Matches[1] }
+              Write-Host "Runner's LLVM: $v"
+          }
+          if ($major -ge 20) { $env:LLVM_INSTALL_DIR = $llvm }
+          else { $env:LLVM_INSTALL_DIR = (New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\no-llvm").FullName }
+          $env:CLANG_INSTALL_DIR = $env:LLVM_INSTALL_DIR
+          Write-Host "LLVM_INSTALL_DIR=$env:LLVM_INSTALL_DIR"
           ./scripts/build-wheel-windows.ps1 -LimaDist $env:LIMA_DIST `
             -QtDir "$env:DEPS\Qt\$env:QT_VERSION\msvc2022_64" `
             -ExtraInclude $include -OutDir dist-windows
