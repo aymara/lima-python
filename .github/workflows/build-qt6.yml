@@ -380,13 +380,139 @@ jobs:
           mkdir ../wheel-tests && cp -r tests pytest.ini ../wheel-tests/
           cd ../wheel-tests && python -m pytest -p no:cacheprovider tests
 
-  # The continuous prerelease follows master, with the three wheels; a version tag
+  # The macOS wheel (cp310-abi3, Apple Silicon, Qt 6.12.0) is built against the
+  # LIMA macOS package of aymara/lima's build-macos.yml (its "continuous"
+  # prerelease, updated on master), with scripts/build-wheel-macos.sh.
+  macos-wheel:
+    name: "Build the macOS wheel (arm64, Qt 6.12.0, Python 3.10)"
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      QT_VERSION: "6.12.0"
+      QT_BUILD: "6.12.0-0-202609280346"
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: "Version (aymara/version.py)"
+        run: echo "LIMA_PYTHON_VERSION=$(python3 aymara/version.py)" >> "$GITHUB_ENV"
+
+      - name: "Wait for aymara/lima's build-macos.yml on master"
+        if: github.event_name != 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          runs="repos/aymara/lima/actions/workflows/build-macos.yml/runs?branch=master&event=push&per_page=10"
+          while true; do
+            pending=$(gh api "$runs" --jq '[.workflow_runs[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)
+            [ "$pending" = "0" ] && break
+            echo "$pending LIMA macOS run(s) on master not completed yet, waiting..."
+            sleep 120
+          done
+
+      - name: "Download the LIMA macOS package"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download continuous -R aymara/lima -p 'lima-*-macos-arm64.tar.gz' -D lima-pkg
+          tar -xzf lima-pkg/*.tar.gz -C lima-pkg
+          echo "LIMA_DIST=$(ls -d "$PWD"/lima-pkg/lima-*-macos-arm64 | head -1)" >> "$GITHUB_ENV"
+
+      # LIMA's headers include Boost's and ICU's
+      - name: "Install Boost and ICU headers, 7-Zip (Homebrew)"
+        run: |
+          brew install boost icu4c@78 sevenzip
+          echo "EXTRA_INCLUDES=$(brew --prefix)/include $(brew --prefix icu4c@78)/include" >> "$GITHUB_ENV"
+
+      - name: "Cache Qt"
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-macos-qt${{ env.QT_VERSION }}
+
+      - name: "Download Qt (macOS: qtbase, qtdeclarative)"
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          qtv=${QT_VERSION//./}
+          base="https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt6_${qtv}/qt6_${qtv}/qt.qt6.${qtv}.clang_64/${QT_BUILD}"
+          qtdir="deps/Qt/$QT_VERSION/macos"
+          mkdir -p "$qtdir"
+          for m in qtbase qtdeclarative; do
+              curl -sSfL -o "$m.7z" "${base}${m}-MacOS-MacOS_26-Clang-MacOS-MacOS_26-X86_64-ARM64.7z"
+              7zz x -y "-o$qtdir" "$m.7z" > /dev/null
+              rm "$m.7z"
+          done
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: "Build requirements"
+        run: >-
+          python -m pip install setuptools wheel scikit-build cmake ninja
+          shiboken6==${{ env.QT_VERSION }}
+          shiboken6_generator==${{ env.QT_VERSION }}
+          PySide6_Essentials==${{ env.QT_VERSION }}
+
+      - name: "Build the self-contained wheel"
+        run: scripts/build-wheel-macos.sh "$LIMA_DIST" "deps/Qt/$QT_VERSION/macos" dist-macos $EXTRA_INCLUDES
+
+      - name: "Wheel name"
+        run: echo "WHEEL_NAME=$(basename dist-macos/*.whl)" >> "$GITHUB_ENV"
+
+      - name: "Upload the wheel"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.WHEEL_NAME }}
+          path: dist-macos
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
+
+  macos-tests:
+    name: "Test the macOS wheel on Python ${{ matrix.python }}"
+    runs-on: macos-15
+    needs: macos-wheel
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download the wheel
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: aymara-*-macosx_*.whl
+          merge-multiple: true
+      - name: "Install the wheel and the test requirements"
+        run: python -m pip install dist/*.whl pytest pytest-cov pytest-depends
+      - name: "Cache the models"
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/lima/resources
+          key: lima-models-macos-eng-EWT-fra
+      - name: "Install the models used by the tests"
+        run: |
+          lima_models -i eng-UD_English-EWT
+          lima_models -i fra
+      - name: "Run the tests (on the installed wheel, not the sources)"
+        run: |
+          mkdir ../wheel-tests && cp -r tests pytest.ini ../wheel-tests/
+          cd ../wheel-tests && python -m pytest -p no:cacheprovider tests
+
+  # The continuous prerelease follows master, with the four wheels; a version tag
   # gets its own release (job pypi). commit is the SHA: a tag name
   # (github.ref_name on a tag) is not a valid target_commitish (error 422)
   continuous:
     name: "Update the continuous prerelease"
     runs-on: ubuntu-latest
-    needs: [lima-python-tests, windows-tests]
+    needs: [lima-python-tests, windows-tests, macos-tests]
     if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     permissions:
       contents: write
@@ -415,7 +541,7 @@ jobs:
   pypi:
     name: "Publish the wheels to PyPI"
     runs-on: ubuntu-latest
-    needs: [lima-python-tests, windows-tests]
+    needs: [lima-python-tests, windows-tests, macos-tests]
     if: startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
@@ -442,10 +568,10 @@ jobs:
           path: dist
           pattern: aymara-${{ env.LIMA_PYTHON_VERSION }}-*.whl
           merge-multiple: true
-      - name: "The three wheels are there"
+      - name: "The four wheels are there"
         run: |
           ls -l dist
-          [ "$(ls dist/*.whl | wc -l)" -eq 3 ] || { echo "Expected 3 wheels" >&2; exit 1; }
+          [ "$(ls dist/*.whl | wc -l)" -eq 4 ] || { echo "Expected 4 wheels" >&2; exit 1; }
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
