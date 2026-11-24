@@ -210,13 +210,165 @@ jobs:
       - name: "Build image"
         run: docker build -f Dockerfile-tests-actions --build-arg MANYLINUX="${MANYLINUX}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg TEST_PYTHON_VERSION="${{ matrix.test_python }}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
 
-  # The continuous prerelease follows master, with both wheels; a version tag
+  # The Windows wheel (cp310-abi3, Qt 6.12.0) is built against the LIMA
+  # Windows package of aymara/lima's build-win.yml (its "continuous"
+  # prerelease, updated on master), with scripts/build-wheel-windows.ps1.
+  windows-wheel:
+    name: "Build the Windows wheel (Qt 6.12.0, Python 3.10)"
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      QT_VERSION: "6.12.0"
+      QT_BUILD: "6.12.0-0-202609280346"
+      PYTHON_WHEEL_VERSION: "cp310-abi3"
+      DEPS: ${{ github.workspace }}\deps
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: "Version (aymara/version.py)"
+        shell: bash
+        run: echo "LIMA_PYTHON_VERSION=$(python aymara/version.py)" >> "$GITHUB_ENV"
+
+      - name: "Wait for aymara/lima's build-win.yml on master"
+        if: github.event_name != 'repository_dispatch'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          runs="repos/aymara/lima/actions/workflows/build-win.yml/runs?branch=master&event=push&per_page=10"
+          while true; do
+            pending=$(gh api "$runs" --jq '[.workflow_runs[] | select(.status != "completed")] | length')
+            [ "$pending" = "0" ] && break
+            echo "$pending LIMA Windows run(s) on master not completed yet, waiting..."
+            sleep 120
+          done
+
+      - name: "Download the LIMA Windows package"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download continuous -R aymara/lima -p 'lima-*-win64.zip' -D lima-zip
+          7z x -y -olima-zip lima-zip/*.zip > /dev/null
+          echo "LIMA_DIST=$(cygpath -w "$(ls -d "$PWD"/lima-zip/lima-*-win64 | head -1)")" >> "$GITHUB_ENV"
+
+      - name: "Set up MSVC developer environment"
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: "Cache Qt"
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-qt${{ env.QT_VERSION }}
+
+      - name: "Download Qt (MSVC 2022 x64: qtbase, qtdeclarative)"
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $qtv = $env:QT_VERSION -replace '\.', ''
+          $base = "https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_$qtv/qt6_${qtv}_msvc2022_64/qt.qt6.$qtv.win64_msvc2022_64/$env:QT_BUILD"
+          $qtdir = "$env:DEPS\Qt\$env:QT_VERSION\msvc2022_64"
+          New-Item -ItemType Directory -Force $qtdir | Out-Null
+          foreach ($m in 'qtbase', 'qtdeclarative') {
+              Invoke-WebRequest -Uri "$base$m-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z" -OutFile "$m.7z"
+              7z x -y "-o$qtdir" "$m.7z" | Select-Object -Last 1
+              Remove-Item "$m.7z"
+          }
+
+      # LIMA's headers include Boost's and ICU's
+      - name: "Install Boost and ICU headers via vcpkg"
+        uses: johnwason/vcpkg-action@v6
+        with:
+          pkgs: >-
+            boost-regex boost-filesystem boost-program-options
+            boost-system boost-thread boost-test boost-iostreams
+            boost-serialization boost-spirit boost-graph boost-tuple
+            boost-algorithm boost-tokenizer boost-fusion boost-format
+            boost-foreach boost-process boost-any boost-functional
+            boost-lexical-cast boost-range boost-concept-check
+            boost-bind boost-smart-ptr icu
+          triplet: x64-windows-release
+          token: ${{ github.token }}
+          github-binarycache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: "Build requirements"
+        run: >-
+          python -m pip install setuptools wheel scikit-build cmake ninja
+          delvewheel pefile shiboken6==${{ env.QT_VERSION }}
+          shiboken6_generator==${{ env.QT_VERSION }}
+          PySide6_Essentials==${{ env.QT_VERSION }}
+
+      - name: "Build and repair the wheel"
+        shell: pwsh
+        run: |
+          $include = (Get-ChildItem -Recurse -Directory "${{ github.workspace }}\vcpkg\installed" -Filter include | Select-Object -First 1).FullName
+          ./scripts/build-wheel-windows.ps1 -LimaDist $env:LIMA_DIST `
+            -QtDir "$env:DEPS\Qt\$env:QT_VERSION\msvc2022_64" `
+            -ExtraInclude $include -OutDir dist-windows
+
+      - name: "Upload the wheel"
+        uses: actions/upload-artifact@v4
+        with:
+          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{ env.PYTHON_WHEEL_VERSION }}-win_amd64.whl
+          path: dist-windows
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
+
+  windows-tests:
+    name: "Test the Windows wheel on Python ${{ matrix.python }}"
+    runs-on: windows-2022
+    needs: windows-wheel
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest and the newest Python the abi3 wheel supports
+        python: ["3.10", "3.13"]
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download the wheel
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: aymara-*-win_amd64.whl
+          merge-multiple: true
+      - name: "Install the wheel and the test requirements"
+        shell: bash
+        run: python -m pip install dist/*.whl pytest pytest-cov pytest-depends
+      - name: "Cache the models"
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/lima/resources
+          key: lima-models-eng-EWT-fra
+      - name: "Install the models used by the tests"
+        run: |
+          lima_models -i eng-UD_English-EWT
+          lima_models -i fra
+      - name: "Run the tests (on the installed wheel, not the sources)"
+        shell: bash
+        run: |
+          mkdir ../wheel-tests && cp -r tests pytest.ini ../wheel-tests/
+          cd ../wheel-tests && python -m pytest -p no:cacheprovider tests
+
+  # The continuous prerelease follows master, with the three wheels; a version tag
   # gets its own release (job pypi). commit is the SHA: a tag name
   # (github.ref_name on a tag) is not a valid target_commitish (error 422)
   continuous:
     name: "Update the continuous prerelease"
     runs-on: ubuntu-latest
-    needs: lima-python-tests
+    needs: [lima-python-tests, windows-tests]
     if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     permissions:
       contents: write
@@ -245,7 +397,7 @@ jobs:
   pypi:
     name: "Publish the wheels to PyPI"
     runs-on: ubuntu-latest
-    needs: lima-python-tests
+    needs: [lima-python-tests, windows-tests]
     if: startsWith(github.ref, 'refs/tags/v')
     environment:
       name: pypi
@@ -272,10 +424,10 @@ jobs:
           path: dist
           pattern: aymara-${{ env.LIMA_PYTHON_VERSION }}-*.whl
           merge-multiple: true
-      - name: "Both wheels are there"
+      - name: "The three wheels are there"
         run: |
           ls -l dist
-          [ "$(ls dist/*.whl | wc -l)" -eq 2 ] || { echo "Expected 2 wheels" >&2; exit 1; }
+          [ "$(ls dist/*.whl | wc -l)" -eq 3 ] || { echo "Expected 3 wheels" >&2; exit 1; }
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
