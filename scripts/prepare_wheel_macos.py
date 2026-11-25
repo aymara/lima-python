@@ -100,9 +100,25 @@ with tempfile.TemporaryDirectory() as tmp:
         if not {"@loader_path", "@loader_path/"} & set(rpaths(binary)):
             run("install_name_tool", "-add_rpath", "@loader_path", str(binary))
 
+    # @rpath install names and references, whatever the LIMA installation has
+    # (absolute ones are those of the build machine)
+    machos = [p for p in pkg.rglob("*") if is_macho(p)]
+    for binary in machos:
+        args = []
+        if binary.suffix == ".dylib" or ".framework/" in str(binary):
+            args += ["-id", "@rpath/" + str(binary.relative_to(pkg))]
+        for dep in dependencies(binary):
+            if not dep.startswith("/") or dep.startswith(("/usr/lib/", "/System/")):
+                continue
+            framework = re.search(r"/([^/]+\.framework/.*)$", dep)
+            rel = framework.group(1) if framework else pathlib.Path(dep).name
+            if (pkg / rel).exists():
+                args += ["-change", dep, "@rpath/" + rel]
+        if args:
+            run("install_name_tool", *args, str(binary))
+
     # Sign again, and check that every dependency is found in the package
     problems = []
-    machos = [p for p in pkg.rglob("*") if is_macho(p)]
     for binary in machos:
         run("codesign", "--force", "-s", "-", str(binary))
         for dep in dependencies(binary):
