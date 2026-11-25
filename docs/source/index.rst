@@ -26,11 +26,14 @@ Indices and tables
 TL;DR
 =====
 
-LIMA python bindings are currently available **under Linux only** (x86_64).
+LIMA python bindings are available under Linux (x86_64), Windows (x64) and
+macOS (Apple Silicon).
 
-Under Linux with Python >= 3.9 and an **upgraded pip**, which picks the right
-wheel: ``manylinux_2_34`` (Qt 6.12, Python 3.10 to 3.15, glibc >= 2.34) or
-``manylinux_2_28`` (Qt 6.9, Python 3.9 to 3.13, glibc >= 2.28).
+With an **upgraded pip**, which picks the right wheel: under Linux with Python
+>= 3.9, ``manylinux_2_34`` (Qt 6.12, Python 3.10 to 3.15, glibc >= 2.34) or
+``manylinux_2_28`` (Qt 6.9, Python 3.9 to 3.13, glibc >= 2.28); ``win_amd64``
+(Windows 10/11 x64, Python >= 3.10); ``macosx_15_0_arm64`` (macOS >= 15 on
+Apple Silicon, Python >= 3.10).
 
 Upgrading pip is fundamental in order to obtain the correct LIMA version
 
