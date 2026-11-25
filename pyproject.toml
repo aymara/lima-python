@@ -47,3 +47,19 @@ xfail_strict = true
 filterwarnings = ["error"]
 log_cli_level = "info"
 testpaths = ["tests"]
+
+# Releases: `bumpver update --minor` (or --patch, --major), on master once
+# CHANGES.md has the new version's section: updates the version, commits, tags
+# it (e.g. 0.8.0) and pushes, which publishes the wheels to PyPI (CI, job pypi).
+[tool.bumpver]
+current_version = "0.7.1"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "aymara {new_version}"
+tag_message = "{new_version}"
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['current_version = "{version}"']
+"aymara/version.py" = ['__version__ = "{version}"']

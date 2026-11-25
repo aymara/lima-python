@@ -7,9 +7,10 @@
 The macOS LIMA installation is self-contained and relocatable (its lib/ has
 the third-party libraries too, referenced through @rpath, with @loader_path
 rpaths). Its libraries are copied flat into the aymaralima package:
-- each dylib once, under its install name (e.g. liblima-common-tools.3.dylib,
-  libc10.dylib): a wheel cannot contain symlinks, and LIMA loads its plugins
-  by name (the versioned name when the unversioned one is missing);
+- each dylib once, under the name it is referenced by (its soname, e.g.
+  liblima-common-tools.3.dylib, or its install name, e.g. libc10.dylib): a
+  wheel cannot contain symlinks, and LIMA loads its plugins by name (the
+  versioned name when the unversioned one is missing);
 - the Qt frameworks as their binary only (QtCore.framework/Versions/A/QtCore,
   the path they are referenced by);
 - libpyside6 from PySide6 (not a dependency of the wheel).
@@ -67,11 +68,18 @@ with tempfile.TemporaryDirectory() as tmp:
     root = next(pathlib.Path(tmp).iterdir())
     pkg = root / "aymaralima"
 
-    # The dylibs of the LIMA installation, under their install names
+    # The dylibs of the LIMA installation, under the names they are referenced
+    # by: the soname (lib<name>.<N>.dylib) when such a link to the file exists,
+    # else the install name
+    sonames = {}
+    for link in limalib.glob("*.dylib"):
+        if link.is_symlink() and re.fullmatch(r"lib.+\.\d+\.dylib", link.name):
+            sonames.setdefault(link.resolve(), link.name)
     for lib in sorted(limalib.glob("*.dylib")):
         if not is_macho(lib):
             continue
-        name = pathlib.Path(install_id(lib) or lib.name).name
+        name = sonames.get(lib.resolve(),
+                           pathlib.Path(install_id(lib) or lib.name).name)
         if not (pkg / name).exists():
             copy_library(lib, pkg / name)
     # The Qt frameworks: their binary only
