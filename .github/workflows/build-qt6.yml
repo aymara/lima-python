@@ -376,11 +376,16 @@ jobs:
         run: |
           lima_models -i eng-UD_English-EWT
           lima_models -i fra
+      # Without HOME, as in a normal Windows console (the runner sets it): the
+      # 0.8.0 wheel crashed without it (aymara/lima#227)
       - name: "Run the tests (on the installed wheel, not the sources)"
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir ../wheel-tests && cp -r tests pytest.ini ../wheel-tests/
-          cd ../wheel-tests && python -m pytest -p no:cacheprovider tests
+          New-Item -ItemType Directory ../wheel-tests | Out-Null
+          Copy-Item -Recurse tests, pytest.ini ../wheel-tests/
+          Remove-Item Env:HOME -ErrorAction SilentlyContinue
+          cd ../wheel-tests
+          python -m pytest -p no:cacheprovider tests
 
   # The macOS wheel (cp310-abi3, Apple Silicon, Qt 6.12.0) is built against the
   # LIMA macOS package of aymara/lima's build-macos.yml (its "continuous"
