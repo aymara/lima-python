@@ -1,9 +1,11 @@
-## Unreleased
+## 0.8.1 - 20261125
 
 * Windows: creating a `Lima` analyzer no longer crashes the interpreter when the
   `HOME` environment variable is not set, as in a normal Windows console
   (LIMA, aymara/lima#227). Workaround with 0.8.0: set `HOME`, e.g.
   `$env:HOME = $env:USERPROFILE` in PowerShell
+* macOS: the wheel no longer depends on the install names of the LIMA package
+  it is built against
 
 ## 0.8.0 - 20261125
 
