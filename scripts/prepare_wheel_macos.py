@@ -84,17 +84,20 @@ with tempfile.TemporaryDirectory() as tmp:
         if is_macho(lib):
             dest = pkg / pathlib.Path(install_id(lib) or lib.name).name
             copy_library(lib, dest)
-            for r in rpaths(dest):
-                run("install_name_tool", "-delete_rpath", r, str(dest))
-            run("install_name_tool", "-add_rpath", "@loader_path", str(dest))
+            # Its Qt is found next to it (it may already have "@loader_path/")
+            if not {"@loader_path", "@loader_path/"} & set(rpaths(dest)):
+                run("install_name_tool", "-add_rpath", "@loader_path", str(dest))
 
     # The module and liblimabinding: relative rpaths only
     bindings = list(pkg.glob("cpplima*.so")) + list(pkg.glob("liblimabinding*.dylib"))
     for binary in bindings:
-        for r in rpaths(binary):
+        # Absolute rpaths (the build's) are removed; an rpath listed twice can
+        # only be deleted once, hence no error check
+        for r in set(rpaths(binary)):
             if r.startswith("/"):
-                run("install_name_tool", "-delete_rpath", r, str(binary))
-        if "@loader_path" not in rpaths(binary):
+                subprocess.run(["install_name_tool", "-delete_rpath", r, str(binary)],
+                               capture_output=True)
+        if not {"@loader_path", "@loader_path/"} & set(rpaths(binary)):
             run("install_name_tool", "-add_rpath", "@loader_path", str(binary))
 
     # Sign again, and check that every dependency is found in the package
