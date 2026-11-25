@@ -142,9 +142,16 @@ To build the `manylinux_2_28` wheel locally, with Docker:
 
 ## Releasing
 
-The version is set in `aymara/version.py` only. Update it and `CHANGES.md`, then
-push a `v<version>` tag (e.g. `v0.8.0`): the CI builds and tests the four wheels
-and publishes them to PyPI. The tag must match `aymara/version.py`.
+The version is in `aymara/version.py` (and the `[tool.bumpver]` section of
+`pyproject.toml`), and is changed with [bumpver](https://github.com/mbarkhau/bumpver):
+
+1. Give the new version its section in `CHANGES.md` (merged on master): its
+   first section is the release notes.
+2. On an up-to-date master, `bumpver update --minor` (or `--patch`, `--major`;
+   `--dry` to see the changes first) updates the version, commits, tags
+   `v<version>` and pushes.
+3. The tag makes the CI build and test the four wheels and publish them to PyPI
+   and as a GitHub release. The tag must match `aymara/version.py`.
 
 # Developer Notes
 To see the wheels accepted on current system:
