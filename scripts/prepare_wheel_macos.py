@@ -75,11 +75,18 @@ with tempfile.TemporaryDirectory() as tmp:
     for link in limalib.glob("*.dylib"):
         if link.is_symlink() and re.fullmatch(r"lib.+\.\d+\.dylib", link.name):
             sonames.setdefault(link.resolve(), link.name)
+    # Other names (install name, file name) of each copied library -> its name
+    # in the package, to rewrite the references made with them (e.g. by
+    # liblimabinding, linked with the install names of the LIMA package)
+    aliases = {}
     for lib in sorted(limalib.glob("*.dylib")):
         if not is_macho(lib):
             continue
-        name = sonames.get(lib.resolve(),
-                           pathlib.Path(install_id(lib) or lib.name).name)
+        id_name = pathlib.Path(install_id(lib) or lib.name).name
+        name = sonames.get(lib.resolve(), id_name)
+        for alias in (id_name, lib.resolve().name):
+            if alias != name:
+                aliases[alias] = name
         if not (pkg / name).exists():
             copy_library(lib, pkg / name)
     # The Qt frameworks: their binary only
@@ -116,6 +123,9 @@ with tempfile.TemporaryDirectory() as tmp:
         if binary.suffix == ".dylib" or ".framework/" in str(binary):
             args += ["-id", "@rpath/" + str(binary.relative_to(pkg))]
         for dep in dependencies(binary):
+            if dep.startswith("@rpath/") and dep[len("@rpath/"):] in aliases:
+                args += ["-change", dep, "@rpath/" + aliases[dep[len("@rpath/"):]]]
+                continue
             if not dep.startswith("/") or dep.startswith(("/usr/lib/", "/System/")):
                 continue
             framework = re.search(r"/([^/]+\.framework/.*)$", dep)
