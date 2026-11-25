@@ -1,5 +1,14 @@
-## Unreleased
+## 0.8.0 - 20261125
 
+* Windows and macOS wheels, besides the two Linux ones:
+  - Windows x64 (`win_amd64`), Qt 6.12, Python 3.10 to 3.13 tested; built
+    against the native Windows build of LIMA (aymara/lima#219). The DLLs it
+    bundles are renamed, so that it works in the same process as PyTorch
+  - macOS on Apple Silicon (`macosx_15_0_arm64`, macOS >= 15), Qt 6.12,
+    Python 3.10 to 3.13 tested (aymara/lima#221)
+* `Lima.export_system_conf` (and `_get_data_dir`) use the directory LIMA reads
+  and `lima_models` installs the models into (`$XDG_DATA_HOME/lima` or
+  `~/.local/share/lima`) on all platforms
 * Multiword tokens: a token the tokenizer flags as multiword but missing from
   the language's dictionary is split by affix rules learned from that
   dictionary (LIMA, aymara/lima#217): more correct words and dependencies in

@@ -13,15 +13,18 @@ For more information, detailed installation instructions and documentation, plea
 
 ## Installation
 
-LIMA python bindings are currently available **under Linux only** (x86_64).
+LIMA python bindings are available under Linux (x86_64), Windows (x64) and
+macOS (Apple Silicon).
 
-Under Linux with Python >= 3.9 and an **upgraded pip**, which picks the right
-one of the two wheels of each release:
+With Python >= 3.9 (>= 3.10 on Windows and macOS) and an **upgraded pip**,
+which picks the right one of the wheels of each release:
 
 | Wheel | Qt | Python | Systems |
 | --- | --- | --- | --- |
-| `manylinux_2_34` | 6.12 | 3.10 to 3.15 | glibc >= 2.34 (Ubuntu 22.04+, Debian 12+, RHEL 9+...) |
-| `manylinux_2_28` | 6.9 | 3.9 to 3.13 | glibc >= 2.28 (older systems, and Python 3.9) |
+| `manylinux_2_34` | 6.12 | 3.10 to 3.15 | Linux, glibc >= 2.34 (Ubuntu 22.04+, Debian 12+, RHEL 9+...) |
+| `manylinux_2_28` | 6.9 | 3.9 to 3.13 | Linux, glibc >= 2.28 (older systems, and Python 3.9) |
+| `win_amd64` | 6.12 | 3.10 and later | Windows 10/11 x64 |
+| `macosx_15_0_arm64` | 6.12 | 3.10 and later | macOS >= 15 on Apple Silicon |
 
 
 ```bash
@@ -110,13 +113,23 @@ To configure finely LIMA for your needs, follow the same instructions as for the
 
 ## Building the wheel
 
-The CI (`.github/workflows/build-qt6.yml`) builds both wheels, on the LIMA
-images of the same configuration (built by aymara/lima's own `build-qt6.yml`):
+The CI (`.github/workflows/build-qt6.yml`) builds the four wheels. The Linux
+ones on the LIMA images of the same configuration (built by aymara/lima's own
+`build-qt6.yml`):
 
 - `manylinux_2_28`, Qt 6.9.3, built with Python 3.9 (`cp39-abi3`), tested on
   Python 3.9 and 3.13;
 - `manylinux_2_34`, Qt 6.12.0, built with Python 3.10 (`cp310-abi3`), tested on
   Python 3.10 and 3.15.
+
+The Windows and macOS ones against the LIMA packages of aymara/lima's
+`build-win.yml` and `build-macos.yml` (its `continuous` prerelease), with
+`scripts/build-wheel-windows.ps1` and `scripts/build-wheel-macos.sh`:
+
+- `win_amd64`, Qt 6.12.0, built with Python 3.10 (`cp310-abi3`), tested on
+  Python 3.10 and 3.13;
+- `macosx_15_0_arm64`, Qt 6.12.0, built with Python 3.10 (`cp310-abi3`),
+  tested on Python 3.10 and 3.13.
 
 The wheels of the `master` branch are published in the
 [`continuous` prerelease](https://github.com/aymara/lima-python/releases/tag/continuous).
@@ -130,8 +143,8 @@ To build the `manylinux_2_28` wheel locally, with Docker:
 ## Releasing
 
 The version is set in `aymara/version.py` only. Update it and `CHANGES.md`, then
-push a `v<version>` tag (e.g. `v0.7.1`): the CI builds and tests both wheels and
-publishes them to PyPI. The tag must match `aymara/version.py`.
+push a `v<version>` tag (e.g. `v0.8.0`): the CI builds and tests the four wheels
+and publishes them to PyPI. The tag must match `aymara/version.py`.
 
 # Developer Notes
 To see the wheels accepted on current system:

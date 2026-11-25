@@ -74,6 +74,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
         "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
     ],
     # The same for all the wheels of a version: PyPI keeps one Requires-Python
     # per version, the first uploaded wheel's (0.7.0 got >=3.10 from the
