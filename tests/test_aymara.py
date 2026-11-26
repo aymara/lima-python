@@ -273,7 +273,9 @@ def test_token_properties():
     assert token.ent_type == "_"
     assert token.lemma == "plead"
     assert token.pos == "VERB"
-    assert token.head == 0
+    # The root's head is itself, as in spaCy; head_i is its index
+    assert token.head == token
+    assert token.head_i == 5
     assert token.dep == "root"
     assert token.features == {'Mood': 'Ind', 'Number': 'Sing', 'Person': '3', 'Tense': 'Past',
                               'VerbForm': 'Fin'}
@@ -538,3 +540,84 @@ def test_named_entity_before_clitic():
     # The words that spell the surface have their own positions
     assert [t.idx for t in mdoc][:3] == [0, 5, 8]
     assert mdoc[:2].text == "Apple's"
+
+
+def test_token_spacy_names():
+    # doc = lima("Give it back! He pleaded.")
+    token = doc[5]
+    assert token.lemma_ == "plead" and token.pos_ == "VERB" and token.dep_ == "root"
+    assert token.tag_ == "_"
+    assert token.ent_type_ == "" and token.ent_iob_ == "O"
+    assert str(token.morph) == "Mood=Ind|Number=Sing|Person=3|Tense=Past|VerbForm=Fin"
+    assert token.morph.get("Number") == ["Sing"] and token.morph.get("Case") == []
+    assert "Tense=Past" in token.morph
+    assert token.morph.to_dict()["Mood"] == "Ind"
+    assert doc[0].shape_ == "Xxxx" and doc[0].lower_ == "give"
+    assert [t.whitespace_ for t in doc] == [" ", " ", "", " ", " ", "", ""]
+    assert "".join(t.text_with_ws for t in doc) == doc.text
+    assert doc[0].nbor().text == "it" and doc[1].nbor(-1).text == "Give"
+    with pytest.raises(IndexError):
+        doc[-1].nbor()
+
+
+def test_token_navigation():
+    # doc = lima("Give it back! He pleaded.")
+    give, it, he, pleaded = doc[0], doc[1], doc[4], doc[5]
+    assert it.head == give and it.head_i == 0
+    assert doc[it.head_i] == it.head
+    assert [t.text for t in give.children] == ["it", "back", "!"]
+    assert [t.text for t in pleaded.lefts] == ["He"]
+    assert [t.text for t in pleaded.rights] == ["."]
+    assert pleaded.n_lefts == 1 and pleaded.n_rights == 1
+    assert [t.text for t in give.subtree] == ["Give", "it", "back", "!"]
+    assert give.left_edge == give and give.right_edge == doc[3]
+    assert list(he.ancestors) == [pleaded]
+    assert pleaded.is_ancestor(he) and not he.is_ancestor(pleaded)
+    assert he.sent.text == "He pleaded."
+    assert len({doc[0], doc[0], doc[1]}) == 2
+
+
+def test_span_navigation():
+    # doc = lima("Give it back! He pleaded.")
+    sents = list(doc.sents)
+    assert [s.root.text for s in sents] == ["Give", "pleaded"]
+    assert doc[1:3].root.text == "it" or doc[1:3].root.text == "back"
+    assert doc[4:6].sent == sents[1]
+    assert len(list(doc[2:5].sents)) == 2
+    assert doc[0:3].text_with_ws == "Give it back"
+    assert doc[4:7].lemma_ == "he plead."
+
+
+def test_doc_spacy_api():
+    # doc = lima("Give it back! He pleaded.")
+    assert doc.text_with_ws == doc.text
+    assert doc.char_span(5, 12).text == "it back"
+    assert doc.char_span(5, 11) is None
+    assert doc.char_span(5, 11, alignment_mode="contract").text == "it"
+    assert doc.char_span(6, 11, alignment_mode="expand").text == "it back"
+    assert doc.has_annotation("DEP") and doc.has_annotation("POS")
+    assert not doc.has_annotation("TAG")
+    data = doc.to_json()
+    assert data["text"] == doc.text
+    assert [t["head"] for t in data["tokens"]] == [0, 0, 0, 0, 5, 5, 5]
+    assert data["sents"] == [{"start": 0, "end": 13}, {"start": 14, "end": 25}]
+    assert json.dumps(data)
+    assert doc.to_conllu() == repr(doc)
+
+
+def test_noun_chunks():
+    ndoc = lima("The big dog chased a small cat in the garden.")
+    assert [c.text for c in ndoc.noun_chunks] == ["The big dog", "a small cat",
+                                                  "the garden"]
+
+
+def test_ents_in_span():
+    ndoc = lima("John Doe lives in New York.")
+    assert [e.text for e in ndoc[0:3].ents] == ["John Doe"]
+    assert ndoc.ents[0].root.text in ("John", "Doe")
+
+
+def test_pipe():
+    docs = list(lima.pipe(["Give it back!", "He pleaded."]))
+    assert [d.text for d in docs] == ["Give it back!", "He pleaded."]
+    assert lima.lang == "ud-eng"

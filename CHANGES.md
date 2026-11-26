@@ -1,5 +1,24 @@
 ## Unreleased
 
+* **Breaking**: `Token.head` is a `Token`, as in spaCy (the root's head is
+  itself, as the one of a token without relation). The former integer, the
+  0-based document index of the head, is `Token.head_i`
+  (`doc[token.head_i] == token.head`)
+* spaCy naming and navigation layer (pure Python):
+  - `Token`: `lemma_`, `pos_`, `tag_` (always `_`: no XPOS), `dep_`,
+    `ent_type_`, `ent_iob_`, `morph` (a `MorphAnalysis`: `str()`, `get()`,
+    `to_dict()`), `whitespace_`, `text_with_ws`, `lower_`, `norm_`, `shape_`,
+    `prefix_`, `suffix_`, `like_num`, `nbor()`, `children`, `lefts`, `rights`,
+    `n_lefts`, `n_rights`, `subtree`, `left_edge`, `right_edge`, `ancestors`,
+    `is_ancestor()`, `sent`; tokens compare equal (and hash) by document and
+    index
+  - `Span`: `root`, `sent`, `sents`, `ents`, `lemma_`, `text_with_ws`; spans
+    compare equal by document, bounds and label
+  - `Doc`: `noun_chunks` (from the UD relations), `char_span()`,
+    `has_annotation()`, `to_json()` (spaCy's format), `to_conllu()`,
+    `text_with_ws`, `lang_`
+  - `Lima.pipe(texts)` (sequential) and `Lima.lang`
+  - not yet: `is_stop` (no stop lists), `Span.as_doc()`, `to_spacy()`
 * `doc.ents` is a tuple of `Span`s (was a one-shot iterator), and its spans are
   right: their `text` was empty or cut (the start was the 1-based `Token.i`),
   and an entity ending on the last token was dropped

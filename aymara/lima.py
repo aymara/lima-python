@@ -38,7 +38,7 @@ import sys
 import warnings
 
 from tqdm import tqdm
-from typing import (Dict, Optional, Tuple, Union)
+from typing import (Dict, Iterable, Iterator, List, Optional, Tuple, Union)
 
 import aymaralima.cpplima
 
@@ -71,6 +71,57 @@ def _copy_tree(src, dst) -> None:
         target.mkdir(parents=True, exist_ok=True)
         for f in files:
             shutil.copy2(os.path.join(root, f), target / f)
+
+
+class MorphAnalysis:
+    """The morphological features of a token, as spaCy's MorphAnalysis.
+
+    Example::
+
+        morph = doc[5].morph
+        str(morph)            # "Mood=Ind|Number=Sing|...", sorted as CoNLL-U
+        morph.get("Number")   # ["Sing"]
+        morph.to_dict()       # {"Mood": "Ind", "Number": "Sing", ...}
+    """
+    def __init__(self, features: Dict[str, str]):
+        self._features = dict(sorted(features.items(), key=lambda kv: kv[0].lower()))
+
+    def get(self, field: str) -> List[str]:
+        """The values of the feature field (a list, empty if absent; a feature may
+        have several values, separated by commas in CoNLL-U)."""
+        value = self._features.get(field)
+        return value.split(",") if value else []
+
+    def to_dict(self) -> Dict[str, str]:
+        """The features as a dict, e.g. {"Number": "Sing"}."""
+        return dict(self._features)
+
+    def __str__(self) -> str:
+        return "|".join(f"{k}={v}" for k, v in self._features.items())
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __iter__(self) -> Iterator[str]:
+        """The features as "Field=Value" strings."""
+        return iter(f"{k}={v}" for k, v in self._features.items())
+
+    def __len__(self) -> int:
+        return len(self._features)
+
+    def __contains__(self, feature: str) -> bool:
+        """Whether the "Field=Value" feature is present."""
+        return feature in set(self)
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, MorphAnalysis):
+            return self._features == other._features
+        if isinstance(other, str):
+            return str(self) == other
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 class Token:
@@ -127,7 +178,7 @@ class Token:
         :rtype: str
         """
         head = (0 if self.dep == 'root'
-                else self.head+1 if self.head >= 0
+                else self.token.head+1 if self.token.head >= 0
                 else '_')
         return (f"{self.i}\t{self.token.text}\t{self.lemma}\t{self.pos}\t_\t"
                 + ("|".join([f'{k}={v}' for k, v in self.features.items()])
@@ -162,7 +213,7 @@ class Token:
     i = property(
             fget=lambda self: self.token.i+1,
             doc=("The index of this token in its parent document, starting at 1 "
-                 "(spaCy's starts at 0: doc[token.i - 1] is token)."))
+                 "(spaCy's starts at 0: doc[token.i - 1] == token)."))
 
     doc = property(
             fget=lambda self: self._doc,
@@ -176,9 +227,24 @@ class Token:
             fget=lambda self: self.token.tag,
             doc="Coarse-grained part-of-speech from the Universal POS tag set.")
 
-    head = property(
-            fget=lambda self: self.token.head,
-            doc="The syntactic parent, or “governor”, of this token.")
+    @property
+    def head_i(self) -> int:
+        """The index in its document (from 0, as doc[k]) of the syntactic parent of
+        this token: doc[token.head_i] == token.head. The root's is its own index,
+        as the one of a token without dependency relation (dep "_").
+        """
+        if (self.dep in ("root", "_", "") or self.token.head < 0
+                or (self._doc is not None and self.token.head >= len(self._doc))):
+            return self.token.i
+        return self.token.head
+
+    @property
+    def head(self) -> "Token":
+        """The syntactic parent, or “governor”, of this token, a Token (the root's
+        is itself, as in spaCy). Its index is head_i."""
+        if self._doc is None:
+            raise ValueError("Token.head needs the token's document (doc[k])")
+        return self._doc[self.head_i]
 
     dep = property(
             fget=lambda self: self.token.dep,
@@ -277,6 +343,181 @@ class Token:
         fget=lambda self: self.token.text in "\"'«»`",
         doc=("Is the token a quotation mark?"))
 
+    # spaCy's string attributes (spaCy's attributes without "_" are hashes, LIMA's
+    # are the strings themselves)
+
+    lemma_ = property(fget=lambda self: self.token.lemma, doc="The token lemma.")
+
+    pos_ = property(fget=lambda self: self.token.tag,
+                    doc="Coarse-grained part-of-speech (Universal POS tag).")
+
+    tag_ = property(fget=lambda self: "_",
+                    doc=("Fine-grained (language specific) part-of-speech: not "
+                         "provided by the deeplima models, always \"_\"."))
+
+    dep_ = property(fget=lambda self: self.token.dep,
+                    doc="Syntactic dependency relation.")
+
+    ent_type_ = property(
+        fget=lambda self: "" if self.token.neType in ("_", "") else self.token.neType,
+        doc="Named entity type, \"\" outside entities (ent_type is \"_\" there).")
+
+    ent_iob_ = property(fget=lambda self: self.token.neIOB,
+                        doc="IOB code of the named entity tag: \"B\", \"I\" or \"O\".")
+
+    morph = property(fget=lambda self: MorphAnalysis(self.features),
+                     doc="Morphological features, a MorphAnalysis.")
+
+    lower_ = property(fget=lambda self: self.token.text.lower(),
+                      doc="Lowercase form of the token text.")
+
+    norm_ = property(fget=lambda self: self.token.text.lower(),
+                     doc="The token's norm: its lowercase form.")
+
+    prefix_ = property(fget=lambda self: self.token.text[:1],
+                       doc="The first character of the token text.")
+
+    suffix_ = property(fget=lambda self: self.token.text[-3:],
+                       doc="The last three characters of the token text.")
+
+    @property
+    def shape_(self) -> str:
+        """Transform of the token text showing its orthographic features, as spaCy
+        does: letters become x or X, digits d, the same character at most 4 times in
+        a row ("Apple" -> "Xxxxx", "C3PO-42" -> "XdXX-dd")."""
+        shape = []
+        last, run = "", 0
+        for c in self.token.text:
+            shape_c = ("X" if c.isupper() else "x" if c.isalpha()
+                       else "d" if c.isdigit() else c)
+            run = run + 1 if shape_c == last else 1
+            last = shape_c
+            if run <= 4:
+                shape.append(shape_c)
+        return "".join(shape)
+
+    @property
+    def like_num(self) -> bool:
+        """Does the token resemble a number? Digits (with separators), fractions,
+        or a NUM part-of-speech."""
+        text = self.token.text.lstrip("+-±~")
+        text = text.replace(",", "").replace(".", "").replace(" ", "")
+        if text.isdigit():
+            return True
+        if text.count("/") == 1:
+            num, denom = text.split("/")
+            if num.isdigit() and denom.isdigit():
+                return True
+        return self.token.tag == "NUM"
+
+    @property
+    def whitespace_(self) -> str:
+        """The whitespace character following the token in the text, or \"\"."""
+        if self._doc is None:
+            return ""
+        end = self.idx + len(self)
+        text = self._doc.text
+        k = self.token.i
+        if k + 1 < len(self._doc) and self._doc[k + 1].idx < end:
+            return ""  # a word of a multiword token followed by another one
+        if end < len(text) and text[end].isspace():
+            return text[end]
+        return ""
+
+    text_with_ws = property(fget=lambda self: self.token.text + self.whitespace_,
+                            doc="The token text with its trailing whitespace.")
+
+    def nbor(self, i: int = 1) -> "Token":
+        """The token at the offset i (default 1, the next one) from this token.
+
+        :raises IndexError: outside the document
+        """
+        k = self.token.i + i
+        if self._doc is None or k < 0 or k >= len(self._doc):
+            raise IndexError("Token.nbor: no token at this offset")
+        return self._doc[k]
+
+    def _needs_doc(self, name: str) -> "Doc":
+        if self._doc is None:
+            raise ValueError(f"Token.{name} needs the token's document (doc[k])")
+        return self._doc
+
+    @property
+    def children(self) -> Iterator["Token"]:
+        """The syntactic children of the token, in the text order."""
+        doc = self._needs_doc("children")
+        return (doc[k] for k in doc._children()[self.token.i])
+
+    @property
+    def lefts(self) -> Iterator["Token"]:
+        """The children before the token, in the text order."""
+        return (t for t in self.children if t.token.i < self.token.i)
+
+    @property
+    def rights(self) -> Iterator["Token"]:
+        """The children after the token, in the text order."""
+        return (t for t in self.children if t.token.i > self.token.i)
+
+    n_lefts = property(fget=lambda self: sum(1 for _ in self.lefts),
+                       doc="The number of children before the token.")
+
+    n_rights = property(fget=lambda self: sum(1 for _ in self.rights),
+                        doc="The number of children after the token.")
+
+    def _subtree_indices(self) -> List[int]:
+        children = self._needs_doc("subtree")._children()
+        result, todo = [], [self.token.i]
+        while todo:
+            k = todo.pop()
+            result.append(k)
+            todo.extend(children[k])
+        return sorted(result)
+
+    @property
+    def subtree(self) -> Iterator["Token"]:
+        """The token and all its descendants, in the text order."""
+        return (self._doc[k] for k in self._subtree_indices())
+
+    left_edge = property(fget=lambda self: self._doc[self._subtree_indices()[0]],
+                         doc="The leftmost token of the token's subtree.")
+
+    right_edge = property(fget=lambda self: self._doc[self._subtree_indices()[-1]],
+                          doc="The rightmost token of the token's subtree.")
+
+    @property
+    def ancestors(self) -> Iterator["Token"]:
+        """The heads of the token, from its own one to the root of its sentence."""
+        token = self
+        seen = {self.token.i}
+        while True:
+            head = token.head
+            if head.token.i in seen:
+                return
+            seen.add(head.token.i)
+            yield head
+            token = head
+
+    def is_ancestor(self, descendant: "Token") -> bool:
+        """Whether this token is an ancestor of the token descendant."""
+        return any(a == self for a in descendant.ancestors)
+
+    @property
+    def sent(self) -> "Span":
+        """The sentence span that this token is a part of."""
+        doc = self._needs_doc("sent")
+        for sent in doc.sents:
+            if sent.start <= self.token.i < sent.end:
+                return sent
+        raise ValueError("Token.sent: the token is in no sentence")
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Token):
+            return NotImplemented
+        return self._doc is other._doc and self.token.i == other.token.i
+
+    def __hash__(self) -> int:
+        return hash((id(self._doc), self.token.i))
+
 
 class _SentencesIterator:
     """Doc Sentences Iterator class"""
@@ -330,7 +571,7 @@ class _SpanIterator:
 class Span:
     """Represents a continuous span of tokens in a Doc.
 
-    Not implemented yet (see spaCy's Span): ents, sent, sents, root.
+    Its tokens are doc[start:end] (end excluded), as in spaCy.
     """
     def __init__(self, doc, start: int, end: int, label: str = ""):
         """
@@ -458,6 +699,59 @@ class Span:
     label_ = property(
             fget=lambda self: self._label,
             doc="The span's label, as spaCy's label_ (the same as label).")
+
+    @property
+    def text_with_ws(self) -> str:
+        """The span text with the trailing whitespace of its last token."""
+        return self.text + (self[-1].whitespace_ if len(self) > 0 else "")
+
+    @property
+    def lemma_(self) -> str:
+        """The lemmas of the span's tokens, separated as the tokens are."""
+        return "".join(t.lemma_ + t.whitespace_ for t in self).strip()
+
+    @property
+    def root(self) -> Token:
+        """The token of the span whose head is outside it (or itself): the
+        highest one in the dependency tree. If there are several (the span is not
+        a subtree), the first of the highest ones."""
+        if len(self) == 0:
+            raise IndexError("Span.root of an empty span")
+
+        def depth(token):
+            return sum(1 for _ in token.ancestors)
+
+        candidates = [t for t in self
+                      if t.head_i == t.token.i
+                      or not (self._start <= t.head_i < self._end)]
+        return min(candidates, key=depth)
+
+    @property
+    def sents(self) -> Iterator["Span"]:
+        """The sentences that the span overlaps with."""
+        return (s for s in self._doc.sents
+                if s.start < max(self._end, self._start + 1) and s.end > self._start)
+
+    @property
+    def sent(self) -> "Span":
+        """The sentence of the span's first token (the span may cross sentence
+        boundaries)."""
+        return next(iter(self.sents))
+
+    @property
+    def ents(self) -> Tuple["Span", ...]:
+        """The named entities that fall completely within the span."""
+        return tuple(e for e in self._doc.ents
+                     if e.start >= self._start and e.end <= self._end)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Span):
+            return NotImplemented
+        return (self._doc is other._doc and self._start == other._start
+                and self._end == other._end and self._label == other._label)
+
+    def __hash__(self) -> int:
+        return hash((id(self._doc), self._start, self._end, self._label))
 
 
 def _slice_bounds(i: slice, length: int) -> Tuple[int, int]:
@@ -625,6 +919,125 @@ class Doc:
                  "          assert ents[0].text == \"John Doe\"\n"
                  "\n"
                  "        :type: Tuple[Span, ...]\n"))
+
+    lang_ = property(fget=lambda self: self.limadoc.language(),
+                     doc="Language of the document (the LIMA media, e.g. ud-eng).")
+
+    text_with_ws = property(fget=lambda self: self.text,
+                            doc="The original text (the same as text).")
+
+    def _children(self) -> Dict[int, List[int]]:
+        """The indices of the syntactic children of each token, by token index."""
+        if getattr(self, "_children_cache", None) is None:
+            children = {k: [] for k in range(len(self))}
+            for k in range(len(self)):
+                token = self.limadoc.at(k)
+                if token.dep not in ("root", "_", "") \
+                        and 0 <= token.head < len(self) and token.head != k:
+                    children[token.head].append(k)
+            self._children_cache = children
+        return self._children_cache
+
+    def char_span(self, start_idx: int, end_idx: int, label: str = "",
+                  alignment_mode: str = "strict") -> Optional[Span]:
+        """The span of the characters [start_idx, end_idx) of the text.
+
+        :param alignment_mode: "strict" (None unless the bounds are token bounds),
+            "contract" (the tokens completely inside) or "expand" (the tokens
+            overlapping it)
+        :return: the span, or None if it does not fit the tokens
+        """
+        if alignment_mode not in ("strict", "contract", "expand"):
+            raise ValueError(f"Unknown alignment_mode {alignment_mode}")
+        tokens = [self[k] for k in range(len(self))]
+        if alignment_mode == "expand":
+            inside = [t.token.i for t in tokens
+                      if t.idx < end_idx and t.idx + len(t) > start_idx]
+        else:
+            inside = [t.token.i for t in tokens
+                      if t.idx >= start_idx and t.idx + len(t) <= end_idx]
+        if not inside:
+            return None
+        span = Span(self, inside[0], inside[-1] + 1, label=label)
+        if alignment_mode == "strict" and (span.start_char != start_idx
+                                           or span.end_char != end_idx):
+            return None
+        return span
+
+    def has_annotation(self, attr: str) -> bool:
+        """Whether some token has the annotation attr: "POS", "TAG", "LEMMA",
+        "MORPH", "DEP", "HEAD", "ENT_IOB", "ENT_TYPE", "SENT_START"."""
+        attr = attr.upper().rstrip("_")
+        tokens = [self.limadoc.at(k) for k in range(len(self))]
+        checks = {
+            "POS": lambda t: t.tag not in ("", "_"),
+            "TAG": lambda t: False,
+            "LEMMA": lambda t: t.lemma not in ("", "_"),
+            "MORPH": lambda t: t.features not in ("", "_"),
+            "DEP": lambda t: t.dep not in ("", "_"),
+            "HEAD": lambda t: t.dep not in ("", "_"),
+            "ENT_IOB": lambda t: t.neIOB in ("B", "I"),
+            "ENT_TYPE": lambda t: t.neType not in ("", "_"),
+            "SENT_START": lambda t: True,
+            "IS_SENT_START": lambda t: True,
+        }
+        if attr not in checks:
+            raise ValueError(f"Unknown annotation {attr}")
+        return any(checks[attr](t) for t in tokens)
+
+    def to_json(self) -> Dict:
+        """The document as JSON-serializable data, in spaCy's Doc.to_json format
+        (token ids from 0)."""
+        return {
+            "text": self.text,
+            "ents": [{"start": e.start_char, "end": e.end_char, "label": e.label}
+                     for e in self.ents],
+            "sents": [{"start": s.start_char, "end": s.end_char} for s in self.sents],
+            "tokens": [{"id": t.token.i, "start": t.idx, "end": t.idx + len(t),
+                        "tag": t.tag_, "pos": t.pos_, "morph": str(t.morph),
+                        "lemma": t.lemma_, "dep": t.dep_, "head": t.head_i}
+                       for t in self],
+        }
+
+    def to_conllu(self) -> str:
+        """The document in CoNLL-U format (one line per token, word ids per
+        sentence), as repr(doc)."""
+        return repr(self)
+
+    @property
+    def noun_chunks(self) -> Iterator[Span]:
+        """Base noun phrases: a nominal head (NOUN, PROPN, PRON) in a nominal
+        relation, with its determiners, modifiers and compounds before it, from the
+        UD dependencies (as spaCy's syntax iterators for UD-labelled languages).
+        """
+        nominal = {"NOUN", "PROPN", "PRON"}
+        relations = {"nsubj", "obj", "iobj", "obl", "nmod", "appos", "root",
+                     "conj", "dislocated", "vocative", "expl", "compound"}
+        before = {"det", "amod", "compound", "nummod", "nmod:poss", "flat",
+                  "fixed", "case:poss"}
+        after = {"flat", "fixed", "compound"}
+        prev_end = 0
+        for k in range(len(self)):
+            token = self[k]
+            if token.pos_ not in nominal:
+                continue
+            dep = token.dep_.split(":")[0]
+            if dep not in relations or (dep == "compound"
+                                        and token.head.pos_ in nominal):
+                continue
+            if dep == "conj" and token.head.pos_ not in nominal:
+                continue
+            start, end = k, k + 1
+            for child in token.lefts:
+                if child.dep_ in before or child.dep_.split(":")[0] in before:
+                    start = min(start, child.left_edge.token.i)
+            for child in token.rights:
+                if child.dep_.split(":")[0] in after:
+                    end = max(end, child.right_edge.token.i + 1)
+            if start < prev_end:
+                continue
+            prev_end = end
+            yield Span(self, start, end, label="NP")
 
 
 class LimaInternalError(Exception):
@@ -831,6 +1244,19 @@ class Lima:
             raise LimaInternalError(self.analyzer.errorMessage()
                                     + " / " + lima_doc.errorMessage())
         return Doc(lima_doc)
+
+    def pipe(self, texts: Iterable[str], batch_size: int = 1, n_process: int = 1,
+             lang: str = None, pipeline: str = None,
+             meta: Optional[Dict[str, str]] = None) -> Iterator[Doc]:
+        """Analyze the texts one after the other, as spaCy's nlp.pipe: yields one
+        Doc per text, in order. batch_size and n_process are accepted for
+        compatibility and ignored (one LIMA analyzer per process)."""
+        for text in texts:
+            yield self(text, lang=lang, pipeline=pipeline, meta=meta)
+
+    lang = property(
+        fget=lambda self: self.langs[0] if self.langs else "ud-eng",
+        doc="The first language of the analyzer (e.g. ud-eng).")
 
     def analyzeText(self,
                     text: str,
