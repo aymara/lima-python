@@ -50,23 +50,7 @@ import aymara.lima
 _UPOS = {"ADJ", "ADP", "ADV", "AUX", "CCONJ", "DET", "INTJ", "NOUN", "NUM", "PART",
          "PRON", "PROPN", "PUNCT", "SCONJ", "SYM", "VERB", "X"}
 
-# ISO 639-3 (LIMA's UD media "ud-<code>") -> spaCy's language codes (mostly ISO
-# 639-1); a language spaCy does not know uses its multi-language class "xx"
-_ISO639_3_TO_1 = {
-    "afr": "af", "amh": "am", "ara": "ar", "bel": "be", "ben": "bn", "bul": "bg",
-    "cat": "ca", "ces": "cs", "cym": "cy", "dan": "da", "deu": "de", "ell": "el",
-    "eng": "en", "est": "et", "ekk": "et", "eus": "eu", "fao": "fo", "fas": "fa",
-    "fin": "fi", "fra": "fr", "gle": "ga", "gla": "gd", "glg": "gl", "guj": "gu",
-    "heb": "he", "hin": "hi", "hrv": "hr", "hun": "hu", "hye": "hy", "ind": "id",
-    "isl": "is", "ita": "it", "jpn": "ja", "kan": "kn", "kat": "ka", "kaz": "kk",
-    "kir": "ky", "kor": "ko", "lat": "la", "lav": "lv", "lit": "lt", "ltz": "lb",
-    "mal": "ml", "mar": "mr", "mkd": "mk", "mlt": "mt", "nep": "ne", "nld": "nl",
-    "nor": "nb", "nob": "nb", "nno": "nn", "pol": "pl", "por": "pt", "ron": "ro",
-    "rus": "ru", "san": "sa", "sin": "si", "slk": "sk", "slv": "sl", "spa": "es",
-    "sqi": "sq", "srp": "sr", "swe": "sv", "tam": "ta", "tat": "tt", "tel": "te",
-    "tgl": "tl", "tha": "th", "tir": "ti", "tsn": "tn", "tur": "tr", "ukr": "uk",
-    "urd": "ur", "vie": "vi", "yor": "yo", "zho": "zh",
-}
+from aymara.lima import _ISO639_3_TO_1
 
 
 def spacy_lang(lang: str) -> str:
