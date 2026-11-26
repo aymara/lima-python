@@ -7,8 +7,9 @@ on:
     tags:
       - '[0-9]*.[0-9]*.[0-9]*'
       - 'v*'
-  # Sent by aymara/lima when its release build (tag) or a manual run on master
-  # pushed new LIMA images and packages
+  # Sent by aymara/lima when its push build (master, release tag) or a manual
+  # run on master pushed new LIMA images (client_payload.release: true for a
+  # release tag or a manual run)
   repository_dispatch:
     types: [trigger_workflow]
   # Builds all the wheels, the Windows and macOS ones included (e.g. before
@@ -53,7 +54,7 @@ concurrency:
 jobs:
 
   # The wheels are built on the LIMA images of aymara/lima's build-qt6.yml
-  # (:latest), which it builds for a LIMA release or a manual run. A push made
+  # (:latest), pushed by its push builds (master, release tags). A push made
   # while that workflow runs would use the previous LIMA: wait for it to finish. Not needed when the run was triggered
   # by LIMA's success (repository_dispatch, from its
   # trigger-lima-python-on-success.yml).
@@ -67,7 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          runs="repos/aymara/lima/actions/workflows/build-qt6.yml/runs?per_page=10"
+          runs="repos/aymara/lima/actions/workflows/build-qt6.yml/runs?event=push&per_page=10"
           while true; do
             pending=$(gh api "$runs" --jq '[.workflow_runs[] | select(.status != "completed")] | length')
             [ "$pending" = "0" ] && break
@@ -224,9 +225,10 @@ jobs:
   # prerelease, updated by LIMA releases), with scripts/build-wheel-windows.ps1.
   windows-wheel:
     name: "Build the Windows wheel (Qt 6.12.0, Python 3.10)"
-    # Windows and macOS: for a release (tag), after a LIMA release
-    # (repository_dispatch) or on demand, not on every push nor pull request
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch' }}
+    # Windows and macOS: for a release (tag), after a LIMA release or manual
+    # run (repository_dispatch with release: true; LIMA's master builds send
+    # false) or on demand, not on every push nor pull request
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.release == true) }}
     runs-on: windows-2022
     timeout-minutes: 180
     env:
@@ -241,8 +243,8 @@ jobs:
         shell: bash
         run: echo "LIMA_PYTHON_VERSION=$(python aymara/version.py)" >> "$GITHUB_ENV"
 
-      # Also after a LIMA release (repository_dispatch, sent when its Linux
-      # images are pushed): its Windows build may still be running
+      # Also after repository_dispatch (sent when LIMA's Linux images are
+      # pushed): LIMA's Windows release build may still be running
       - name: "Wait for aymara/lima's build-win.yml"
         shell: bash
         env:
@@ -403,9 +405,10 @@ jobs:
   # prerelease, updated by LIMA releases), with scripts/build-wheel-macos.sh.
   macos-wheel:
     name: "Build the macOS wheel (arm64, Qt 6.12.0, Python 3.10)"
-    # Windows and macOS: for a release (tag), after a LIMA release
-    # (repository_dispatch) or on demand, not on every push nor pull request
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch' }}
+    # Windows and macOS: for a release (tag), after a LIMA release or manual
+    # run (repository_dispatch with release: true; LIMA's master builds send
+    # false) or on demand, not on every push nor pull request
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.release == true) }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
