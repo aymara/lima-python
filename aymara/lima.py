@@ -37,9 +37,8 @@ import shutil
 import sys
 import warnings
 
-from pydantic import (parse_obj_as, ValidationError)
 from tqdm import tqdm
-from typing import (Dict, Tuple, Union)
+from typing import (Dict, Optional, Tuple, Union)
 
 import aymaralima.cpplima
 
@@ -88,14 +87,17 @@ class Token:
 
 
     """
-    def __init__(self, token: aymaralima.cpplima.Token):
+    def __init__(self, token: aymaralima.cpplima.Token, doc: "Doc" = None):
         """Token's constructor
 
         :param token: the C++ binding Token class
         :type token: aymaralima.cpplima.Token
+        :param doc: the document of this token (Default value = None)
+        :type doc: Doc
         """
         assert type(token) == aymaralima.cpplima.Token
         self.token = token
+        self._doc = doc
 
     def __repr__(self) -> str:
         """
@@ -128,7 +130,7 @@ class Token:
                 else self.head+1 if self.head >= 0
                 else '_')
         return (f"{self.i}\t{self.token.text}\t{self.lemma}\t{self.pos}\t_\t"
-                + ("|".join([f'{k}:{v}' for k, v in self.features.items()])
+                + ("|".join([f'{k}={v}' for k, v in self.features.items()])
                    if self.features else "_")
                 + "\t"
                 + f"{head}\t"
@@ -159,7 +161,12 @@ class Token:
 
     i = property(
             fget=lambda self: self.token.i+1,
-            doc="The index of this token in its parent document.")
+            doc=("The index of this token in its parent document, starting at 1 "
+                 "(spaCy's starts at 0: doc[token.i - 1] is token)."))
+
+    doc = property(
+            fget=lambda self: self._doc,
+            doc="The parent document (None for a token built without it).")
 
     lemma = property(
             fget=lambda self: self.token.lemma,
@@ -247,12 +254,10 @@ class Token:
         doc=("Is the token punctuation?"))
 
     is_sent_start = property(
-        fget=lambda self: self.token.i == 0,
-        # TODO give access to the document to be able to implemnt that:
-        # or self.token.i in [s[0].i for s in self.doc.sents],
-        doc=("Does the token start a sentence? bool or None if unknown. "
-             "Default value = True for the first token in the Doc."
-             "\nTODO: implement for sentences other than the first one."))
+        fget=lambda self: (self.token.i == 0 if self._doc is None
+                           else self.token.i in self._doc._sentence_starts()),
+        doc=("Does the token start a sentence? Without its document, only the "
+             "first token of the document is known to."))
 
     is_sent_end = property(
         fget=lambda self: self.token.tStatus == "t_sentence_brk",
@@ -325,61 +330,7 @@ class _SpanIterator:
 class Span:
     """Represents a continuous span of tokens in a Doc.
 
-    TODO
-    Some parts of the API are still not implemented
-
-        ents    The named entities that fall completely within the span. Returns a tuple of
-            Span objects.
-            Example::
-
-                import aymara.lima
-                nlp = aymara.lima.Lima()
-                doc = nlp("Mr. Best flew to New York on Saturday morning.")
-                span = doc[0:6]
-                ents = list(span.ents)
-                assert ents[0].label == 346
-                assert ents[0].label_ == "PERSON"
-                assert ents[0].text == "Mr. Best"
-
-            Name	Description
-            RETURNS	Entities in the span, one Span per entity.
-            Tuple[Span, …]
-
-        sent    The sentence span that this span is a part of.
-            This property is only available when sentence boundaries have been set on the
-            document by the pipeline. It will raise an error otherwise.
-
-            If the span happens to cross sentence boundaries, only the first sentence will be returned. If it is required that the sentence always includes the full span, the result can be adjusted as such:
-
-            sent = span.sent
-            sent = doc[sent.start : max(sent.end, span.end)]
-
-            Example::
-
-                import aymara.lima
-                nlp = aymara.lima.Lima()
-                doc = nlp("Give it back! He pleaded.")
-                span = doc[1:3]
-                assert span.sent.text == "Give it back!"
-
-        Span
-
-        sents   Returns a generator over the sentences the span belongs to.
-            This property is only available when sentence boundaries have been set on the
-            document by the pipeline. It will raise an error otherwise.
-
-            If the span happens to cross sentence boundaries, all sentences the span overlaps with will be returned.
-            Example::
-
-                import aymara.lima
-                nlp = aymara.lima.Lima()
-                doc = nlp("Give it back! He pleaded.")
-                span = doc[2:4]
-                assert len(span.sents) == 2
-
-        Iterable[Span]
-
-
+    Not implemented yet (see spaCy's Span): ents, sent, sents, root.
     """
     def __init__(self, doc, start: int, end: int, label: str = ""):
         """
@@ -418,12 +369,7 @@ class Span:
         :return: the number of tokens in this span
         :rtype: int
         """
-        if self._end < self._start:
-            print(f"Error in Span.__len__. Span end ({self._end}) is before start "
-                  f"({self._start}). Return 0", file=sys.stderr)
-            return 0
-
-        return self._end - self._start
+        return max(0, self._end - self._start)
 
     def __getitem__(self, i: Union[int, slice]):
         """
@@ -447,31 +393,13 @@ class Span:
         :rtype: Union[int, slice]
         """
         if isinstance(i, slice):
-            start = 0 if i.start is None else i.start
-            stop = -1 if i.stop is None else i.stop
-
-            if start < 0:
-                start = len(self) + start
-            if stop < 0:
-                stop = len(self) + stop
-            if start >= stop:
-                return Span(self._doc, self._start+start, self._start+start)
-            if start > len(self):
-                return Span(self._doc, self._start+start, self._start+start)
-            if start < 0:
-                start = 0
-            if stop < 0:
-                stop = 0
-            if stop > len(self):
-                stop = len(self)
+            start, stop = _slice_bounds(i, len(self))
             return Span(self._doc, self._start+start, self._start+stop)
-        else:
-            if i < 0:
-                i = len(self) + i
-            if (i < 0 or i > len(self)
-                    or self._start+i < 0 or self._start+i >= len(self._doc)):
-                raise IndexError("Span index out of range")
-            return self._doc[self._start+i]
+        if i < 0:
+            i = len(self) + i
+        if i < 0 or i >= len(self):
+            raise IndexError("Span index out of range")
+        return self._doc[self._start+i]
 
     def __repr__(self) -> str:
         """
@@ -497,9 +425,8 @@ class Span:
         return "\n".join(tokens_repr_reindexed)
 
     text = property(
-            fget=lambda self: (self._doc.text[
-                self._doc[self._start].idx:
-                    self._doc[self._end-1].idx+len(self._doc[self._end-1])]),
+            fget=lambda self: (self._doc.text[self.start_char:self.end_char]
+                               if len(self) > 0 else ""),
             doc="A string representation of the span text.")
 
     doc = property(
@@ -515,50 +442,49 @@ class Span:
             doc="The token offset for the end of the span.")
 
     start_char = property(
-            fget=lambda self: self[0].idx,
+            fget=lambda self: self[0].idx if len(self) > 0 else 0,
             doc="The character offset for the start of the span.")
 
     end_char = property(
-            fget=lambda self: self[-1].idx+len(self[-1]),
+            fget=lambda self: (max(t.idx + len(t) for t in self)
+                               if len(self) > 0 else 0),
             doc="The character offset for the end of the span.")
 
     label = property(
             fget=lambda self: self._label,
-            doc="A label to attach to the span, e.g. for named entities.")
+            doc=("A label to attach to the span, e.g. for named entities "
+                 "(a string: LIMA has no label hashes, unlike spaCy)."))
+
+    label_ = property(
+            fget=lambda self: self._label,
+            doc="The span's label, as spaCy's label_ (the same as label).")
 
 
-class _DocEntitiesIterator:
-    """Doc Entities Iterator class"""
+def _slice_bounds(i: slice, length: int) -> Tuple[int, int]:
+    """The [start, stop) bounds of the slice i of a sequence of the given length,
+    as Python sequences do (None, negative and out of range bounds)."""
+    start, stop, step = i.indices(length)
+    if step != 1:
+        raise ValueError("Slices of tokens must be contiguous (step 1)")
+    return start, max(start, stop)
 
-    def __init__(self, doc):
-        # Doc object reference
-        self._doc = doc
-        # index variable to keep track
-        self._index = 0
 
-    def __iter__(self):
-        """Returns Iterator object"""
-        return self
-
-    def __next__(self) -> Span:
-        """'Returns the next Span defining an entity in the document"""
-        while self._index < len(self._doc):
-            # print(f"doc entities loop {self._index}, {len(self._doc)}", file=sys.stderr)
-            if self._doc[self._index].ent_iob == "B":
-                start = self._doc[self._index].i
-                end = start
-                label = self._doc[self._index].ent_type
-                while self._index < len(self._doc):
-                    # print(f"doc entities inner loop {self._index}, {len(self._doc)}", file=sys.stderr)
-                    self._index += 1
-                    if self._index < len(self._doc):
-                        if self._doc[self._index].ent_iob == "I":
-                            end = self._index
-                        else:
-                            return Span(self._doc, start, end, label=label)
-            self._index += 1
-        # Iteration ends
-        raise StopIteration
+def _doc_entities(doc) -> Tuple["Span", ...]:
+    """The named entities of the document doc, as spans built from the IOB
+    tags of its tokens."""
+    entities = []
+    start, label = None, None
+    for k in range(len(doc)):
+        token = doc[k]
+        iob = token.ent_iob
+        if start is not None and (iob != "I" or token.ent_type != label):
+            entities.append(Span(doc, start, k, label=label))
+            start = None
+        if iob == "B" or (iob == "I" and start is None):
+            start, label = k, token.ent_type
+    if start is not None:
+        entities.append(Span(doc, start, len(doc), label=label))
+    return tuple(entities)
 
 
 class _DocIterator:
@@ -632,10 +558,19 @@ class Doc:
         :rtype: Union[int, slice]
         """
         if isinstance(i, slice):
-            return Span(self, i.start, i.stop)
+            start, stop = _slice_bounds(i, len(self))
+            return Span(self, start, stop)
         if i < 0:
             i = len(self) + i
-        return Token(self.limadoc.at(i))
+        if i < 0 or i >= len(self):
+            raise IndexError("Doc index out of range")
+        return Token(self.limadoc.at(i), self)
+
+    def _sentence_starts(self) -> frozenset:
+        """The C++ indices (Token.i - 1) of the first tokens of the sentences."""
+        if getattr(self, "_sent_starts", None) is None:
+            self._sent_starts = frozenset(s.start for s in self.sents)
+        return self._sent_starts
 
     def __repr__(self) -> str:
         """
@@ -669,7 +604,6 @@ class Doc:
                  "          doc = nlp(\"This is a sentence. Here's another...\")\n"
                  "          sents = list(doc.sents)\n"
                  "          assert len(sents) == 2\n"
-                 "          assert [s.root.text for s in sents] == [\"is\", \"'s\"]\n"
                  "\n"
                  "        :yields:	Sentences in the document.\n"
                  "        :type: Span\n"))
@@ -679,9 +613,8 @@ class Doc:
             doc="Language of the document.")
 
     ents = property(
-            fget=lambda self: _DocEntitiesIterator(self),
-            doc=("Iterate over the entites in the document. Returns an iterator yielding"
-                 "named entity Span objects.\n"
+            fget=lambda self: _doc_entities(self),
+            doc=("The named entities in the document, a tuple of Span objects.\n"
                  "        Example::\n"
                  "\n"
                  "          import aymara.lima\n"
@@ -691,12 +624,24 @@ class Doc:
                  "          assert ents[0].label == \"Person.PERSON\"\n"
                  "          assert ents[0].text == \"John Doe\"\n"
                  "\n"
-                 "        :yields:	Entities in the document.\n"
-                 "        :type: Span\n"))
+                 "        :type: Tuple[Span, ...]\n"))
 
 
 class LimaInternalError(Exception):
     pass
+
+
+def _check_meta(meta: Optional[Dict[str, str]]) -> Dict[str, str]:
+    """Returns the analysis metadata meta (an empty dict for None), or raises a
+    TypeError if it is not a dict of strings."""
+    if meta is None:
+        return {}
+    if (not isinstance(meta, dict)
+            or not all(isinstance(k, str) and isinstance(v, str)
+                       for k, v in meta.items())):
+        raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
+                        f"not {type(meta)}")
+    return meta
 
 
 # The legacy rule-based media (eng, fre, por) are deprecated and no longer built
@@ -763,7 +708,7 @@ class Lima:
                  pipes: str = "deepud",
                  user_config_path: str = "",
                  user_resources_path: str = "",
-                 meta: Dict[str, str] = {}):
+                 meta: Optional[Dict[str, str]] = None):
         """
         Initialize the Lima analyzer
 
@@ -792,6 +737,7 @@ class Lima:
         """
         # print(f"Lima __init__: calling LimaAnalyzer constructor {langs}, {pipes}",
         #       file=sys.stderr)
+        meta = dict(meta or {})
         langs = ",".join(_unique(_media(lang) for lang in langs.split(",") if lang))
         pipes = ",".join(_unique(_pipeline(pipe) for pipe in pipes.split(",")))
         ud_codes = _unique(lang[3:] for lang in langs.split(",")
@@ -829,7 +775,7 @@ class Lima:
                  text: str,
                  lang: str = None,
                  pipeline: str = None,
-                 meta: Dict[str, str] = {}) -> Doc:
+                 meta: Optional[Dict[str, str]] = None) -> Doc:
         """
         Just 'call' your Lima instance to analyze the given text in the given language.
         The lang language must have been initialized when instantiating this object.
@@ -877,11 +823,7 @@ class Lima:
         if not isinstance(text, str):
             raise TypeError(f"Lima.analyzeText text parameter must be str, "
                             f"not {type(text)}")
-        try:
-            parse_obj_as(Dict[str, str], meta)
-        except ValidationError as e:
-            raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
-                            f"not {type(meta)}")
+        meta = _check_meta(meta)
         lima_doc = self.analyzer(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
@@ -894,7 +836,7 @@ class Lima:
                     text: str,
                     lang: str = None,
                     pipeline: str = None,
-                    meta: Dict[str, str] = {}) -> str:
+                    meta: Optional[Dict[str, str]] = None) -> str:
         """Analyze the given text in the given language. The lang language must have been
         initialized when instantiating this object.
 
@@ -943,14 +885,9 @@ class Lima:
                             f"not {type(pipeline)}")
         pipeline = _pipeline(pipeline)
         if not isinstance(text, str):
-            print(f"Lima.analyzeText text ({text}) is not a string. Raising.", file=sys.stderr)
             raise TypeError(f"Lima.analyzeText text parameter must be str, "
                             f"not {type(text)}")
-        try:
-            parse_obj_as(Dict[str, str], meta)
-        except ValidationError as e:
-            raise TypeError(f"Lima.analyzeText meta parameter must be Dict[str, str], "
-                            f"not {type(meta)}")
+        meta = _check_meta(meta)
         result = self.analyzer.analyzeText(
             text, lang=lang, pipeline=pipeline,
             meta=",".join([f"{k}:{v}" for k, v in meta.items()]))
@@ -1013,7 +950,6 @@ class Lima:
         """
         result = self.analyzer.addPipelineUnit(pipeline, language, group)
         if self.analyzer.error():
-            print(f"add_pipeline_unit raising LimaInternalError {self.analyzer.errorMessage()}", file=sys.stderr)
             raise LimaInternalError(self.analyzer.errorMessage())
         return result
 

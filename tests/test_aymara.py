@@ -264,7 +264,7 @@ def test_token_properties():
     # doc = lima("Give it back! He pleaded.")
     token = doc[5]
     print(repr(token))
-    assert repr(token) == '6\tpleaded\tplead\tVERB\t_\tMood:Ind|Number:Sing|Person:3|Tense:Past|VerbForm:Fin\t0\troot\t_\tPos=17|Len=7'
+    assert repr(token) == '6\tpleaded\tplead\tVERB\t_\tMood=Ind|Number=Sing|Person=3|Tense=Past|VerbForm=Fin\t0\troot\t_\tPos=17|Len=7'
     assert str(token) == "pleaded" == token.text
     assert len(token) == 7
     assert token.i == 6
@@ -304,8 +304,58 @@ def test_doc_ents():
     print(f"test_doc_ents", file=sys.stderr)
     # lima = aymara.lima.Lima("ud-eng", pipes="deepud")
     ndoc = lima("John Doe lives in New York. And Jane Smith will meet him on Friday.")
-    ents = list(ndoc.ents)
+    ents = ndoc.ents
+    assert isinstance(ents, tuple)
     assert len(ents) == 4
+    # Not consumed by a first iteration
+    assert len(list(ndoc.ents)) == 4
+    for ent in ents:
+        assert ent.text == ndoc.text[ent.start_char:ent.end_char]
+        assert ent.text != ""
+        assert ent.label_ == ent.label
+        assert all(t.ent_type == ent.label for t in ent)
+    assert ents[0].text == "John Doe"
+
+
+def test_doc_ents_last_token():
+    # An entity ending on the last token of the document
+    ndoc = lima("He met John Doe")
+    assert [ent.text for ent in ndoc.ents][-1:] == ["John Doe"]
+
+
+def test_doc_slices():
+    # doc = lima("Give it back! He pleaded.")
+    assert doc[:3].text == "Give it back"
+    assert doc[4:].text == "He pleaded."
+    assert len(doc[:]) == len(doc)
+    assert doc[-2:].text == "pleaded."
+    assert len(doc[10:20]) == 0
+    with pytest.raises(IndexError):
+        doc[len(doc)]
+    with pytest.raises(ValueError):
+        doc[::2]
+
+
+def test_token_doc_and_sent_start():
+    # doc = lima("Give it back! He pleaded.")
+    assert doc[0].doc is doc
+    assert [t.text for t in doc if t.is_sent_start] == ["Give", "He"]
+
+
+def test_span_get_item_end():
+    span = doc[1:4]
+    assert span[2].text == "!"
+    with pytest.raises(IndexError):
+        span[3]
+    assert span[:].text == "it back!"
+    assert span[1:].text == "back!"
+
+
+def test_meta_type():
+    with pytest.raises(TypeError):
+        lima("A text.", meta={"udlang": 1})
+    with pytest.raises(TypeError):
+        lima("A text.", meta=["udlang"])
 
 
 def test_span_size():
@@ -459,3 +509,32 @@ def test_lazy_submodules():
     assert package.lima_models.default_udlang is not None
     with pytest.raises(AttributeError):
         package.no_such_submodule
+
+
+def test_multiword_tokens_fra():
+    # "du" and "au" are multiword tokens: their words share the surface's
+    # position
+    from aymara.lima_models import default_udlang
+    if not default_udlang("fra"):
+        pytest.skip("no French model installed")
+    lima_fra = aymara.lima.Lima("ud-fra")
+    fdoc = lima_fra("Jean Dupont vient du Japon et parle au directeur.")
+    assert [t.text for t in fdoc][:6] == ["Jean", "Dupont", "vient", "de", "le",
+                                         "Japon"]
+    assert fdoc[3].idx == fdoc[4].idx == fdoc.text.index("du ")
+    assert [ent.text for ent in fdoc.ents][:2] == ["Jean Dupont", "Japon"]
+
+
+def test_named_entity_before_clitic():
+    # "Apple's" is a multiword token of the English MERGE model: "Apple" "'s".
+    # It crashed (segfault in LIMA's ConllDumper) when "Apple" is an entity
+    from aymara.lima_models import _get_target_dir, _installed_stems
+    if "eng-UD_English-MERGE" not in _installed_stems(_get_target_dir(), "eng"):
+        pytest.skip("the eng-UD_English-MERGE model is not installed")
+    lima_merge = aymara.lima.Lima("ud-eng",
+                                  meta={"udlang": "eng-UD_English-MERGE"})
+    mdoc = lima_merge("Apple's CEO met Microsoft's.")
+    assert [t.text for t in mdoc][:3] == ["Apple", "'s", "CEO"]
+    # The words that spell the surface have their own positions
+    assert [t.idx for t in mdoc][:3] == [0, 5, 8]
+    assert mdoc[:2].text == "Apple's"

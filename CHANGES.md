@@ -1,3 +1,26 @@
+## Unreleased
+
+* `doc.ents` is a tuple of `Span`s (was a one-shot iterator), and its spans are
+  right: their `text` was empty or cut (the start was the 1-based `Token.i`),
+  and an entity ending on the last token was dropped
+* Slices with omitted or negative bounds work on `Doc` (`doc[:3]`, `doc[5:]`
+  raised `TypeError`) and on `Span` (`span[1:]` dropped the last token);
+  `doc[i]` and `span[i]` raise `IndexError` out of range (`span[len(span)]`
+  returned the token after the span)
+* `Token.doc`; `Token.is_sent_start` is right for every sentence (it was only
+  True for the first token of the document)
+* `Span.label_`, the same string as `Span.label` (spaCy's name for the label
+  string; LIMA has no label hashes)
+* `repr(token)` writes the features as CoNLL-U does (`Number=Sing`, was
+  `Number:Sing`)
+* `Token.i` is unchanged: it starts at 1 (spaCy's starts at 0)
+* No more pydantic dependency; no more mutable default `meta` arguments; no
+  more messages on stderr before raising exceptions
+* With LIMA branch conll-mwt-entity-crash (LIMA side): no more crash on a named entity
+  followed by a multiword token (`Apple's CEO.` with the English MERGE model),
+  and the words of a multiword token that spell it have their own positions
+  (`'s` of `Apple's` at 5, was 0)
+
 ## 0.8.1 - 20261125
 
 * Windows: creating a `Lima` analyzer no longer crashes the interpreter when the
