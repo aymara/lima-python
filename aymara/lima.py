@@ -31,6 +31,7 @@ Classes:
 # -*- coding: utf-8 -*-
 
 import argparse
+import bisect
 import os
 import pathlib
 import shutil
@@ -71,6 +72,99 @@ def _copy_tree(src, dst) -> None:
         target.mkdir(parents=True, exist_ok=True)
         for f in files:
             shutil.copy2(os.path.join(root, f), target / f)
+
+
+# ISO 639-3 (LIMA's UD media "ud-<code>") -> ISO 639-1, the codes of spaCy and of
+# the stop word lists
+_ISO639_3_TO_1 = {
+    "afr": "af", "amh": "am", "ara": "ar", "bel": "be", "ben": "bn", "bul": "bg",
+    "cat": "ca", "ces": "cs", "cym": "cy", "dan": "da", "deu": "de", "ell": "el",
+    "eng": "en", "est": "et", "ekk": "et", "eus": "eu", "fao": "fo", "fas": "fa",
+    "fin": "fi", "fra": "fr", "gle": "ga", "gla": "gd", "glg": "gl", "guj": "gu",
+    "heb": "he", "hin": "hi", "hrv": "hr", "hun": "hu", "hye": "hy", "ind": "id",
+    "isl": "is", "ita": "it", "jpn": "ja", "kan": "kn", "kat": "ka", "kaz": "kk",
+    "kir": "ky", "kor": "ko", "lat": "la", "lav": "lv", "lit": "lt", "ltz": "lb",
+    "mal": "ml", "mar": "mr", "mkd": "mk", "mlt": "mt", "nep": "ne", "nld": "nl",
+    "nor": "nb", "nob": "nb", "nno": "nn", "pol": "pl", "por": "pt", "ron": "ro",
+    "rus": "ru", "san": "sa", "sin": "si", "slk": "sk", "slv": "sl", "spa": "es",
+    "sqi": "sq", "srp": "sr", "swe": "sv", "tam": "ta", "tat": "tt", "tel": "te",
+    "tgl": "tl", "tha": "th", "tir": "ti", "tsn": "tn", "tur": "tr", "ukr": "uk",
+    "urd": "ur", "vie": "vi", "yor": "yo", "zho": "zh",
+}
+
+
+def _iso639_1(lang: str) -> str:
+    """The ISO 639-1 code of a LIMA language ("ud-eng" -> "en"), or its own code
+    without "ud-" if there is none."""
+    code = lang[3:] if lang.startswith("ud-") else lang
+    return _ISO639_3_TO_1.get(code, code)
+
+
+_stop_words_cache: Dict[str, frozenset] = {}
+
+
+def _stop_words(lang: str) -> frozenset:
+    """The stop words of a LIMA language (from spaCy's lists, vendored in
+    aymara.stop_words); empty for a language without list."""
+    code = _iso639_1(lang)
+    if code not in _stop_words_cache:
+        from aymara.stop_words import STOP_WORDS
+        words = STOP_WORDS.get(code, "")
+        _stop_words_cache[code] = frozenset(words.split("\n")) if words else frozenset()
+    return _stop_words_cache[code]
+
+
+class _PyToken:
+    """A token of a document built in Python (Doc.from_conllu, Span.as_doc),
+    with the fields of the C++ token (aymaralima.cpplima.Token)."""
+    __slots__ = ("len", "text", "i", "lemma", "pos", "tag", "head", "dep",
+                 "features", "neIOB", "neType", "tStatus")
+
+    def __init__(self, **fields):
+        for name in self.__slots__:
+            setattr(self, name, fields.get(name))
+
+
+class _PySentence:
+    """The bounds of a sentence, as the C++ ones: the first one covers the tokens
+    [start, end], the next ones [start+1, end] (start is the previous end)."""
+    __slots__ = ("start", "end")
+
+    def __init__(self, start: int, end: int):
+        self.start, self.end = start, end
+
+
+class _PyDoc:
+    """A document built in Python, with the interface of the C++ document
+    (aymaralima.cpplima.Doc) that Doc uses."""
+
+    def __init__(self, text: str, tokens: List[_PyToken],
+                 sentences: List[Tuple[int, int]], language: str = ""):
+        """sentences: the [start, end) token bounds of each sentence"""
+        self._text, self._tokens, self._language = text, tokens, language
+        self._sentences = [_PySentence(0 if k == 0 else start - 1, end - 1)
+                           for k, (start, end) in enumerate(sentences)]
+
+    def at(self, k: int) -> _PyToken:
+        return self._tokens[k]
+
+    def len(self) -> int:
+        return len(self._tokens)
+
+    def sentences(self) -> List[_PySentence]:
+        return self._sentences
+
+    def text(self) -> str:
+        return self._text
+
+    def language(self) -> str:
+        return self._language
+
+    def error(self) -> bool:
+        return False
+
+    def errorMessage(self) -> str:
+        return ""
 
 
 class MorphAnalysis:
@@ -146,7 +240,7 @@ class Token:
         :param doc: the document of this token (Default value = None)
         :type doc: Doc
         """
-        assert type(token) == aymaralima.cpplima.Token
+        assert isinstance(token, (aymaralima.cpplima.Token, _PyToken))
         self.token = token
         self._doc = doc
 
@@ -409,6 +503,15 @@ class Token:
             if num.isdigit() and denom.isdigit():
                 return True
         return self.token.tag == "NUM"
+
+    @property
+    def is_stop(self) -> bool:
+        """Is the token a stop word of its document's language? From spaCy's stop
+        lists (vendored in aymara.stop_words: no spaCy needed); False for a
+        language without list or a token without document."""
+        if self._doc is None:
+            return False
+        return self.token.text.lower() in _stop_words(self._doc.lang_ or "")
 
     @property
     def whitespace_(self) -> str:
@@ -744,6 +847,14 @@ class Span:
         return tuple(e for e in self._doc.ents
                      if e.start >= self._start and e.end <= self._end)
 
+    def as_doc(self) -> "Doc":
+        """A new document with the tokens of the span and their annotations. The
+        tokens whose head is outside the span are their own heads (roots), and
+        the sentences are cut at the span's bounds."""
+        if len(self) == 0:
+            return Doc(_PyDoc("", [], [], self._doc.lang_))
+        return _sub_doc(self._doc, self._start, self._end, self.text, self.start_char)
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, Span):
             return NotImplemented
@@ -779,6 +890,38 @@ def _doc_entities(doc) -> Tuple["Span", ...]:
     if start is not None:
         entities.append(Span(doc, start, len(doc), label=label))
     return tuple(entities)
+
+
+def _sub_doc(doc: "Doc", start: int, end: int, text: str, offset: int,
+             sentence_bounds: Optional[List[Tuple[int, int]]] = None) -> "Doc":
+    """A new document of the tokens [start, end) of doc, whose text is text,
+    the characters of doc's text from offset: the token positions are shifted
+    by offset, the heads outside the tokens become their own tokens (roots), and
+    the sentences are cut at the bounds. sentence_bounds: the [start, end) of
+    doc's sentences, if already known (they are computed otherwise)."""
+    if sentence_bounds is None:
+        sentence_bounds = [(sent.start, sent.end) for sent in doc.sents]
+    tokens = []
+    for k in range(start, end):
+        t = doc[k]
+        c = t.token
+        head = t.head_i - start
+        inside = 0 <= head < end - start
+        tokens.append(_PyToken(
+            len=c.len, text=c.text, i=k - start, lemma=c.lemma, pos=c.pos - offset,
+            tag=c.tag, head=head if inside else k - start,
+            dep=c.dep, features=c.features, neIOB=c.neIOB, neType=c.neType,
+            tStatus=c.tStatus))
+    sentences = []
+    # The sentences overlapping [start, end) (sentence_bounds are sorted)
+    first = bisect.bisect_right([e for _, e in sentence_bounds], start)
+    for sent_start, sent_end in sentence_bounds[first:]:
+        if sent_start >= end:
+            break
+        s, e = max(sent_start, start) - start, min(sent_end, end) - start
+        if e > s:
+            sentences.append((s, e))
+    return Doc(_PyDoc(text, tokens, sentences, doc.lang_))
 
 
 class _DocIterator:
@@ -825,7 +968,7 @@ class Doc:
 
 
     """
-    def __init__(self, doc: aymaralima.cpplima.Doc):
+    def __init__(self, doc: Union[aymaralima.cpplima.Doc, _PyDoc]):
         self.limadoc = doc
 
     def __iter__(self) -> _DocIterator:
@@ -1017,9 +1160,139 @@ class Doc:
         return doc_to_spacy(self, vocab)
 
     def to_conllu(self) -> str:
-        """The document in CoNLL-U format (one line per token, word ids per
-        sentence), as repr(doc)."""
-        return repr(self)
+        """The document in CoNLL-U format: a "# sent_id" and a "# text" comment per
+        sentence, word ids from 1 in each sentence, SpaceAfter=No, and an N-M
+        line for the words of a multiword token sharing its position (French
+        "du" -> "de" "le"). Doc.from_conllu reads it back.
+
+        :return: the CoNLL-U text, ending with an empty line
+        """
+        lines = []
+        text = self.text
+        for n, sent in enumerate(self.sents, start=1):
+            lines.append(f"# sent_id = {n}")
+            lines.append("# text = " + " ".join(sent.text.split()))
+            tokens = list(sent)
+            k = 0
+            while k < len(tokens):
+                # The words sharing the position of the first one
+                group = [tokens[k]]
+                while (k + len(group) < len(tokens)
+                       and tokens[k + len(group)].idx == tokens[k].idx):
+                    group.append(tokens[k + len(group)])
+                if len(group) > 1:
+                    start = group[0].idx
+                    end = (tokens[k + len(group)].idx if k + len(group) < len(tokens)
+                           else sent.end_char)
+                    surface = text[start:end].rstrip()
+                    misc = "_" if text[start + len(surface):start + len(surface) + 1].isspace() \
+                        or start + len(surface) >= len(text) else "SpaceAfter=No"
+                    lines.append(f"{k + 1}-{k + len(group)}\t{surface}\t_\t_\t_\t_\t_\t_\t_\t{misc}")
+                for j, t in enumerate(group):
+                    in_group = len(group) > 1
+                    cols = repr(t).split("\t")
+                    cols[0] = str(k + j + 1)
+                    if cols[6] not in ("_", "0"):
+                        cols[6] = str(int(cols[6]) - sent.start)
+                    misc = [m for m in cols[9].split("|") if m and m != "_"]
+                    if not in_group and not t.whitespace_ and t.idx + len(t) < len(text):
+                        misc.append("SpaceAfter=No")
+                    cols[9] = "|".join(misc) if misc else "_"
+                    lines.append("\t".join(cols))
+                k += len(group)
+            lines.append("")
+        return "\n".join(lines) + "\n"
+
+    @classmethod
+    def from_conllu(cls, conllu: str, lang: str = "") -> "Doc":
+        """A document from a CoNLL-U text (e.g. a UD treebank's, or to_conllu's),
+        with all the Doc, Span and Token features, without analyzing anything.
+
+        The text is the one of the "# text" comments (joined by spaces), or else
+        rebuilt from the forms and SpaceAfter=No. The NE=B-<type> / NE=I-<type>
+        MISC values (LIMA's) give the named entities.
+
+        :param conllu: the CoNLL-U text
+        :param lang: the language of the document, e.g. "ud-eng" (for is_stop,
+            to_spacy...)
+        """
+        tokens: List[_PyToken] = []
+        sentences: List[Tuple[int, int]] = []
+        text_parts: List[str] = []
+
+        def misc_value(misc: str, key: str) -> Optional[str]:
+            for item in misc.split("|"):
+                if item.startswith(key + "="):
+                    return item[len(key) + 1:]
+            return None
+
+        for block in conllu.strip("\n").split("\n\n"):
+            lines = [line for line in block.split("\n") if line.strip()]
+            if not lines:
+                continue
+            sent_text = None
+            words, ranges = [], {}
+            for line in lines:
+                if line.startswith("#"):
+                    if line.startswith("# text = "):
+                        sent_text = line[len("# text = "):]
+                    continue
+                cols = line.rstrip("\n").split("\t")
+                if len(cols) != 10:
+                    raise ValueError(f"Not a CoNLL-U line: {line!r}")
+                if "-" in cols[0]:
+                    first, last = (int(x) for x in cols[0].split("-"))
+                    ranges[first] = (last, cols[1], cols[9])
+                elif "." not in cols[0]:
+                    words.append(cols)
+            if not words:
+                continue
+            if sent_text is None:
+                parts, skip_until = [], 0
+                for cols in words:
+                    wid = int(cols[0])
+                    if wid in ranges:
+                        last, form, misc = ranges[wid]
+                        parts.append(form + ("" if "SpaceAfter=No" in misc else " "))
+                        skip_until = last
+                    elif wid > skip_until:
+                        parts.append(cols[1] + ("" if "SpaceAfter=No" in cols[9] else " "))
+                sent_text = "".join(parts).rstrip()
+            base = sum(len(p) + 1 for p in text_parts)   # sentences joined by " "
+            text_parts.append(sent_text)
+            first_token = len(tokens)
+            cursor, mwt_end, mwt_start, mwt_last = 0, 0, 0, 0
+            for cols in words:
+                wid = int(cols[0])
+                if wid in ranges:
+                    last, form, _ = ranges[wid]
+                    found = sent_text.find(form, cursor)
+                    mwt_start = found if found >= 0 else cursor
+                    mwt_end, mwt_last = mwt_start + len(form), last
+                    cursor = mwt_start
+                in_mwt = mwt_end > 0 and wid <= mwt_last
+                found = sent_text.find(cols[1], cursor, mwt_end if in_mwt else None)
+                if found >= 0:
+                    start = found
+                    cursor = found + len(cols[1])
+                else:
+                    start = mwt_start if in_mwt else cursor
+                if in_mwt and wid == mwt_last:
+                    cursor, mwt_end = max(cursor, mwt_end), 0
+                head = int(cols[6]) if cols[6].isdigit() else 0
+                dep = cols[7]
+                ne = misc_value(cols[9], "NE")
+                tokens.append(_PyToken(
+                    len=len(cols[1]), text=cols[1], i=len(tokens),
+                    lemma=cols[2], pos=base + start + 1, tag=cols[3],
+                    head=first_token + head - 1 if head > 0 else 0,
+                    dep="root" if head == 0 and dep.lower() == "root" else dep,
+                    features=cols[5],
+                    neIOB=ne[0] if ne and ne[:2] in ("B-", "I-") else "O",
+                    neType=ne[2:] if ne and ne[:2] in ("B-", "I-") else "_",
+                    tStatus=""))
+            sentences.append((first_token, len(tokens)))
+        return cls(_PyDoc(" ".join(text_parts), tokens, sentences, lang))
 
     @property
     def noun_chunks(self) -> Iterator[Span]:
@@ -1200,6 +1473,8 @@ class Lima:
 
         self.langs = langs.split(",")
         self.pipes = pipes.split(",")
+        self._user_config_path = user_config_path
+        self._meta = meta
 
     def __call__(self,
                  text: str,
@@ -1265,15 +1540,90 @@ class Lima:
     def pipe(self, texts: Iterable[str], batch_size: int = 1, n_process: int = 1,
              lang: str = None, pipeline: str = None,
              meta: Optional[Dict[str, str]] = None) -> Iterator[Doc]:
-        """Analyze the texts one after the other, as spaCy's nlp.pipe: yields one
-        Doc per text, in order. batch_size and n_process are accepted for
-        compatibility and ignored (one LIMA analyzer per process)."""
+        """Analyze the texts, as spaCy's nlp.pipe: yields one Doc per text, in
+        order.
+
+        With batch_size > 1, the texts of a batch are analyzed together (joined
+        by blank lines), which is much faster for short texts (about 5 times for
+        one-sentence texts), and the result is cut into one Doc per text. The
+        analysis of a text may then differ slightly from nlp(text): a text
+        without final punctuation may end a sentence with the beginning of the
+        next one (its sentence is cut, the relations crossing the cut become
+        roots). With the default batch_size of 1, each text is analyzed alone.
+        n_process is accepted for compatibility and ignored (one analyzer per
+        process).
+        """
+        if batch_size <= 1:
+            for text in texts:
+                yield self(text, lang=lang, pipeline=pipeline, meta=meta)
+            return
+        batch = []
         for text in texts:
-            yield self(text, lang=lang, pipeline=pipeline, meta=meta)
+            if not isinstance(text, str):
+                raise TypeError(f"Lima.pipe texts must be str, not {type(text)}")
+            batch.append(text)
+            if len(batch) == batch_size:
+                yield from self._analyze_batch(batch, lang, pipeline, meta)
+                batch = []
+        if batch:
+            yield from self._analyze_batch(batch, lang, pipeline, meta)
+
+    def _analyze_batch(self, texts: List[str], lang, pipeline, meta) -> Iterator[Doc]:
+        """The Docs of texts, analyzed together (see pipe)."""
+        separator = "\n\n"
+        starts, position = [], 0
+        for text in texts:
+            starts.append(position)
+            position += len(text) + len(separator)
+        doc = self(separator.join(texts), lang=lang, pipeline=pipeline, meta=meta)
+        bounds = [(sent.start, sent.end) for sent in doc.sents]
+        n = len(doc)
+        positions = [doc.limadoc.at(k).pos - 1 for k in range(n)]
+        k = 0
+        for text, start in zip(texts, starts):
+            end = start + len(text)
+            first = k
+            while k < n and positions[k] < end:
+                k += 1
+            yield _sub_doc(doc, first, k, text, start, bounds)
 
     lang = property(
         fget=lambda self: self.langs[0] if self.langs else "ud-eng",
         doc="The first language of the analyzer (e.g. ud-eng).")
+
+    @property
+    def pipe_names(self) -> List[str]:
+        """The names of the units of the analyzer's (first) pipeline, as in its
+        LIMA configuration file, e.g. ["RnnTokenizer", "RnnTokensAnalyzer",
+        "RnnDependencyParser", "SpecificEntitiesModexAfterPos", "conllDumper"];
+        empty if the file is not found. Units added by add_pipeline_unit are not
+        listed."""
+        import xml.etree.ElementTree as ET
+        file_name = f"lima-lp-{self.lang}.xml"
+        dirs = [d for d in str(self._user_config_path or "").replace(",", ":").split(":") if d]
+        dirs += [str(_get_data_dir("lima") / "config"),
+                 os.path.join(list(aymaralima.__path__)[-1], "config")]
+        pipeline = self.pipes[0] if self.pipes else "deepud"
+        for d in dirs:
+            path = os.path.join(d, file_name)
+            if not os.path.isfile(path):
+                continue
+            for group in ET.parse(path).getroot().iter("group"):
+                if group.get("name") == pipeline and group.get("class") == "ProcessUnitPipeline":
+                    for lst in group.iter("list"):
+                        if lst.get("name") == "processUnitSequence":
+                            return [item.get("value") for item in lst.iter("item")]
+        return []
+
+    @property
+    def meta(self) -> Dict[str, str]:
+        """Information about the analyzer, as spaCy's nlp.meta: its language,
+        pipeline, deeplima models (udlang) and aymara version."""
+        from aymara.version import __version__
+        pipeline = self.pipes[0] if self.pipes else "deepud"
+        return {"name": f"lima_{pipeline}", "lang": self.lang, "pipeline": pipeline,
+                "udlang": self._meta.get("udlang", ""), "version": __version__,
+                "pipes": ",".join(self.pipes)}
 
     def analyzeText(self,
                     text: str,
@@ -1348,6 +1698,7 @@ class Lima:
 
         Example::
 
+                    import json
                     import aymara.lima
                     nlp = aymara.lima.Lima(
                         "ud-eng", "empty",
@@ -1357,21 +1708,21 @@ class Lima:
                         "class": "RnnTokenizer",
                         "model_prefix": "tokenizer-$udlang"
                     }
-                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
+                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
                     group = {
                         "name": "rnntokensanalyzer",
                         "class": "RnnTokensAnalyzer",
                         "tagger_model_prefix": "tagger-$udlang",
                         "lemmatizer_model_prefix": "lemmatizer-$udlang"
                     }
-                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
+                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
                     group = {
                         "name": "conllDumper",
                         "class": "ConllDumper",
-                        "handler": "simpleStreamHandler"
+                        "handler": "simpleStreamHandler",
                         "fakeDependencyGraph": "false"
                     }
-                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group)
+                    nlp.add_pipeline_unit("empty", "ud-eng", json.dumps(group))
 
                     result = nlp.analyzeText("Give it back! He pleaded.")
                     print(result)
@@ -1419,7 +1770,7 @@ class Lima:
 
         :param dir: the directory were to export the configuration (Default value =
             None)
-        :type dir: pathlib.Path
+        :type dir: Union[str, pathlib.Path]
         :param lang: the language whose configuration must be exported. If `None`, the
             whole configuration is exported (Default value = None)
         :type lang: str
@@ -1427,8 +1778,8 @@ class Lima:
         :rtype: bool
         """
         # Verify thar dir exists and is writable or create it
-        if not dir:
-            dir = _get_data_dir("lima")
+        # A str (the documented "~/MyLima") as well as a pathlib.Path
+        dir = pathlib.Path(dir).expanduser() if dir else _get_data_dir("lima")
         dir.mkdir(parents=True, exist_ok=True)
 
         fromDirectory = pathlib.Path(list(aymaralima.__path__)[-1]) / "config"

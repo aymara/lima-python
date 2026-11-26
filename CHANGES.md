@@ -1,5 +1,22 @@
 ## Unreleased
 
+* `Doc.from_conllu(text, lang)`: a document from CoNLL-U (a UD treebank's,
+  multiword tokens included, or LIMA's), with all the `Doc`/`Span`/`Token`
+  features and no analysis; `Span.as_doc()`: a new document of a span
+* `Doc.to_conllu()` writes standard CoNLL-U: `# sent_id` and `# text`
+  comments, `SpaceAfter=No`, and N-M lines for multiword tokens (it was
+  `repr(doc)`, still available)
+* `Token.is_stop`, from spaCy's stop word lists for 76 languages, vendored in
+  `aymara.stop_words` (MIT; spaCy is not needed)
+* `Lima.pipe_names` (the units of the pipeline, from its configuration) and
+  `Lima.meta`
+* `Lima.pipe(texts, batch_size=n)` with `n > 1` analyzes the texts of a batch
+  together: about 3 times faster for one-sentence texts (25 ms -> 7 ms per
+  text, with aymara/lima#238), a text's analysis then possibly differing
+  slightly from `nlp(text)` (sentences and context across texts); the
+  default `batch_size=1` analyzes each text alone
+* The docstring examples are run by the tests (they were partly wrong);
+  `Lima.export_system_conf` accepts a `str`, as its example does
 * spaCy interoperability (optional: `pip install aymara[spacy]`), in the new
   module `aymara.lima_spacy`:
   - `doc.to_spacy()` converts a LIMA document into a `spacy.tokens.Doc` with

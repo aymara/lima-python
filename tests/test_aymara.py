@@ -602,7 +602,7 @@ def test_doc_spacy_api():
     assert [t["head"] for t in data["tokens"]] == [0, 0, 0, 0, 5, 5, 5]
     assert data["sents"] == [{"start": 0, "end": 13}, {"start": 14, "end": 25}]
     assert json.dumps(data)
-    assert doc.to_conllu() == repr(doc)
+    assert doc.to_conllu().startswith("# sent_id = 1\n# text = Give it back!\n")
 
 
 def test_noun_chunks():
@@ -693,3 +693,87 @@ def test_to_spacy_multiword_tokens():
     assert [t.text for t in sdoc][2:4] == ["de", "le"]
     assert sdoc.text == "Il vient de le Japon."
     assert sdoc.user_data["lima_text"] == "Il vient du Japon."
+
+
+def test_is_stop():
+    # doc = lima("Give it back! He pleaded.")
+    assert [t.text for t in doc if t.is_stop] == ["Give", "it", "back", "He"]
+    assert aymara.lima._stop_words("ud-zzz") == frozenset()
+
+
+def test_pipe_names_and_meta():
+    assert lima.pipe_names[0] == "RnnTokenizer"
+    assert "RnnDependencyParser" in lima.pipe_names
+    meta = lima.meta
+    assert meta["lang"] == "ud-eng" and meta["pipeline"] == "deepud"
+    assert meta["udlang"] == "eng-UD_English-EWT"
+    assert meta["version"] == aymara.version.__version__
+
+
+def test_conllu_round_trip():
+    # doc = lima("Give it back! He pleaded.")
+    conllu = doc.to_conllu()
+    lines = conllu.split("\n")
+    assert lines[:2] == ["# sent_id = 1", "# text = Give it back!"]
+    assert lines[2].startswith("1\tGive\tgive\tVERB\t")
+    assert "SpaceAfter=No" in lines[4]       # back!
+    assert conllu.endswith("\n\n")
+    back = aymara.lima.Doc.from_conllu(conllu, lang="ud-eng")
+    assert back.text == doc.text
+    for t1, t2 in zip(doc, back):
+        assert (t1.text, t1.idx, t1.lemma_, t1.pos_, t1.dep_, t1.head_i, str(t1.morph),
+                t1.ent_type_) == (t2.text, t2.idx, t2.lemma_, t2.pos_, t2.dep_, t2.head_i,
+                                  str(t2.morph), t2.ent_type_)
+    assert [s.text for s in back.sents] == [s.text for s in doc.sents]
+    assert [t.text for t in back[5].children] == ["He", "."]
+    assert back.to_conllu() == conllu
+
+
+def test_from_conllu_ud():
+    # A UD treebank sentence with a multiword token and no "# text"
+    conllu = ("1\tIl\til\tPRON\t_\t_\t2\tnsubj\t_\t_\n"
+              "2\tvient\tvenir\tVERB\t_\t_\t0\troot\t_\t_\n"
+              "3-4\tdu\t_\t_\t_\t_\t_\t_\t_\t_\n"
+              "3\tde\tde\tADP\t_\t_\t5\tcase\t_\t_\n"
+              "4\tle\tle\tDET\t_\t_\t5\tdet\t_\t_\n"
+              "5\tJapon\tJapon\tPROPN\t_\t_\t2\tobl\t_\tSpaceAfter=No|NE=B-Location.COUNTRY\n"
+              "6\t.\t.\tPUNCT\t_\t_\t2\tpunct\t_\t_\n\n")
+    fdoc = aymara.lima.Doc.from_conllu(conllu, lang="ud-fra")
+    assert fdoc.text == "Il vient du Japon."
+    assert [t.idx for t in fdoc] == [0, 3, 9, 9, 12, 17]
+    assert fdoc[5].head.text == "vient" and fdoc[1].dep_ == "root"
+    assert [(e.text, e.label) for e in fdoc.ents] == [("Japon", "Location.COUNTRY")]
+    assert fdoc[2].is_stop
+    out = fdoc.to_conllu()
+    assert "\n3-4\tdu\t" in out
+
+
+def test_span_as_doc():
+    # doc = lima("Give it back! He pleaded.")
+    sub = doc[4:7].as_doc()
+    assert isinstance(sub, aymara.lima.Doc)
+    assert sub.text == "He pleaded."
+    assert [t.idx for t in sub] == [0, 3, 10]
+    assert sub[0].head.text == "pleaded" and sub[1].head == sub[1]
+    assert len(list(sub.sents)) == 1
+    part = doc[1:3].as_doc()          # "it back": heads outside the span
+    assert all(t.head == t for t in part)
+    assert doc[0:0].as_doc().text == ""
+
+
+def test_pipe_batched():
+    texts = ["Give it back!", "", "He pleaded.\n\nShe left.", "John Doe lives in New York."]
+    single = list(lima.pipe(texts))
+    batched = list(lima.pipe(texts, batch_size=3))
+    assert len(batched) == len(texts)
+    for text, s, b in zip(texts, single, batched):
+        assert b.text == text
+        assert [t.text for t in b] == [t.text for t in s]
+        assert [t.idx for t in b] == [t.idx for t in s]
+        assert [x.text for x in b.sents] == [x.text for x in s.sents]
+        for t in b:
+            assert 0 <= t.head_i < len(b)
+    assert len(batched[1]) == 0
+    assert [e.text for e in batched[3].ents] == ["John Doe", "New York"]
+    with pytest.raises(TypeError):
+        list(lima.pipe(["a", 1], batch_size=2))
