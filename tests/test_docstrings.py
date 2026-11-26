@@ -67,7 +67,11 @@ def test_examples_found():
 
 @pytest.mark.parametrize("name,code", EXAMPLES, ids=[name for name, _ in EXAMPLES])
 def test_docstring_example(name, code, tmp_path, monkeypatch):
-    monkeypatch.setenv("HOME", str(tmp_path))   # export_system_conf("~/MyLima")
+    # export_system_conf("~/MyLima") writes into a temporary HOME; the models
+    # stay where they are (by default under HOME: an analyzer created without
+    # them would fail)
+    monkeypatch.setenv("XDG_DATA_HOME", str(aymara.lima._get_data_dir("lima").parent))
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.chdir(tmp_path)
     code = re.sub(r"aymara\.lima\.Lima\(\)", "shared_lima", code)
     namespace = {"shared_lima": shared_lima, "nlp": shared_lima,
