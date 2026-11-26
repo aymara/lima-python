@@ -790,6 +790,11 @@ class _DocIterator:
         # index variable to keep track
         self._index = 0
 
+    def __iter__(self):
+        """Returns Iterator object (an iterator must also be iterable: without
+        this, comprehensions over a Doc raise TypeError with Python 3.13)"""
+        return self
+
     def __next__(self) -> Token:
         """'Returns the next value from doc object's lists"""
         if self._index < len(self._doc):
