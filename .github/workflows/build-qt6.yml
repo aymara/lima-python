@@ -7,10 +7,18 @@ on:
     tags:
       - '[0-9]*.[0-9]*.[0-9]*'
       - 'v*'
+  # Sent by aymara/lima when its push build (master, release tag) or a manual
+  # run on master pushed new LIMA images (client_payload.release: true for a
+  # release tag or a manual run)
   repository_dispatch:
     types: [trigger_workflow]
+  # Builds all the wheels, the Windows and macOS ones included (e.g. before
+  # tagging)
+  workflow_dispatch:
   # A pull request is built and tested too (the continuous prerelease and PyPI
-  # are only updated from master and version tags)
+  # are only updated from master and version tags). The Linux wheels are built
+  # on every run; the Windows and macOS ones only for a release (version tag,
+  # LIMA release, manual run): see the jobs windows-wheel and macos-wheel.
   pull_request:
     branches:
       - master
@@ -46,8 +54,8 @@ concurrency:
 jobs:
 
   # The wheels are built on the LIMA images of aymara/lima's build-qt6.yml
-  # (:latest). A push made while that workflow builds master would use the
-  # previous LIMA: wait for it to finish. Not needed when the run was triggered
+  # (:latest), pushed by its push builds (master, release tags). A push made
+  # while that workflow runs would use the previous LIMA: wait for it to finish. Not needed when the run was triggered
   # by LIMA's success (repository_dispatch, from its
   # trigger-lima-python-on-success.yml).
   wait-for-lima:
@@ -55,23 +63,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 340
     steps:
-      - name: "Wait for aymara/lima's build-qt6.yml on master"
+      - name: "Wait for aymara/lima's build-qt6.yml"
         if: github.event_name != 'repository_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          runs="repos/aymara/lima/actions/workflows/build-qt6.yml/runs?branch=master&event=push&per_page=10"
+          runs="repos/aymara/lima/actions/workflows/build-qt6.yml/runs?event=push&per_page=10"
           while true; do
             pending=$(gh api "$runs" --jq '[.workflow_runs[] | select(.status != "completed")] | length')
             [ "$pending" = "0" ] && break
-            echo "$pending LIMA run(s) on master not completed yet, waiting..."
+            echo "$pending LIMA run(s) not completed yet, waiting..."
             sleep 120
           done
           last=$(gh api "$runs" --jq '.workflow_runs[0] | "\(.conclusion) \(.head_sha) \(.html_url)"')
-          echo "Last LIMA run on master: $last"
+          echo "Last LIMA run: $last"
           case "$last" in
             success*) ;;
-            *) echo "::warning::The last LIMA build on master did not succeed ($last): the wheels use the previous LIMA images" ;;
+            *) echo "::warning::The last LIMA build did not succeed ($last): the wheels use the previous LIMA images" ;;
           esac
 
   lima-python:
@@ -214,9 +222,13 @@ jobs:
 
   # The Windows wheel (cp310-abi3, Qt 6.12.0) is built against the LIMA
   # Windows package of aymara/lima's build-win.yml (its "continuous"
-  # prerelease, updated on master), with scripts/build-wheel-windows.ps1.
+  # prerelease, updated by LIMA releases), with scripts/build-wheel-windows.ps1.
   windows-wheel:
     name: "Build the Windows wheel (Qt 6.12.0, Python 3.10)"
+    # Windows and macOS: for a release (tag), after a LIMA release or manual
+    # run (repository_dispatch with release: true; LIMA's master builds send
+    # false) or on demand, not on every push nor pull request
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.release == true) }}
     runs-on: windows-2022
     timeout-minutes: 180
     env:
@@ -231,17 +243,18 @@ jobs:
         shell: bash
         run: echo "LIMA_PYTHON_VERSION=$(python aymara/version.py)" >> "$GITHUB_ENV"
 
-      - name: "Wait for aymara/lima's build-win.yml on master"
-        if: github.event_name != 'repository_dispatch'
+      # Also after repository_dispatch (sent when LIMA's Linux images are
+      # pushed): LIMA's Windows release build may still be running
+      - name: "Wait for aymara/lima's build-win.yml"
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          runs="repos/aymara/lima/actions/workflows/build-win.yml/runs?branch=master&event=push&per_page=10"
+          runs="repos/aymara/lima/actions/workflows/build-win.yml/runs?per_page=10"
           while true; do
             pending=$(gh api "$runs" --jq '[.workflow_runs[] | select(.status != "completed")] | length')
             [ "$pending" = "0" ] && break
-            echo "$pending LIMA Windows run(s) on master not completed yet, waiting..."
+            echo "$pending LIMA Windows run(s) not completed yet, waiting..."
             sleep 120
           done
 
@@ -393,9 +406,13 @@ jobs:
 
   # The macOS wheel (cp310-abi3, Apple Silicon, Qt 6.12.0) is built against the
   # LIMA macOS package of aymara/lima's build-macos.yml (its "continuous"
-  # prerelease, updated on master), with scripts/build-wheel-macos.sh.
+  # prerelease, updated by LIMA releases), with scripts/build-wheel-macos.sh.
   macos-wheel:
     name: "Build the macOS wheel (arm64, Qt 6.12.0, Python 3.10)"
+    # Windows and macOS: for a release (tag), after a LIMA release or manual
+    # run (repository_dispatch with release: true; LIMA's master builds send
+    # false) or on demand, not on every push nor pull request
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.release == true) }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -407,16 +424,16 @@ jobs:
       - name: "Version (aymara/version.py)"
         run: echo "LIMA_PYTHON_VERSION=$(python3 aymara/version.py)" >> "$GITHUB_ENV"
 
-      - name: "Wait for aymara/lima's build-macos.yml on master"
-        if: github.event_name != 'repository_dispatch'
+      # Also after a LIMA release (see windows-wheel)
+      - name: "Wait for aymara/lima's build-macos.yml"
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          runs="repos/aymara/lima/actions/workflows/build-macos.yml/runs?branch=master&event=push&per_page=10"
+          runs="repos/aymara/lima/actions/workflows/build-macos.yml/runs?per_page=10"
           while true; do
             pending=$(gh api "$runs" --jq '[.workflow_runs[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)
             [ "$pending" = "0" ] && break
-            echo "$pending LIMA macOS run(s) on master not completed yet, waiting..."
+            echo "$pending LIMA macOS run(s) not completed yet, waiting..."
             sleep 120
           done
 
@@ -520,14 +537,18 @@ jobs:
           mkdir ../wheel-tests && cp -r tests pytest.ini ../wheel-tests/
           cd ../wheel-tests && python -m pytest -p no:cacheprovider tests
 
-  # The continuous prerelease follows master, with the four wheels; a version tag
-  # gets its own release (job pypi). commit is the SHA: a tag name
+  # The continuous prerelease follows master; a version tag gets its own release
+  # (job pypi). Without the Windows and macOS wheels (skipped: not a release
+  # run), only the Linux ones are replaced and the others are kept.
   # (github.ref_name on a tag) is not a valid target_commitish (error 422)
   continuous:
     name: "Update the continuous prerelease"
     runs-on: ubuntu-latest
     needs: [lima-python-tests, windows-tests, macos-tests]
-    if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+    if: >-
+      ${{ always() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+          && needs.lima-python-tests.result == 'success'
+          && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     permissions:
       contents: write
     steps:
