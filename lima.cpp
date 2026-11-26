@@ -521,6 +521,13 @@ LimaAnalyzerPrivate::~LimaAnalyzerPrivate()
   }
 }
 
+namespace
+{
+// The error of the last LimaAnalyzer constructor that failed (it has no
+// private part to keep it in)
+thread_local std::string lastConstructorError;
+}
+
 LimaAnalyzer::LimaAnalyzer(const std::string& langs,
                            const std::string& pipelines,
                            const std::string& modulePath,
@@ -544,11 +551,13 @@ LimaAnalyzer::LimaAnalyzer(const std::string& langs,
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
 }
 
@@ -571,11 +580,13 @@ LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
   // std::cerr << "LimaAnalyzer::LimaAnalyzer copy constructor" << std::endl;
 }
@@ -597,11 +608,13 @@ LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer& a)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
   return *this;
 }
@@ -616,7 +629,8 @@ std::string LimaAnalyzer::errorMessage()
 {
   if (m_d == nullptr)
   {
-    return "Error during constructor";
+    return "Error during constructor"
+      + (lastConstructorError.empty() ? std::string() : ": " + lastConstructorError);
   }
   std::string result = m_d->errorMessage;
   m_d->reset();
@@ -672,7 +686,7 @@ Doc LimaAnalyzer::operator()(const std::string& text,
     auto doc = Doc(m_d->error, m_d->errorMessage);
     return doc;
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d->error = true;
@@ -708,7 +722,7 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
     m_d->errorMessage = e.what();
     return "";
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d->error = true;
@@ -921,7 +935,7 @@ bool LimaAnalyzerPrivate::addPipelineUnit(const std::string& pipeline,
     errorMessage = std::string("Lima internal error:") + e.what();
     return false;
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     error = true;
