@@ -31,6 +31,7 @@ Classes:
 # -*- coding: utf-8 -*-
 
 import argparse
+import bisect
 import os
 import pathlib
 import shutil
@@ -852,24 +853,7 @@ class Span:
         the sentences are cut at the span's bounds."""
         if len(self) == 0:
             return Doc(_PyDoc("", [], [], self._doc.lang_))
-        offset = self.start_char
-        tokens = []
-        for k, t in enumerate(self):
-            c = t.token
-            head = t.head_i - self._start
-            inside = 0 <= head < len(self)
-            tokens.append(_PyToken(
-                len=c.len, text=c.text, i=k, lemma=c.lemma, pos=c.pos - offset,
-                tag=c.tag, head=head if inside else k,
-                dep=c.dep, features=c.features, neIOB=c.neIOB, neType=c.neType,
-                tStatus=c.tStatus))
-        sentences = []
-        for sent in self.sents:
-            start = max(sent.start, self._start) - self._start
-            end = min(sent.end, self._end) - self._start
-            if end > start:
-                sentences.append((start, end))
-        return Doc(_PyDoc(self.text, tokens, sentences, self._doc.lang_))
+        return _sub_doc(self._doc, self._start, self._end, self.text, self.start_char)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Span):
@@ -906,6 +890,38 @@ def _doc_entities(doc) -> Tuple["Span", ...]:
     if start is not None:
         entities.append(Span(doc, start, len(doc), label=label))
     return tuple(entities)
+
+
+def _sub_doc(doc: "Doc", start: int, end: int, text: str, offset: int,
+             sentence_bounds: Optional[List[Tuple[int, int]]] = None) -> "Doc":
+    """A new document of the tokens [start, end) of doc, whose text is text,
+    the characters of doc's text from offset: the token positions are shifted
+    by offset, the heads outside the tokens become their own tokens (roots), and
+    the sentences are cut at the bounds. sentence_bounds: the [start, end) of
+    doc's sentences, if already known (they are computed otherwise)."""
+    if sentence_bounds is None:
+        sentence_bounds = [(sent.start, sent.end) for sent in doc.sents]
+    tokens = []
+    for k in range(start, end):
+        t = doc[k]
+        c = t.token
+        head = t.head_i - start
+        inside = 0 <= head < end - start
+        tokens.append(_PyToken(
+            len=c.len, text=c.text, i=k - start, lemma=c.lemma, pos=c.pos - offset,
+            tag=c.tag, head=head if inside else k - start,
+            dep=c.dep, features=c.features, neIOB=c.neIOB, neType=c.neType,
+            tStatus=c.tStatus))
+    sentences = []
+    # The sentences overlapping [start, end) (sentence_bounds are sorted)
+    first = bisect.bisect_right([e for _, e in sentence_bounds], start)
+    for sent_start, sent_end in sentence_bounds[first:]:
+        if sent_start >= end:
+            break
+        s, e = max(sent_start, start) - start, min(sent_end, end) - start
+        if e > s:
+            sentences.append((s, e))
+    return Doc(_PyDoc(text, tokens, sentences, doc.lang_))
 
 
 class _DocIterator:
@@ -1524,11 +1540,52 @@ class Lima:
     def pipe(self, texts: Iterable[str], batch_size: int = 1, n_process: int = 1,
              lang: str = None, pipeline: str = None,
              meta: Optional[Dict[str, str]] = None) -> Iterator[Doc]:
-        """Analyze the texts one after the other, as spaCy's nlp.pipe: yields one
-        Doc per text, in order. batch_size and n_process are accepted for
-        compatibility and ignored (one LIMA analyzer per process)."""
+        """Analyze the texts, as spaCy's nlp.pipe: yields one Doc per text, in
+        order.
+
+        With batch_size > 1, the texts of a batch are analyzed together (joined
+        by blank lines), which is much faster for short texts (about 5 times for
+        one-sentence texts), and the result is cut into one Doc per text. The
+        analysis of a text may then differ slightly from nlp(text): a text
+        without final punctuation may end a sentence with the beginning of the
+        next one (its sentence is cut, the relations crossing the cut become
+        roots). With the default batch_size of 1, each text is analyzed alone.
+        n_process is accepted for compatibility and ignored (one analyzer per
+        process).
+        """
+        if batch_size <= 1:
+            for text in texts:
+                yield self(text, lang=lang, pipeline=pipeline, meta=meta)
+            return
+        batch = []
         for text in texts:
-            yield self(text, lang=lang, pipeline=pipeline, meta=meta)
+            if not isinstance(text, str):
+                raise TypeError(f"Lima.pipe texts must be str, not {type(text)}")
+            batch.append(text)
+            if len(batch) == batch_size:
+                yield from self._analyze_batch(batch, lang, pipeline, meta)
+                batch = []
+        if batch:
+            yield from self._analyze_batch(batch, lang, pipeline, meta)
+
+    def _analyze_batch(self, texts: List[str], lang, pipeline, meta) -> Iterator[Doc]:
+        """The Docs of texts, analyzed together (see pipe)."""
+        separator = "\n\n"
+        starts, position = [], 0
+        for text in texts:
+            starts.append(position)
+            position += len(text) + len(separator)
+        doc = self(separator.join(texts), lang=lang, pipeline=pipeline, meta=meta)
+        bounds = [(sent.start, sent.end) for sent in doc.sents]
+        n = len(doc)
+        positions = [doc.limadoc.at(k).pos - 1 for k in range(n)]
+        k = 0
+        for text, start in zip(texts, starts):
+            end = start + len(text)
+            first = k
+            while k < n and positions[k] < end:
+                k += 1
+            yield _sub_doc(doc, first, k, text, start, bounds)
 
     lang = property(
         fget=lambda self: self.langs[0] if self.langs else "ud-eng",

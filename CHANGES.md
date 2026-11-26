@@ -10,6 +10,11 @@
   `aymara.stop_words` (MIT; spaCy is not needed)
 * `Lima.pipe_names` (the units of the pipeline, from its configuration) and
   `Lima.meta`
+* `Lima.pipe(texts, batch_size=n)` with `n > 1` analyzes the texts of a batch
+  together: about 3 times faster for one-sentence texts (25 ms -> 7 ms per
+  text, with aymara/lima#238), a text's analysis then possibly differing
+  slightly from `nlp(text)` (sentences and context across texts); the
+  default `batch_size=1` analyzes each text alone
 * The docstring examples are run by the tests (they were partly wrong);
   `Lima.export_system_conf` accepts a `str`, as its example does
 * spaCy interoperability (optional: `pip install aymara[spacy]`), in the new

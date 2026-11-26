@@ -759,3 +759,21 @@ def test_span_as_doc():
     part = doc[1:3].as_doc()          # "it back": heads outside the span
     assert all(t.head == t for t in part)
     assert doc[0:0].as_doc().text == ""
+
+
+def test_pipe_batched():
+    texts = ["Give it back!", "", "He pleaded.\n\nShe left.", "John Doe lives in New York."]
+    single = list(lima.pipe(texts))
+    batched = list(lima.pipe(texts, batch_size=3))
+    assert len(batched) == len(texts)
+    for text, s, b in zip(texts, single, batched):
+        assert b.text == text
+        assert [t.text for t in b] == [t.text for t in s]
+        assert [t.idx for t in b] == [t.idx for t in s]
+        assert [x.text for x in b.sents] == [x.text for x in s.sents]
+        for t in b:
+            assert 0 <= t.head_i < len(b)
+    assert len(batched[1]) == 0
+    assert [e.text for e in batched[3].ents] == ["John Doe", "New York"]
+    with pytest.raises(TypeError):
+        list(lima.pipe(["a", 1], batch_size=2))
