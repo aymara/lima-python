@@ -1,4 +1,7 @@
-## Unreleased
+## 0.9.0 - 20261127
+
+Much closer to spaCy's API, spaCy interoperability, and faster analysis of
+short texts. **Breaking**: `Token.head` is now a `Token` (see below).
 
 * `Doc.from_conllu(text, lang)`: a document from CoNLL-U (a UD treebank's,
   multiword tokens included, or LIMA's), with all the `Doc`/`Span`/`Token`
@@ -48,8 +51,7 @@
   - `Doc`: `noun_chunks` (from the UD relations), `char_span()`,
     `has_annotation()`, `to_json()` (spaCy's format), `to_conllu()`,
     `text_with_ws`, `lang_`
-  - `Lima.pipe(texts)` (sequential) and `Lima.lang`
-  - not yet: `is_stop` (no stop lists), `Span.as_doc()`, `to_spacy()`
+  - `Lima.pipe(texts)` and `Lima.lang`
 * `doc.ents` is a tuple of `Span`s (was a one-shot iterator), and its spans are
   right: their `text` was empty or cut (the start was the 1-based `Token.i`),
   and an entity ending on the last token was dropped
@@ -66,10 +68,20 @@
 * `Token.i` is unchanged: it starts at 1 (spaCy's starts at 0)
 * No more pydantic dependency; no more mutable default `meta` arguments; no
   more messages on stderr before raising exceptions
-* With LIMA branch conll-mwt-entity-crash (LIMA side): no more crash on a named entity
-  followed by a multiword token (`Apple's CEO.` with the English MERGE model),
-  and the words of a multiword token that spell it have their own positions
-  (`'s` of `Apple's` at 5, was 0)
+* Fixes in LIMA:
+  - no more crash on a named entity followed by a multiword token
+    (`Apple's CEO.` with the English MERGE model), and the words of a
+    multiword token that spell it have their own positions (`'s` of `Apple's`
+    at 5, was 0) (aymara/lima#229)
+  - the dependency heads and relations of every analysis after the first one
+    of an analyzer were wrong: those of earlier analyses were reused
+    (aymara/lima#234)
+  - the arcs whose relation was unknown to LIMA (73 UD 2.18 relations, such
+    as `obl:unmarked`) were dropped (head 0, relation `_`) (aymara/lima#231)
+  - the analysis of a text no longer depends on the texts analyzed before
+    it, and short texts are analyzed much faster: 140 ms -> 24 ms for one
+    sentence (aymara/lima#238)
+  - less stderr noise when creating an analyzer (aymara/lima#233)
 
 ## 0.8.1 - 20261125
 
