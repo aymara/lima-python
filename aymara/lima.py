@@ -1004,6 +1004,18 @@ class Doc:
                        for t in self],
         }
 
+    def to_spacy(self, vocab=None):
+        """The document as a spaCy Doc (spacy.tokens.Doc), with its lemmas,
+        universal parts of speech, morphology, dependency tree, sentences and named
+        entities, for spaCy's tools (displaCy, Matcher, DocBin...). Needs spaCy
+        (pip install aymara[spacy]); see aymara.lima_spacy.
+
+        :param vocab: the spaCy vocabulary to use (default: a blank pipeline's of
+            the document's language)
+        """
+        from aymara.lima_spacy import doc_to_spacy
+        return doc_to_spacy(self, vocab)
+
     def to_conllu(self) -> str:
         """The document in CoNLL-U format (one line per token, word ids per
         sentence), as repr(doc)."""

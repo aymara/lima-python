@@ -621,3 +621,75 @@ def test_pipe():
     docs = list(lima.pipe(["Give it back!", "He pleaded."]))
     assert [d.text for d in docs] == ["Give it back!", "He pleaded."]
     assert lima.lang == "ud-eng"
+
+
+# spaCy interoperability (aymara.lima_spacy), skipped without spaCy
+
+def test_to_spacy():
+    spacy = pytest.importorskip("spacy")
+    # doc = lima("Give it back! He pleaded.")
+    sdoc = doc.to_spacy()
+    assert isinstance(sdoc, spacy.tokens.Doc)
+    assert sdoc.text == doc.text
+    assert sdoc.lang_ == "en"
+    assert [t.text for t in sdoc] == [t.text for t in doc]
+    assert [t.lemma_ for t in sdoc] == [t.lemma_ for t in doc]
+    assert [t.pos_ for t in sdoc] == [t.pos_ for t in doc]
+    assert [t.dep_ for t in sdoc] == [t.dep_ for t in doc]
+    assert [t.head.i for t in sdoc] == [t.head_i for t in doc]
+    assert str(sdoc[5].morph) == str(doc[5].morph)
+    assert [s.text for s in sdoc.sents] == ["Give it back!", "He pleaded."]
+    assert [t.idx for t in sdoc] == [t.idx for t in doc]
+
+
+def test_to_spacy_entities_and_tools():
+    spacy = pytest.importorskip("spacy")
+    from spacy.matcher import Matcher
+    ndoc = lima("John Doe lives in New York.")
+    sdoc = ndoc.to_spacy()
+    assert [(e.text, e.label_) for e in sdoc.ents] == [(e.text, e.label_)
+                                                       for e in ndoc.ents]
+    matcher = Matcher(sdoc.vocab)
+    matcher.add("CITY", [[{"ENT_TYPE": "Location.CITY", "OP": "+"}]])
+    assert any(sdoc[s:e].text == "New York" for _, s, e in matcher(sdoc))
+    html = spacy.displacy.render(sdoc, style="dep", page=False)
+    assert "lives" in html
+    from spacy.tokens import DocBin
+    restored = list(DocBin(docs=[sdoc], store_user_data=True).get_docs(sdoc.vocab))[0]
+    assert [t.dep_ for t in restored] == [t.dep_ for t in sdoc]
+
+
+def test_spacy_pipeline():
+    pytest.importorskip("spacy")
+    import aymara.lima_spacy
+    nlp = aymara.lima_spacy.spacy_pipeline(lima=lima)
+    assert nlp.lang == "en"
+    sdoc = nlp("Give it back! He pleaded.")
+    assert [t.dep_ for t in sdoc][5] == "root"
+    docs = list(nlp.pipe(["Give it back!", "He pleaded."]))
+    assert [d.text for d in docs] == ["Give it back!", "He pleaded."]
+    # spaCy components run after LIMA
+    nlp.add_pipe("sentencizer")
+    assert len(list(nlp("He pleaded. Give it back!").sents)) == 2
+
+
+def test_spacy_lang_codes():
+    pytest.importorskip("spacy")
+    from aymara.lima_spacy import spacy_lang
+    assert spacy_lang("ud-eng") == "en"
+    assert spacy_lang("ud-fra") == "fr"
+    assert spacy_lang("ud-zzz") == "xx"
+
+
+def test_to_spacy_multiword_tokens():
+    pytest.importorskip("spacy")
+    from aymara.lima_models import default_udlang
+    if not default_udlang("fra"):
+        pytest.skip("no French model installed")
+    fdoc = aymara.lima.Lima("ud-fra")("Il vient du Japon.")
+    sdoc = fdoc.to_spacy()
+    assert sdoc.lang_ == "fr"
+    # "du" -> "de le": separate spaCy tokens, the original text kept aside
+    assert [t.text for t in sdoc][2:4] == ["de", "le"]
+    assert sdoc.text == "Il vient de le Japon."
+    assert sdoc.user_data["lima_text"] == "Il vient du Japon."

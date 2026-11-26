@@ -367,6 +367,10 @@ jobs:
       - name: "Install the wheel and the test requirements"
         shell: bash
         run: python -m pip install dist/*.whl pytest pytest-cov pytest-depends
+      - name: "Install spaCy (optional: its tests are skipped without it)"
+        shell: bash
+        run: |
+          python -m pip install --only-binary=:all: "spacy>=3.7,<4" || echo "spaCy not available"
       - name: "Cache the models"
         uses: actions/cache@v4
         with:
@@ -499,6 +503,9 @@ jobs:
           merge-multiple: true
       - name: "Install the wheel and the test requirements"
         run: python -m pip install dist/*.whl pytest pytest-cov pytest-depends
+      - name: "Install spaCy (optional: its tests are skipped without it)"
+        run: |
+          python -m pip install --only-binary=:all: "spacy>=3.7,<4" || echo "spaCy not available"
       - name: "Cache the models"
         uses: actions/cache@v4
         with:

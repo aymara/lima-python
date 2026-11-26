@@ -108,7 +108,14 @@ setup(
                    'pyconll', f'shiboken6=={QT_FULL_VERSION}'],
     cmake_args=cmake_args,
     scripts=['aymara/lima_models.py', 'aymara/deeplima_models.py', 'aymara/lima.py', ],
+    extras_require={
+        'spacy': ['spacy>=3.7,<4'],
+        },
     entry_points={
+        # spaCy configs find the LIMA tokenizer without importing aymara first
+        'spacy_tokenizers': [
+            'aymara.LimaTokenizer.v1 = aymara.lima_spacy:create_tokenizer',
+            ],
         'console_scripts': [
             'lima = aymara.lima:main',
             'lima_models = aymara.lima_models:main',
