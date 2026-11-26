@@ -112,6 +112,7 @@
 #include <boost/format.hpp>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QtGlobal>
 #include <QtCore/QString>
 
 #include <QtCore>
@@ -302,6 +303,43 @@ public:
 };
 
 
+namespace
+{
+QtMessageHandler previousQtMessageHandler = nullptr;
+
+// The QCoreApplication of the analyzer lives only while it is built (a
+// program may create its own one later, e.g. a PySide QApplication), while
+// the file watchers of the logging configuration are process-wide: at exit,
+// Qt warns that their event dispatcher "has already been destroyed". This
+// harmless warning is dropped; the other messages go to the previous handler.
+void filterQtMessages(QtMsgType type, const QMessageLogContext& context,
+                      const QString& message)
+{
+  if (message.contains(QLatin1String("event dispatcher has already been destroyed")))
+  {
+    return;
+  }
+  if (previousQtMessageHandler != nullptr)
+  {
+    previousQtMessageHandler(type, context, message);
+  }
+  else
+  {
+    std::cerr << message.toStdString() << std::endl;
+  }
+}
+
+void installQtMessageFilter()
+{
+  static bool installed = false;
+  if (!installed)
+  {
+    previousQtMessageHandler = qInstallMessageHandler(filterQtMessages);
+    installed = true;
+  }
+}
+}
+
 LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
                                          const QStringList& iqpipelines,
                                          const QString& imodulePath,
@@ -314,6 +352,7 @@ LimaAnalyzerPrivate::LimaAnalyzerPrivate(const QStringList& iqlangs,
   int argc = 1;
   char* argv[2] = {(char*)("LimaAnalyzer"), NULL};
   QCoreApplication app(argc, argv);
+  installQtMessageFilter();
 
   if(iqlangs.size() == 0)
   {
@@ -482,6 +521,13 @@ LimaAnalyzerPrivate::~LimaAnalyzerPrivate()
   }
 }
 
+namespace
+{
+// The error of the last LimaAnalyzer constructor that failed (it has no
+// private part to keep it in)
+thread_local std::string lastConstructorError;
+}
+
 LimaAnalyzer::LimaAnalyzer(const std::string& langs,
                            const std::string& pipelines,
                            const std::string& modulePath,
@@ -505,11 +551,13 @@ LimaAnalyzer::LimaAnalyzer(const std::string& langs,
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
 }
 
@@ -532,11 +580,13 @@ LimaAnalyzer::LimaAnalyzer(const LimaAnalyzer& a)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
   // std::cerr << "LimaAnalyzer::LimaAnalyzer copy constructor" << std::endl;
 }
@@ -558,11 +608,13 @@ LimaAnalyzer& LimaAnalyzer::operator=(const LimaAnalyzer& a)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d = nullptr;
+    lastConstructorError = e.what();
   }
   return *this;
 }
@@ -577,7 +629,8 @@ std::string LimaAnalyzer::errorMessage()
 {
   if (m_d == nullptr)
   {
-    return "Error during constructor";
+    return "Error during constructor"
+      + (lastConstructorError.empty() ? std::string() : ": " + lastConstructorError);
   }
   std::string result = m_d->errorMessage;
   m_d->reset();
@@ -633,7 +686,7 @@ Doc LimaAnalyzer::operator()(const std::string& text,
     auto doc = Doc(m_d->error, m_d->errorMessage);
     return doc;
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d->error = true;
@@ -669,7 +722,7 @@ std::string LimaAnalyzer::analyzeText(const std::string& text,
     m_d->errorMessage = e.what();
     return "";
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     m_d->error = true;
@@ -882,7 +935,7 @@ bool LimaAnalyzerPrivate::addPipelineUnit(const std::string& pipeline,
     errorMessage = std::string("Lima internal error:") + e.what();
     return false;
   }
-  catch (const std::runtime_error& e)
+  catch (const std::exception& e)
   {
     std::cerr << "Lima internal error: " << e.what() << std::endl;
     error = true;
@@ -1589,8 +1642,10 @@ std::pair<QString, int> LimaAnalyzerPrivate::getConllRelName(LinguisticGraphVert
     {
       targetConllId =  vertexToToken.find(target)->second;
     }
-    else
+    else if (vertexDependencyInformations.find(v)->second.second != "root"
+             && vertexDependencyInformations.find(v)->second.second != "ROOT")
     {
+      // The root's target is the sentence boundary vertex, not a token
       DUMPERLOGINIT;
       LERROR << "LimaAnalyzerPrivate::getConllRelName target" << target << "not found in segmentation mapping";
     }
