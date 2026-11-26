@@ -1,5 +1,4 @@
 pyconll
-pydantic
 requests
 shiboken6
 tqdm

@@ -85,7 +85,6 @@ setup(
     install_requires=[
         'pip>=22.0',
         'pyconll',
-        'pydantic',
         f'shiboken6=={QT_FULL_VERSION}',
         'tqdm',
         ],
@@ -106,7 +105,7 @@ setup(
     cmake_minimum_required_version='3.15',
     setup_requires=['cmake', 'pytest', 'pytest-cov', 'pytest-runner', 'pytest-depends'],
     tests_require=['pytest', 'pytest-cov', 'pytest-depends', 'sphinx-test-reports',
-                   'pyconll', 'pydantic', f'shiboken6=={QT_FULL_VERSION}'],
+                   'pyconll', f'shiboken6=={QT_FULL_VERSION}'],
     cmake_args=cmake_args,
     scripts=['aymara/lima_models.py', 'aymara/deeplima_models.py', 'aymara/lima.py', ],
     entry_points={
