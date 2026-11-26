@@ -1,5 +1,17 @@
 ## Unreleased
 
+* spaCy interoperability (optional: `pip install aymara[spacy]`), in the new
+  module `aymara.lima_spacy`:
+  - `doc.to_spacy()` converts a LIMA document into a `spacy.tokens.Doc` with
+    its lemmas, universal parts of speech, morphology, dependency tree,
+    sentences and named entities, for displaCy, `Matcher`, `DocBin`...
+  - `aymara.lima_spacy.spacy_pipeline("ud-eng")`: a spaCy pipeline whose
+    tokenizer is a LIMA analyzer (`nlp(text)` gives a spaCy `Doc`; spaCy
+    components can be added after it). Also available in spaCy configs as
+    the tokenizer `aymara.LimaTokenizer.v1`
+  - the words of a multiword token that do not spell it (French "du" ->
+    "de" "le") are separate spaCy tokens: the spaCy text is then "de le", the
+    original one is in `doc.user_data["lima_text"]`
 * Python 3.13: iterating over a `Doc` in a comprehension no longer raises
   `TypeError: '_DocIterator' object is not iterable`
 * **Breaking**: `Token.head` is a `Token`, as in spaCy (the root's head is

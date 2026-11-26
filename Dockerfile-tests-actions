@@ -27,6 +27,8 @@ RUN pip install pytest pytest-cov pytest-runner pytest-depends
 
 COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl /
 RUN pip install /aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl
+# Optional (aymara[spacy]): the spaCy tests are skipped where spaCy has no wheel
+RUN pip install --only-binary=:all: "spacy>=3.7,<4" || echo "spaCy not available: its tests are skipped"
 RUN install -d /lima-python
 # test_aymara.py analyzes with this model (named by its udlang)
 RUN lima_models -i eng-UD_English-EWT
