@@ -1,5 +1,7 @@
 ## Unreleased
 
+* Python 3.13: iterating over a `Doc` in a comprehension no longer raises
+  `TypeError: '_DocIterator' object is not iterable`
 * **Breaking**: `Token.head` is a `Token`, as in spaCy (the root's head is
   itself, as the one of a token without relation). The former integer, the
   0-based document index of the head, is `Token.head_i`
