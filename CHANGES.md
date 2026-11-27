@@ -1,5 +1,12 @@
 # Changes
 
+## Unreleased
+
+* `LimaAnalyzer` (C++): the handlers of an analysis are the ones its
+  pipeline's dumpers need, created from the LIMA configuration (aymara/lima#3,
+  aymara/lima#247), instead of five hard-coded ones; `analyzeText` still
+  returns the output of `simpleStreamHandler`. Needs LIMA with #247.
+
 ## 0.10.0 - 20261127
 
 Phrase matching with spaCy's `PhraseMatcher` API, on LIMA's ModEx rules.
