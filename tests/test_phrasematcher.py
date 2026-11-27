@@ -150,10 +150,14 @@ def test_lemma(nlp):
 
 
 def test_special_characters(nlp):
+    # The patterns are taken in the text, tokenized as in it (whatever the
+    # tokenization of "AT&T" alone)
+    text = "AT&T is a U.S. company."
+    sentence = nlp(text)
     matcher = PhraseMatcher(nlp)
-    matcher.add("ATT", [nlp("AT&T")])
-    matcher.add("US", [nlp("U.S.")])
-    doc = nlp("AT&T is a U.S. company.")
+    matcher.add("ATT", [sentence.char_span(0, 4, alignment_mode="expand")])
+    matcher.add("US", [sentence.char_span(10, 14, alignment_mode="expand")])
+    doc = nlp(text)
     assert [key for key, _, _ in matcher(doc)] == ["ATT", "US"]
 
 
