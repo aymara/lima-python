@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Python bindings for **LIMA**, a multilingual linguistic analyzer written in C++/Qt by CEA LIST. The package is published on PyPI as **`aymara`** (the import name is also `aymara`). It is **Linux x86_64 only**, Python >=3.9, with two wheels per release: `manylinux_2_28` (Qt 6.9.3, `cp39-abi3`, Python 3.9-3.13) and `manylinux_2_34` (Qt 6.12.0, `cp310-abi3`, Python 3.10-3.15). `python_requires` must stay the constant `>=3.9`: PyPI keeps one Requires-Python per version, the one of the first wheel uploaded.
+Python bindings for **LIMA**, a multilingual linguistic analyzer written in C++/Qt by CEA LIST. The package is published on PyPI as **`aymara`** (the import name is also `aymara`). Python >=3.9, with four wheels per release: `manylinux_2_28` (Linux x86_64, Qt 6.9.3, `cp39-abi3`, Python 3.9-3.13), `manylinux_2_34` (Linux x86_64, Qt 6.12.0, `cp310-abi3`, Python 3.10-3.15), `win_amd64` and `macosx_15_0_arm64` (Qt 6.12.0, `cp310-abi3`; built on every release, not on every push). `python_requires` must stay the constant `>=3.9`: PyPI keeps one Requires-Python per version, the one of the first wheel uploaded.
 
 The public Python API deliberately mirrors spaCy (`Lima` ≈ `nlp`, `Doc`, `Span`, `Token`), including parts of its documentation.
 
@@ -57,10 +57,10 @@ isort .       # config in pyproject.toml
 The CI (`.github/workflows/build-qt6.yml`) builds both wheels as a matrix (`Dockerfile-manylinux_2_28` with `MANYLINUX`/`MANYLINUX_TAG` build args), on the `aymara/lima-<manylinux>-qt<x.y>-python<v>` images of aymara/lima's own `build-qt6.yml` (it waits for that workflow on master), tests each on its oldest and newest Python (`Dockerfile-tests-actions`), and updates the `continuous` prerelease from master.
 
 ### Release
-Bump `aymara/version.py`, add the `CHANGES.md` section, then push a `v<version>` tag: the CI checks that the tag matches the version, takes the release notes from `CHANGES.md` and publishes both wheels to PyPI (trusted publishing; the `pypi` job requires exactly 2 wheels). `deploy-manylinux_2_28.sh` (twine) is the former manual way.
+Add the new version's section at the top of `CHANGES.md` (merged on master), then run `uvx bumpver update --minor` (or `--patch`, `--major`) on an up-to-date master: bumpver (`[tool.bumpver]` in `pyproject.toml`) updates `aymara/version.py` and `pyproject.toml`, commits "aymara x.y.z", tags `x.y.z` (no `v` prefix; the CI still accepts `v*`) and pushes. The tag's CI checks that the tag matches the version, takes the release notes from the first `## ` section of `CHANGES.md`, builds and tests the four wheels (manylinux_2_28, manylinux_2_34, Windows, macOS) and publishes them to PyPI (trusted publishing; the `pypi` job requires all four). The Windows and macOS wheels are built against LIMA's `continuous` Windows/macOS packages, which LIMA releases refresh: a release that needs a LIMA change comes after a LIMA release (`uvx bumpver update` in aymara/lima too). `deploy-manylinux_2_28.sh` (twine) is the former manual way.
 
 ## Working notes
 
 - **Version** lives in `aymara/version.py` (`__version__`); `python aymara/version.py` prints it and the build scripts rely on that.
-- When changing the Python API, edit `aymara/lima.py`. Changing the C++ surface (new methods on `LimaAnalyzer`/`Doc`/`Span`/`Token`) requires editing the matching `.cpp/.h` **and** `bindings.xml`, then rebuilding in the container.
+- When changing the Python API, edit `aymara/lima.py`. Changing the C++ surface (new methods on `LimaAnalyzer`/`Doc`/`Span`/`Token`) requires editing the matching `.cpp/.h`, then rebuilding in the container; `bindings.xml` declares them as `value-type`s, which exposes their new public methods and fields without editing it (only signatures needing modifications go there).
 - README documents the user-facing install/usage flow and is the source of truth for supported platforms and the spaCy-derived license notice.
