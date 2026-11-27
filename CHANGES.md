@@ -1,3 +1,5 @@
+# Changes
+
 ## Unreleased
 
 * `PhraseMatcher` (#5): spaCy's `PhraseMatcher` API (`add`, `remove`,

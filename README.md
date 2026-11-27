@@ -109,7 +109,8 @@ after the patterns are added:
 ```python
 import aymara.lima
 nlp = aymara.lima.Lima("ud-eng")
-matcher = aymara.lima.PhraseMatcher(nlp)          # attr="ORTH", "LOWER", "LEMMA" or "POS"
+# attr: "ORTH" (default), "LOWER", "LEMMA" or "POS"
+matcher = aymara.lima.PhraseMatcher(nlp)
 matcher.add("OBAMA", [nlp("Barack Obama")])       # or ["Barack Obama"]
 doc = nlp("Barack Obama lifts America one last time in emotional farewell")
 print(matcher(doc))                               # [('OBAMA', 0, 2)]

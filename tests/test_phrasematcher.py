@@ -17,8 +17,8 @@ except ImportError:  # pragma: no cover
 
 @pytest.fixture
 def nlp():
-    """The analyzer shared by the tests, its pipeline restored afterwards (a
-    matcher makes it use a new pipeline)."""
+    """Give the analyzer shared by the tests."""
+    # A matcher makes the analyzer use a new pipeline: restored afterwards
     pipes = list(lima.pipes)
     yield lima
     lima.pipes[:] = pipes
