@@ -7,7 +7,9 @@
 # all the Pythons shiboken6 supports)
 ARG PYTHON_VERSION=3.9
 ARG TEST_PYTHON_VERSION=${PYTHON_VERSION}
-FROM aymara/lima-python${PYTHON_VERSION}:latest AS lima_python
+# The tag of the image of the wheel to test (the CI uses its run's one)
+ARG LIMA_PYTHON_IMAGE_TAG=latest
+FROM aymara/lima-python${PYTHON_VERSION}:${LIMA_PYTHON_IMAGE_TAG} AS lima_python
 
 ARG TEST_PYTHON_VERSION
 FROM python:${TEST_PYTHON_VERSION}
