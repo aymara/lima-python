@@ -72,6 +72,7 @@
 #include "common/QsLog/QsLogCategories.h"
 #include "common/QsLog/QsDebugOutput.h"
 #include "common/XMLConfigurationFiles/groupConfigurationStructure.h"
+#include "common/XMLConfigurationFiles/moduleConfigurationStructure.h"
 #include "common/XMLConfigurationFiles/xmlConfigurationFileParser.h"
 #include "common/time/traceUtils.h"
 #include "common/tools/FileUtils.h"
@@ -86,7 +87,9 @@
 #include "linguisticProcessing/client/AnalysisHandlers/BowTextHandler.h"
 #include "linguisticProcessing/client/AnalysisHandlers/SimpleStreamHandler.h"
 #include "linguisticProcessing/client/AnalysisHandlers/LTRTextHandler.h"
+#include "linguisticProcessing/core/Automaton/recognizer.h"
 #include "linguisticProcessing/core/Automaton/SpecificEntityAnnotation.h"
+#include "linguisticProcessing/tools/automatonCompiler/libautomatonCompiler/recognizerCompiler.h"
 #include <linguisticProcessing/core/LinguisticAnalysisStructure/AnalysisGraph.h>
 #include "linguisticProcessing/core/LinguisticAnalysisStructure/MorphoSyntacticData.h"
 #include "linguisticProcessing/core/LinguisticProcessors/LinguisticMetaData.h"
@@ -97,6 +100,7 @@
 #include "linguisticProcessing/core/TextSegmentation/SegmentationData.h"
 #include <deque>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <iomanip>
 #include <map>
@@ -199,6 +203,26 @@ public:
                        const std::string& media,
                        const std::string& jsonGroupString);
 
+  bool addResource(const std::string& media,
+                   const std::string& jsonGroupString);
+  bool addProcessUnit(const std::string& media,
+                      const std::string& jsonGroupString);
+  bool addPipeline(const std::string& pipeline,
+                   const std::string& media,
+                   const std::string& unit);
+  bool addEntityType(const std::string& group, const std::string& type);
+  bool setRecognizerRules(const std::string& media,
+                          const std::string& recognizer,
+                          const std::string& rulesFile);
+
+  /** Runs f, an error (false, error and errorMessage set) if it throws */
+  bool guarded(const std::string& what, const std::function<bool()>& f);
+
+  /** Adds to module the group defined by the json string jsonGroupString,
+   * with its class as attribute (as in the XML configuration files) */
+  bool addGroup(ModuleConfigurationStructure& module,
+                const std::string& jsonGroupString);
+
   void collectDependencyInformations(std::shared_ptr<Lima::AnalysisContent> analysis);
   void collectVertexDependencyInformations(LinguisticGraphVertex v,
                                            std::shared_ptr<Lima::AnalysisContent> analysis);
@@ -260,6 +284,13 @@ public:
                                                    const std::map<std::string, std::string>& append = {});
 
   QString previousNeType;
+
+  /** The named entities nested in the one being dumped, from the outermost,
+   * each with whether its first token is still to be dumped */
+  std::vector<std::pair<QString, bool>> nestedEntities;
+
+  /** The nested named entities of the next token dumped (Token::neNested) */
+  std::string nextNestedEntities();
 
   const FsaStringsPool* sp = nullptr;
   MediaId medId;
@@ -638,9 +669,21 @@ std::string LimaAnalyzer::errorMessage()
 }
 
 
+std::string LimaAnalyzerPrivate::nextNestedEntities()
+{
+  QStringList result;
+  for (auto& [type, first]: nestedEntities)
+  {
+    result << (first ? "B-" : "I-") + type;
+    first = false;
+  }
+  return result.join("|").toStdString();
+}
+
 void LimaAnalyzerPrivate::reset()
 {
   previousNeType = "O";
+  nestedEntities.clear();
   sp = nullptr;
   medId = 0;
   languageData = nullptr;
@@ -942,6 +985,186 @@ bool LimaAnalyzerPrivate::addPipelineUnit(const std::string& pipeline,
     errorMessage = std::string("Lima internal error:") + e.what();
     return false;
   }
+}
+
+bool LimaAnalyzer::addResource(const std::string& media,
+                               const std::string& jsonGroupString)
+{
+  return m_d->addResource(media, jsonGroupString);
+}
+
+bool LimaAnalyzer::addProcessUnit(const std::string& media,
+                                  const std::string& jsonGroupString)
+{
+  return m_d->addProcessUnit(media, jsonGroupString);
+}
+
+bool LimaAnalyzer::addPipeline(const std::string& pipeline,
+                               const std::string& media,
+                               const std::string& unit)
+{
+  return m_d->addPipeline(pipeline, media, unit);
+}
+
+bool LimaAnalyzer::addEntityType(const std::string& group,
+                                 const std::string& type)
+{
+  return m_d->addEntityType(group, type);
+}
+
+bool LimaAnalyzer::setRecognizerRules(const std::string& media,
+                                      const std::string& recognizer,
+                                      const std::string& rulesFile)
+{
+  return m_d->setRecognizerRules(media, recognizer, rulesFile);
+}
+
+bool LimaAnalyzerPrivate::guarded(const std::string& what,
+                                  const std::function<bool()>& f)
+{
+  try
+  {
+    return f();
+  }
+  catch (const Lima::LimaException& e)
+  {
+    error = true;
+    errorMessage = what + ": Lima internal error: " + e.what();
+  }
+  catch (const std::exception& e)
+  {
+    error = true;
+    errorMessage = what + ": " + e.what();
+  }
+  return false;
+}
+
+bool LimaAnalyzerPrivate::addGroup(ModuleConfigurationStructure& module,
+                                   const std::string& jsonGroupString)
+{
+  QJsonParseError jsonError;
+  auto jsonDoc = QJsonDocument::fromJson(QByteArray::fromStdString(
+    jsonGroupString), &jsonError);
+  if (jsonDoc.isNull() || !jsonDoc.isObject())
+  {
+    error = true;
+    errorMessage = "Failed to load json " + jsonGroupString + ":\n"
+      + jsonError.errorString().toStdString();
+    return false;
+  }
+  auto jsonGroup = jsonDoc.object();
+  auto name = jsonGroup["name"].toString().toStdString();
+  auto className = jsonGroup["class"].toString().toStdString();
+  if (name.empty() || className.empty())
+  {
+    error = true;
+    errorMessage = "The group " + jsonGroupString
+      + " must have a name and a class";
+    return false;
+  }
+  if (module.find(name) != module.end())
+  {
+    error = true;
+    errorMessage = "A group named '" + name + "' already exists in module '"
+      + module.getName() + "'";
+    return false;
+  }
+  module.insert(std::make_pair(name, GroupConfigurationStructure(jsonGroup)));
+  // The object managers read the class as an attribute of the group (as in
+  // the XML configuration files), not as a parameter
+  module.addAttributeInGroup(std::string("class"), className, name);
+  return true;
+}
+
+bool LimaAnalyzerPrivate::addResource(const std::string& media,
+                                      const std::string& jsonGroupString)
+{
+  return guarded("addResource", [&]() {
+    auto mediaid = MedData::single().getMediaId(media);
+    auto& module = LinguisticResources::changeable().getModuleConfiguration(
+      mediaid);
+    return addGroup(module, jsonGroupString);
+  });
+}
+
+bool LimaAnalyzerPrivate::addProcessUnit(const std::string& media,
+                                         const std::string& jsonGroupString)
+{
+  return guarded("addProcessUnit", [&]() {
+    auto mediaid = MedData::single().getMediaId(media);
+    const auto& managers = MediaProcessors::single().managers();
+    auto it = managers.find(mediaid);
+    if (it == managers.end() || it->second == nullptr)
+    {
+      error = true;
+      errorMessage = "addProcessUnit: media " + media + " is not initialized";
+      return false;
+    }
+    return addGroup(it->second->getModuleConfigurationStructure(),
+                    jsonGroupString);
+  });
+}
+
+bool LimaAnalyzerPrivate::addPipeline(const std::string& pipeline,
+                                      const std::string& media,
+                                      const std::string& unit)
+{
+  return guarded("addPipeline", [&]() {
+    auto mediaid = MedData::single().getMediaId(media);
+    // A pipelines declaration, as the one of lima-common.xml, of this
+    // pipeline only
+    QJsonObject mapping;
+    mapping[QString::fromStdString(media)] = QString::fromStdString(unit);
+    QJsonObject declaration;
+    declaration["name"] = QString::fromUtf8("pipelines");
+    declaration[QString::fromStdString(pipeline)] = mapping;
+    GroupConfigurationStructure group(declaration);
+    MediaProcessors::changeable().initPipelines(group, {pipeline});
+    if (MediaProcessors::single().getPipelineForId(mediaid, pipeline) == nullptr)
+    {
+      error = true;
+      errorMessage = "addPipeline: cannot create the pipeline '" + pipeline
+        + "' of the unit '" + unit + "' for media " + media;
+      return false;
+    }
+    return true;
+  });
+}
+
+bool LimaAnalyzerPrivate::addEntityType(const std::string& group,
+                                        const std::string& type)
+{
+  return guarded("addEntityType", [&]() {
+    auto qgroup = QString::fromStdString(group);
+    MedData::changeable().addEntityGroup(qgroup);
+    MedData::changeable().addEntity(qgroup, QString::fromStdString(type));
+    return true;
+  });
+}
+
+bool LimaAnalyzerPrivate::setRecognizerRules(const std::string& media,
+                                             const std::string& recognizer,
+                                             const std::string& rulesFile)
+{
+  return guarded("setRecognizerRules", [&]() {
+    auto mediaid = MedData::single().getMediaId(media);
+    auto reco = std::dynamic_pointer_cast<Automaton::Recognizer>(
+      LinguisticResources::single().getResource(mediaid, recognizer));
+    if (reco == nullptr)
+    {
+      error = true;
+      errorMessage = "setRecognizerRules: no recognizer '" + recognizer
+        + "' for media " + media;
+      return false;
+    }
+    // The rules are replaced in place: the units using the recognizer keep
+    // a pointer to it
+    reco->clearRules();
+    Automaton::RecognizerCompiler::setRecognizerEncoding("utf8");
+    Automaton::RecognizerCompiler compiler(rulesFile);
+    compiler.buildRecognizer(*reco, mediaid);
+    return true;
+  });
 }
 
 std::shared_ptr< std::ostringstream > openHandlerOutputString(
@@ -1356,11 +1579,13 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
       // Entity recognized on the PosGraph inside another one (e.g. a number in
       // a date): its tokens are part of the enclosing entity
       bool firstNested = first;
+      nestedEntities.emplace_back(neType, true);
       for (const auto& vse : nestedEntity->vertices())
       {
         dumpPosGraphVertex(doc, vse, tokenId, vEndDone, parentNeType, firstNested);
         firstNested = false;
       }
+      nestedEntities.pop_back();
     }
     else if (neType != "_")
     {
@@ -1396,6 +1621,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
       Token t(len, inflectedToken, lemmatizedToken.toStdString(),
               tokenId++, pos, micro.toStdString(), targetConllId, conllRelName.toStdString(),
               features.toStdString(), neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
+      t.neNested = nextNestedEntities();
       // vertexToToken[v] = tokenId;
       // std::cerr << "docFrom_analysis pushing token" << std::endl;
       doc.m_d->tokens.push_back(t);
@@ -1564,6 +1790,7 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
     Token t(len, inflectedToken, lemmatizedToken.toStdString(), tokenId++, pos,
             micro.toStdString(), targetConllId, conllRelName.toStdString(), features.toStdString(),
             neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
+    t.neNested = nextNestedEntities();
 
     // vertexToToken[v] = tokenId;
     // std::cerr << "docFrom_analysis pushing token" << std::endl;

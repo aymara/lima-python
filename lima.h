@@ -94,6 +94,40 @@ public:
                        const std::string& media,
                        const std::string& jsonGroupString);
 
+  /** Adds to the resources of the media the one defined by the group json
+   * string, as in addPipelineUnit (e.g. {"name": "MyRules", "class":
+   * "AutomatonRecognizer", "rules": ""}). It is created when first used. A
+   * resource of the same name must not exist. */
+  bool addResource(const std::string& media,
+                   const std::string& jsonGroupString);
+
+  /** Adds to the process units of the media the one defined by the group
+   * json string, as in addPipelineUnit. It is created when first used by a
+   * pipeline (see addPipeline). A unit of the same name must not exist. A
+   * ProcessUnitPipeline lists its units in a "processUnitSequence" list. */
+  bool addProcessUnit(const std::string& media,
+                      const std::string& jsonGroupString);
+
+  /** Declares the pipeline of the media made of the process unit named unit
+   * (a ProcessUnitPipeline, of the configuration or added by
+   * addProcessUnit). The units it shares with other pipelines (and their
+   * models) are not created again. */
+  bool addPipeline(const std::string& pipeline,
+                   const std::string& media,
+                   const std::string& unit);
+
+  /** Declares the named entity type group.type (and the group if needed),
+   * e.g. for the rules given to setRecognizerRules. */
+  bool addEntityType(const std::string& group, const std::string& type);
+
+  /** Replaces the rules of the recognizer resource (class
+   * AutomatonRecognizer) of the media by the ModEx rules of the given file
+   * (text format, utf-8), compiled. The process units using the recognizer
+   * use the new rules from the next analysis. */
+  bool setRecognizerRules(const std::string& media,
+                          const std::string& recognizer,
+                          const std::string& rulesFile);
+
   /** return true if an error occured */
   bool error();
   /** return the error message if an error occured and reset the error state */

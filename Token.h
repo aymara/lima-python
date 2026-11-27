@@ -97,6 +97,10 @@ struct BINDINGS_API Token
   std::string neIOB;
   std::string neType;
   std::string tStatus;
+  /** The named entities nested in the one of the token (neType), from the
+   * outermost: "B-<type>" or "I-<type>" separated by "|" (e.g. a phrase
+   * matched by a PhraseMatcher in a location recognized afterwards) */
+  std::string neNested;
 };
 
 

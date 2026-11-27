@@ -7,7 +7,13 @@
 # (the one published to PyPI), not an image shared by concurrent runs.
 # TEST_PYTHON_VERSION: the Python it is tested with (the abi3 wheel works with
 # all the Pythons shiboken6 supports)
-ARG TEST_PYTHON_VERSION=3.9
+ARG PYTHON_VERSION=3.9
+ARG TEST_PYTHON_VERSION=${PYTHON_VERSION}
+# The tag of the image of the wheel to test (the CI uses its run's one)
+ARG LIMA_PYTHON_IMAGE_TAG=latest
+FROM aymara/lima-python${PYTHON_VERSION}:${LIMA_PYTHON_IMAGE_TAG} AS lima_python
+
+ARG TEST_PYTHON_VERSION
 FROM python:${TEST_PYTHON_VERSION}
 
 ARG LIMA_PYTHON_VERSION

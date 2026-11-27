@@ -99,6 +99,27 @@ The legacy rule-based languages `eng`, `fre` and `por` and their pipelines
 `DeprecationWarning`.
 
 
+## Matching phrases
+
+`aymara.lima.PhraseMatcher` follows spaCy's `PhraseMatcher` API, on LIMA's
+ModEx rules: the patterns are compiled into rules that the analyzer applies
+itself (before its named entities rules), so the documents must be analyzed
+after the patterns are added:
+
+```python
+import aymara.lima
+nlp = aymara.lima.Lima("ud-eng")
+# attr: "ORTH" (default), "LOWER", "LEMMA" or "POS"
+matcher = aymara.lima.PhraseMatcher(nlp)
+matcher.add("OBAMA", [nlp("Barack Obama")])       # or ["Barack Obama"]
+doc = nlp("Barack Obama lifts America one last time in emotional farewell")
+print(matcher(doc))                               # [('OBAMA', 0, 2)]
+```
+
+The match ids are the keys, and the matches do not overlap (they are
+entities of the document). See the class documentation for the other
+differences with spaCy.
+
 ## Python bindings API documentation
 
 The Lima python API documentation is [part of the LIMA documentation](https://aymara.github.io/lima/reference/python-api/),
