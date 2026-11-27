@@ -143,7 +143,8 @@ def test_lower(nlp):
 
 def test_lemma(nlp):
     matcher = PhraseMatcher(nlp, attr="LEMMA")
-    matcher.add("RUN", [nlp("runs fast")])
+    # The pattern in a sentence: its words get the same POS as in the text
+    matcher.add("RUN", [nlp("They run fast.")[1:3]])
     doc = nlp("They ran fast.")
     assert [doc[s:e].text for _, s, e in matcher(doc)] == ["ran fast"]
 

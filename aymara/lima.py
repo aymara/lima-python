@@ -122,7 +122,7 @@ class _PyToken:
     """A token of a document built in Python (Doc.from_conllu, Span.as_doc),
     with the fields of the C++ token (aymaralima.cpplima.Token)."""
     __slots__ = ("len", "text", "i", "lemma", "pos", "tag", "head", "dep",
-                 "features", "neIOB", "neType", "tStatus")
+                 "features", "neIOB", "neType", "tStatus", "neNested")
 
     def __init__(self, **fields):
         for name in self.__slots__:
@@ -915,7 +915,7 @@ def _sub_doc(doc: "Doc", start: int, end: int, text: str, offset: int,
             len=c.len, text=c.text, i=k - start, lemma=c.lemma, pos=c.pos - offset,
             tag=c.tag, head=head if inside else k - start,
             dep=c.dep, features=c.features, neIOB=c.neIOB, neType=c.neType,
-            tStatus=c.tStatus))
+            tStatus=c.tStatus, neNested=getattr(c, "neNested", "")))
     sentences = []
     # The sentences overlapping [start, end) (sentence_bounds are sorted)
     first = bisect.bisect_right([e for _, e in sentence_bounds], start)
@@ -1859,9 +1859,9 @@ class PhraseMatcher:
     - the matches do not overlap: as the other ModEx entities, a match is an
       entity of the document (in doc.ents and the NE CoNLL-U column, with the
       label "PhraseMatcher<n>_<k>.<KEY>"), the longest one starting first is
-      kept, and the named entities rules do not apply on its tokens (they
-      may include the match, a proper noun for them, in a larger entity,
-      which then hides it);
+      kept. The named entities rules apply afterwards: they may include a
+      match in a larger entity (e.g. "Paris" in a Location.CITY), which
+      then hides it in doc.ents, but not to the matcher;
     - LOWER matches the original, lowercase, uppercase, capitalized and title
       forms of the pattern's words; LEMMA matches the lemma and POS of the
       pattern's words; TAG, NORM, SHAPE... are not available.
@@ -2108,6 +2108,27 @@ class PhraseMatcher:
         self._callbacks.pop(key, None)
         self._compile()
 
+    def _entities(self, doc: Doc) -> List[Tuple[str, int, int]]:
+        """The (label, start, end) of the entities of the matcher in doc, in
+        the order of the document: the ones of the tokens (ent_type) and the
+        ones nested in them (a match included afterwards by the named entities
+        rules in a larger entity, hidden in doc.ents)."""
+        entities, opened = [], {}
+        for k in range(len(doc)):
+            token = doc.limadoc.at(k)
+            levels = [(token.neIOB, token.neType)]
+            levels += [(nested[0], nested[2:])
+                       for nested in (getattr(token, "neNested", "") or "").split("|")
+                       if nested]
+            here = {label: iob for iob, label in levels if label in self._keys}
+            for label in list(opened):
+                if here.get(label) != "I":
+                    entities.append((label, opened.pop(label), k))
+            for label in here:
+                opened.setdefault(label, k)
+        entities += [(label, s, len(doc)) for label, s in opened.items()]
+        return sorted(entities, key=lambda entity: (entity[1], entity[2]))
+
     def __call__(self, doclike: Union[Doc, Span], *, as_spans: bool = False):
         """The matches of the matcher in the document (or the span) doclike,
         analyzed by the matcher's Lima instance after the patterns were added.
@@ -2127,10 +2148,10 @@ class PhraseMatcher:
             raise TypeError(f"PhraseMatcher applies on a Doc or a Span, not "
                             f"{type(doclike)}")
         matches = []
-        for entity in doc.ents:
-            key = self._keys.get(entity.label_, None)
-            if key in self._patterns and start <= entity.start and entity.end <= end:
-                matches.append((key, entity.start, entity.end))
+        for label, s, e in self._entities(doc):
+            key = self._keys[label]
+            if key in self._patterns and start <= s and e <= end:
+                matches.append((key, s, e))
         for i, (key, _, _) in enumerate(matches):
             on_match = self._callbacks.get(key)
             if on_match is not None:

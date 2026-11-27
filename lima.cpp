@@ -285,6 +285,13 @@ public:
 
   QString previousNeType;
 
+  /** The named entities nested in the one being dumped, from the outermost,
+   * each with whether its first token is still to be dumped */
+  std::vector<std::pair<QString, bool>> nestedEntities;
+
+  /** The nested named entities of the next token dumped (Token::neNested) */
+  std::string nextNestedEntities();
+
   const FsaStringsPool* sp = nullptr;
   MediaId medId;
 
@@ -662,9 +669,21 @@ std::string LimaAnalyzer::errorMessage()
 }
 
 
+std::string LimaAnalyzerPrivate::nextNestedEntities()
+{
+  QStringList result;
+  for (auto& [type, first]: nestedEntities)
+  {
+    result << (first ? "B-" : "I-") + type;
+    first = false;
+  }
+  return result.join("|").toStdString();
+}
+
 void LimaAnalyzerPrivate::reset()
 {
   previousNeType = "O";
+  nestedEntities.clear();
   sp = nullptr;
   medId = 0;
   languageData = nullptr;
@@ -1560,11 +1579,13 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
       // Entity recognized on the PosGraph inside another one (e.g. a number in
       // a date): its tokens are part of the enclosing entity
       bool firstNested = first;
+      nestedEntities.emplace_back(neType, true);
       for (const auto& vse : nestedEntity->vertices())
       {
         dumpPosGraphVertex(doc, vse, tokenId, vEndDone, parentNeType, firstNested);
         firstNested = false;
       }
+      nestedEntities.pop_back();
     }
     else if (neType != "_")
     {
@@ -1600,6 +1621,7 @@ int LimaAnalyzerPrivate::dumpPosGraphVertex(Doc& doc,
       Token t(len, inflectedToken, lemmatizedToken.toStdString(),
               tokenId++, pos, micro.toStdString(), targetConllId, conllRelName.toStdString(),
               features.toStdString(), neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
+      t.neNested = nextNestedEntities();
       // vertexToToken[v] = tokenId;
       // std::cerr << "docFrom_analysis pushing token" << std::endl;
       doc.m_d->tokens.push_back(t);
@@ -1768,6 +1790,7 @@ int LimaAnalyzerPrivate::dumpAnalysisGraphVertex(
     Token t(len, inflectedToken, lemmatizedToken.toStdString(), tokenId++, pos,
             micro.toStdString(), targetConllId, conllRelName.toStdString(), features.toStdString(),
             neIOB.toStdString(), neType.toStdString(), tStatus.toStdString());
+    t.neNested = nextNestedEntities();
 
     // vertexToToken[v] = tokenId;
     // std::cerr << "docFrom_analysis pushing token" << std::endl;

@@ -8,6 +8,9 @@
 * `LimaAnalyzer` (C++): `addResource`, `addProcessUnit`, `addPipeline`,
   `addEntityType` and `setRecognizerRules`, to configure an analyzer at
   runtime; `Lima.pipe_names` lists the units of these pipelines
+* C++ `Token.neNested`: the named entities nested in the token's one (e.g. a
+  PhraseMatcher match that a named entities rule included afterwards in a
+  location), so that the matcher finds its matches hidden in `doc.ents`
 
 ## 0.9.0 - 20261127
 
