@@ -1,6 +1,8 @@
 # Changes
 
-## Unreleased
+## 0.10.0 - 20261127
+
+Phrase matching with spaCy's `PhraseMatcher` API, on LIMA's ModEx rules.
 
 * `PhraseMatcher` (#5): spaCy's `PhraseMatcher` API (`add`, `remove`,
   `on_match`, `as_spans`, `attr="ORTH"|"LOWER"|"LEMMA"|"POS"`) on LIMA's
@@ -13,6 +15,8 @@
 * C++ `Token.neNested`: the named entities nested in the token's one (e.g. a
   PhraseMatcher match that a named entities rule included afterwards in a
   location), so that the matcher finds its matches hidden in `doc.ents`
+* CI: the tests use the wheel of their own run (a concurrent run could
+  replace the shared `latest` image meanwhile) (#45)
 
 ## 0.9.0 - 20261127
 

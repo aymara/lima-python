@@ -78,10 +78,10 @@ $ python
 Note that some error messages could be displayed during the Lima object instantiation. If you get a valid result, you can ignore them. Most of them are debug messages that will be removed in a later version.
 
 Create a `Lima` analyzer once and reuse it: initialization loads the models,
-and an analyzer with a neural pipeline (`deepud`) uses about 3 GB of memory. Up
-to aymara 0.7.1, this memory is not freed when the analyzer is deleted, so
-avoid creating several in one process. From the next version, deleting the last
-analyzer of a language frees its models.
+and an analyzer with a neural pipeline (`deepud`) uses about 3 GB of memory.
+Since aymara 0.8.0, deleting the last analyzer of a language frees its models
+(up to 0.7.1, this memory was never freed: avoid creating several analyzers in
+one process with these versions).
 
 For French, use `ud-fra` (after `lima_models -i fra`). The `deepud` pipeline of
 `ud-eng` and `ud-fra` also recognizes named entities (persons, locations,
@@ -101,10 +101,10 @@ The legacy rule-based languages `eng`, `fre` and `por` and their pipelines
 
 ## Matching phrases
 
-`aymara.lima.PhraseMatcher` follows spaCy's `PhraseMatcher` API, on LIMA's
-ModEx rules: the patterns are compiled into rules that the analyzer applies
-itself (before its named entities rules), so the documents must be analyzed
-after the patterns are added:
+Since aymara 0.10.0, `aymara.lima.PhraseMatcher` follows spaCy's
+`PhraseMatcher` API, on LIMA's ModEx rules: the patterns are compiled into
+rules that the analyzer applies itself (before its named entities rules), so
+the documents must be analyzed after the patterns are added:
 
 ```python
 import aymara.lima
@@ -116,9 +116,26 @@ doc = nlp("Barack Obama lifts America one last time in emotional farewell")
 print(matcher(doc))                               # [('OBAMA', 0, 2)]
 ```
 
-The match ids are the keys, and the matches do not overlap (they are
-entities of the document). See the class documentation for the other
-differences with spaCy.
+`matcher(doc, as_spans=True)` gives the matches as spans labelled with their
+keys. `matcher.remove(key)` removes the patterns of a key, and
+`add(key, patterns, on_match=callback)` calls `callback(matcher, doc, i,
+matches)` for each match.
+
+The differences with spaCy:
+
+- the matcher is created with the analyzer (`nlp`), not its vocabulary, and
+  only the documents analyzed after `add` contain matches (adding the first
+  pattern makes `nlp` use a new pipeline, with the matcher);
+- the match ids are the keys, not their hashes;
+- the matches do not overlap: the longest one starting first is kept;
+- the matches are entities of the document (in `doc.ents`, labelled
+  `PhraseMatcher<n>_<k>.<KEY>`); the named entities rules may include one in a
+  larger entity (e.g. `Paris` in a `Location.CITY`), which then hides it in
+  `doc.ents`, but `matcher(doc)` still finds it;
+- `LOWER` matches the original, lowercase, uppercase, capitalized and title
+  forms of the pattern's words; `LEMMA` matches their lemmas *and* parts of
+  speech (take the patterns in sentences, so that their words get the POS they
+  have in the texts).
 
 ## Python bindings API documentation
 
