@@ -18,6 +18,7 @@ Classes:
 
     Doc
     Lima
+    PhraseMatcher
     Span
     Token
 
@@ -32,10 +33,13 @@ Classes:
 
 import argparse
 import bisect
+import json
 import os
 import pathlib
+import re
 import shutil
 import sys
+import tempfile
 import warnings
 
 from tqdm import tqdm
@@ -1475,6 +1479,8 @@ class Lima:
         self.pipes = pipes.split(",")
         self._user_config_path = user_config_path
         self._meta = meta
+        # The units of the pipelines added at runtime (by PhraseMatcher)
+        self._pipeline_units: Dict[str, List[str]] = {}
 
     def __call__(self,
                  text: str,
@@ -1597,13 +1603,20 @@ class Lima:
         LIMA configuration file, e.g. ["RnnTokenizer", "RnnTokensAnalyzer",
         "RnnDependencyParser", "SpecificEntitiesModexAfterPos", "conllDumper"];
         empty if the file is not found. Units added by add_pipeline_unit are not
-        listed."""
+        listed, the ones of the PhraseMatchers are."""
+        pipeline = self.pipes[0] if self.pipes else "deepud"
+        if pipeline in self._pipeline_units:
+            return list(self._pipeline_units[pipeline])
+        return self._configured_units(pipeline)
+
+    def _configured_units(self, pipeline: str) -> List[str]:
+        """The units of the pipeline, as in the LIMA configuration file of the
+        analyzer's language (empty if the file is not found)."""
         import xml.etree.ElementTree as ET
         file_name = f"lima-lp-{self.lang}.xml"
         dirs = [d for d in str(self._user_config_path or "").replace(",", ":").split(":") if d]
         dirs += [str(_get_data_dir("lima") / "config"),
                  os.path.join(list(aymaralima.__path__)[-1], "config")]
-        pipeline = self.pipes[0] if self.pipes else "deepud"
         for d in dirs:
             path = os.path.join(d, file_name)
             if not os.path.isfile(path):
@@ -1813,6 +1826,318 @@ class Lima:
         """
         return (str(pathlib.Path(list(aymaralima.__path__)[-1]) / "config"),
                 str(pathlib.Path(list(aymaralima.__path__)[-1]) / "resources"))
+
+
+def _modex_escape(text: str) -> str:
+    """text as a word of a ModEx rule: its characters other than letters, digits
+    and "_" are escaped, as its first one if it begins as a tokenizer status
+    (t_..., T_...)."""
+    if "\\" in text:
+        raise ValueError(f"A ModEx rule cannot match the backslash of {text!r}")
+    escaped = "".join(c if c.isalnum() or c == "_" else "\\" + c for c in text)
+    if escaped[:2] in ("t_", "T_"):
+        escaped = "\\" + escaped
+    return escaped
+
+
+class PhraseMatcher:
+    """Matches sequences of tokens, based on their texts (or lemmas, or POS) as
+    spaCy's PhraseMatcher, with LIMA's ModEx rules.
+
+    The patterns are turned into ModEx rules, compiled and applied by the
+    analyzer itself, after the dependency parsing and before the named
+    entities rules: adding the first pattern makes the given Lima instance use
+    a new pipeline including the matcher, and only the documents it analyzes
+    afterwards contain the matches. Calling the matcher on such a document
+    gives its matches.
+
+    The differences with spaCy:
+
+    - the matcher is created with the Lima instance (nlp), not its vocabulary,
+      and the documents must be analyzed after the patterns are added;
+    - the match ids are the keys, not their hashes;
+    - the matches do not overlap: as the other ModEx entities, a match is an
+      entity of the document (in doc.ents and the NE CoNLL-U column, with the
+      label "PhraseMatcher<n>_<k>.<KEY>"), the longest one starting first is
+      kept, and the named entities rules do not apply on its tokens (they
+      may include the match, a proper noun for them, in a larger entity,
+      which then hides it);
+    - LOWER matches the original, lowercase, uppercase, capitalized and title
+      forms of the pattern's words; LEMMA matches the lemma and POS of the
+      pattern's words; TAG, NORM, SHAPE... are not available.
+
+    Example::
+
+        import aymara.lima
+        nlp = aymara.lima.Lima()
+        matcher = aymara.lima.PhraseMatcher(nlp)
+        matcher.add("OBAMA", [nlp("Barack Obama")])
+        doc = nlp("Barack Obama lifts America one last time in emotional farewell")
+        assert matcher(doc) == [("OBAMA", 0, 2)]
+        assert [span.text for span in matcher(doc, as_spans=True)] == ["Barack Obama"]
+    """
+
+    _ATTRS = ("ORTH", "LOWER", "LEMMA", "POS")
+    # The units before which the matcher is inserted in the pipeline
+    _BEFORE_UNITS = ("SpecificEntitiesModexAfterPos",)
+    _count = 0
+
+    def __init__(self, nlp: "Lima", attr: str = "ORTH", validate: bool = False):
+        """
+        :param nlp: the analyzer which applies the matcher (instead of spaCy's
+            vocabulary)
+        :type nlp: Lima
+        :param attr: the token attribute to match on: "ORTH" (or "TEXT", the
+            default), "LOWER", "LEMMA" or "POS"
+        :type attr: str
+        :param validate: accepted for compatibility with spaCy, ignored
+        :type validate: bool
+        """
+        if not isinstance(nlp, Lima):
+            raise TypeError(f"PhraseMatcher needs the Lima instance applying its "
+                            f"rules, not {type(nlp)}")
+        attr = str(attr).upper()
+        if attr == "TEXT":
+            attr = "ORTH"
+        if attr not in self._ATTRS:
+            raise ValueError(f"PhraseMatcher attr must be one of "
+                             f"{', '.join(self._ATTRS)} (or TEXT), not {attr!r}")
+        PhraseMatcher._count += 1
+        self.nlp = nlp
+        self.attr = attr
+        self.lang = nlp.lang
+        self._name = f"PhraseMatcher{PhraseMatcher._count}"
+        self._recognizer = f"{self._name}Rules"
+        self._installed = False
+        # key -> list of patterns, a pattern being the list of the
+        # alternative ModEx transitions of each of its words
+        self._patterns: Dict[Union[str, int], List[List[List[str]]]] = {}
+        self._callbacks = {}
+        # key -> entity type (group.type), and back
+        self._labels: Dict[Union[str, int], str] = {}
+        self._keys: Dict[str, Union[str, int]] = {}
+
+    def __len__(self) -> int:
+        """The number of keys (rules) of the matcher."""
+        return len(self._patterns)
+
+    def __contains__(self, key) -> bool:
+        """Whether the matcher has patterns for key."""
+        return key in self._patterns
+
+    def __repr__(self) -> str:
+        return (f"PhraseMatcher({self._name}, attr={self.attr!r}, "
+                f"keys={list(self._patterns)!r})")
+
+    def _check(self, ok: bool, what: str):
+        """Raises the analyzer's error if ok is false."""
+        if not ok or self.nlp.analyzer.error():
+            raise LimaInternalError(f"PhraseMatcher {what}: "
+                                    f"{self.nlp.analyzer.errorMessage()}")
+
+    def _install(self):
+        """Adds to the analyzer the recognizer of the matcher, the unit
+        applying it, and a pipeline made of the analyzer's one with this unit
+        before the named entities rules, which becomes the analyzer's
+        default."""
+        analyzer, lang = self.nlp.analyzer, self.lang
+        base = self.nlp.pipes[0] if self.nlp.pipes else "deepud"
+        units = (self.nlp._pipeline_units.get(base)
+                 or self.nlp._configured_units(base))
+        if not units:
+            raise LimaInternalError(f"PhraseMatcher: the units of the pipeline "
+                                    f"'{base}' of {lang} are not found")
+        unit = f"{self._name}Recognition"
+        position = next((k for k, u in enumerate(units)
+                         if u in self._BEFORE_UNITS or u.endswith("Dumper")),
+                        len(units))
+        units = units[:position] + [unit] + units[position:]
+        pipeline_unit = f"{self._name}Pipeline"
+        pipeline = f"{base}-{self._name.lower()}"
+        self._check(analyzer.addResource(lang, json.dumps({
+            "name": self._recognizer, "class": "AutomatonRecognizer",
+            "rules": ""})), "recognizer")
+        self._check(analyzer.addProcessUnit(lang, json.dumps({
+            "name": unit, "class": "ApplyRecognizer",
+            "automaton": self._recognizer, "applyOnGraph": "PosGraph",
+            "useSentenceBounds": "no"})), "unit")
+        self._check(analyzer.addProcessUnit(lang, json.dumps({
+            "name": pipeline_unit, "class": "ProcessUnitPipeline",
+            "processUnitSequence": units})), "pipeline unit")
+        self._check(analyzer.addPipeline(pipeline, lang, pipeline_unit),
+                    "pipeline")
+        self.nlp._pipeline_units[pipeline] = units
+        if self.nlp.pipes:
+            self.nlp.pipes[0] = pipeline
+        else:
+            self.nlp.pipes.append(pipeline)
+        self._installed = True
+
+    def _declare(self, key):
+        """Declares the entity type of the matches of key (one entity group by
+        key, for its micro-categories resource)."""
+        if key in self._labels:
+            return
+        group = f"{self._name}_{len(self._labels)}"
+        name = re.sub(r"\W", "_", str(key), flags=re.ASCII) or "MATCH"
+        self._check(self.nlp.analyzer.addEntityType(group, name), "entity type")
+        label = f"{group}.{name}"
+        # The micro-category of the token merging the match in the PosGraph
+        self._check(self.nlp.analyzer.addResource(self.lang, json.dumps({
+            "name": f"{group}Micros", "class": "SpecificEntitiesMicros",
+            label: ["PROPN"]})), "micro-categories")
+        self._labels[key] = label
+        self._keys[label] = key
+
+    def _transitions(self, token: Token) -> List[str]:
+        """The alternative ModEx transitions matching token for the attribute
+        of the matcher."""
+        if self.attr == "ORTH":
+            return [_modex_escape(token.text)]
+        if self.attr == "LOWER":
+            text = token.text
+            return [_modex_escape(form) for form in _unique(
+                [text, text.lower(), text.upper(), text.capitalize(), text.title()])]
+        pos = token.pos_
+        if not pos or pos == "_":
+            raise ValueError(f"PhraseMatcher {self.attr}: the pattern's word "
+                             f"{token.text!r} has no POS")
+        if self.attr == "POS":
+            return [f"${pos}"]
+        lemma = token.lemma_
+        if not lemma or lemma == "_":
+            raise ValueError(f"PhraseMatcher LEMMA: the pattern's word "
+                             f"{token.text!r} has no lemma")
+        return [f"{_modex_escape(lemma)}${pos}"]
+
+    def _rules(self) -> str:
+        """The ModEx rules of the patterns."""
+        labels = [self._labels[key] for key in self._patterns]
+        lines = ["set encoding=utf8"]
+        if labels:
+            lines.append("using groups " + ",".join(
+                label.split(".")[0] for label in labels))
+        lines.append("set defaultAction=>CreateSpecificEntity()")
+        # The first rule matching at a trigger is applied: the longest
+        # patterns first
+        rules = sorted(((key, pattern) for key, patterns in self._patterns.items()
+                        for pattern in patterns), key=lambda rule: -len(rule[1]))
+        for key, pattern in rules:
+            right = " ".join(alternatives[0] if len(alternatives) == 1
+                             else "(" + "|".join(alternatives) + ")"
+                             for alternatives in pattern[1:])
+            for trigger in pattern[0]:
+                lines.append(f"{trigger}::{right}:{self._labels[key]}:")
+        return "\n".join(lines) + "\n"
+
+    def _compile(self):
+        """Replaces the rules of the recognizer by the ones of the patterns."""
+        fd, path = tempfile.mkstemp(prefix=f"{self._name}-", suffix=".rules")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as rules:
+                rules.write(self._rules())
+            self._check(self.nlp.analyzer.setRecognizerRules(
+                self.lang, self._recognizer, path), "rules")
+        finally:
+            os.remove(path)
+
+    def add(self, key: Union[str, int], docs=None, *_docs, on_match=None):
+        """Adds patterns to the matcher, as spaCy's PhraseMatcher.add. The
+        documents analyzed afterwards contain their matches.
+
+        :param key: the match id of the patterns (e.g. "OBAMA")
+        :type key: Union[str, int]
+        :param docs: the patterns: documents (or spans) analyzed by the matcher's
+            Lima instance, or strings, which are analyzed by it
+        :type docs: List[Union[Doc, Span, str]]
+        :param on_match: a callback, called with the matcher, the document, the
+            index of a match and the matches, for each match of key
+        """
+        if docs is None or callable(docs):
+            # spaCy v2 signature: add(key, on_match, *docs)
+            warnings.warn("PhraseMatcher.add(key, on_match, *docs) is deprecated: "
+                          "use add(key, docs, on_match=on_match)",
+                          DeprecationWarning, stacklevel=2)
+            on_match, docs = docs, list(_docs)
+        elif _docs or not isinstance(docs, (list, tuple)):
+            raise ValueError("PhraseMatcher.add: the patterns must be a list of "
+                             "Doc (add(key, [doc1, doc2]))")
+        if not isinstance(key, (str, int)):
+            raise TypeError(f"PhraseMatcher key must be str or int, not {type(key)}")
+        texts = _unique(d for d in docs if isinstance(d, str))
+        if self.attr in ("ORTH", "LOWER"):
+            analyzed = list(self.nlp.pipe(texts, batch_size=64))
+        else:
+            analyzed = [self.nlp(text) for text in texts]
+        analyzed = dict(zip(texts, analyzed))
+        patterns = []
+        for d in docs:
+            if isinstance(d, str):
+                d = analyzed[d]
+            elif not isinstance(d, (Doc, Span)):
+                raise TypeError(f"PhraseMatcher patterns must be Doc, Span or str, "
+                                f"not {type(d)}")
+            pattern = [self._transitions(token) for token in d if not token.is_space]
+            if not pattern:
+                warnings.warn(f"PhraseMatcher: empty pattern for {key!r} ignored",
+                              UserWarning, stacklevel=2)
+            elif pattern not in patterns:
+                patterns.append(pattern)
+        if not self._installed:
+            self._install()
+        self._declare(key)
+        previous = list(self._patterns.get(key, []))
+        self._patterns[key] = previous + [p for p in patterns if p not in previous]
+        try:
+            self._compile()
+        except Exception:
+            if previous:
+                self._patterns[key] = previous
+            else:
+                del self._patterns[key]
+            self._compile()
+            raise
+        self._callbacks[key] = on_match
+
+    def remove(self, key: Union[str, int]):
+        """Removes the patterns of key from the matcher (KeyError if it has
+        none): the documents analyzed afterwards do not contain their matches."""
+        if key not in self._patterns:
+            raise KeyError(key)
+        del self._patterns[key]
+        self._callbacks.pop(key, None)
+        self._compile()
+
+    def __call__(self, doclike: Union[Doc, Span], *, as_spans: bool = False):
+        """The matches of the matcher in the document (or the span) doclike,
+        analyzed by the matcher's Lima instance after the patterns were added.
+
+        :param doclike: the document or span to search in
+        :param as_spans: return Span objects, labelled with the keys, instead of
+            (key, start, end) tuples
+        :return: the matches, in the order of the document, as (key, start, end)
+            tuples (start and end are token indexes in the document, end excluded),
+            or as spans
+        """
+        if isinstance(doclike, Doc):
+            doc, start, end = doclike, 0, len(doclike)
+        elif isinstance(doclike, Span):
+            doc, start, end = doclike.doc, doclike.start, doclike.end
+        else:
+            raise TypeError(f"PhraseMatcher applies on a Doc or a Span, not "
+                            f"{type(doclike)}")
+        matches = []
+        for entity in doc.ents:
+            key = self._keys.get(entity.label_, None)
+            if key in self._patterns and start <= entity.start and entity.end <= end:
+                matches.append((key, entity.start, entity.end))
+        for i, (key, _, _) in enumerate(matches):
+            on_match = self._callbacks.get(key)
+            if on_match is not None:
+                on_match(self, doc, i, matches)
+        if as_spans:
+            return [Span(doc, s, e, label=key) for key, s, e in matches]
+        return matches
 
 
 def main():  # pragma: no cover

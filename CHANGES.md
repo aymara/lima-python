@@ -1,3 +1,14 @@
+## Unreleased
+
+* `PhraseMatcher` (#5): spaCy's `PhraseMatcher` API (`add`, `remove`,
+  `on_match`, `as_spans`, `attr="ORTH"|"LOWER"|"LEMMA"|"POS"`) on LIMA's
+  ModEx rules, compiled at runtime and applied by the analyzer before its
+  named entities rules. Needs aymara/lima's runtime rules compilation
+  (installed `libautomatonCompiler` headers, `Recognizer::clearRules`).
+* `LimaAnalyzer` (C++): `addResource`, `addProcessUnit`, `addPipeline`,
+  `addEntityType` and `setRecognizerRules`, to configure an analyzer at
+  runtime; `Lima.pipe_names` lists the units of these pipelines
+
 ## 0.9.0 - 20261127
 
 Much closer to spaCy's API, spaCy interoperability, and faster analysis of

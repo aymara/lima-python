@@ -76,4 +76,9 @@ def test_docstring_example(name, code, tmp_path, monkeypatch):
     code = re.sub(r"aymara\.lima\.Lima\(\)", "shared_lima", code)
     namespace = {"shared_lima": shared_lima, "nlp": shared_lima,
                  "doc": shared_lima("Give it back! He pleaded.")}
-    exec(compile(code, f"<{name}>", "exec"), namespace)
+    # A PhraseMatcher makes the analyzer use a new pipeline: restore it
+    pipes = list(shared_lima.pipes)
+    try:
+        exec(compile(code, f"<{name}>", "exec"), namespace)
+    finally:
+        shared_lima.pipes[:] = pipes
