@@ -2,14 +2,12 @@
 # SPDX-FileCopyrightText: 2019-2022 CEA LIST <gael.de-chalendar@cea.fr>
 #
 # SPDX-License-Identifier: MIT
-# PYTHON_VERSION: the Python the wheel was built with (the lima-python image);
-# TEST_PYTHON_VERSION: the one it is tested with (the abi3 wheel works with
+# Tests the wheel wheelhouse/aymara-<version>-<wheel>-<manylinux>_x86_64.whl of
+# the build context: the CI downloads there the wheel artifact of its own run
+# (the one published to PyPI), not an image shared by concurrent runs.
+# TEST_PYTHON_VERSION: the Python it is tested with (the abi3 wheel works with
 # all the Pythons shiboken6 supports)
-ARG PYTHON_VERSION=3.9
-ARG TEST_PYTHON_VERSION=${PYTHON_VERSION}
-FROM aymara/lima-python${PYTHON_VERSION}:latest AS lima_python
-
-ARG TEST_PYTHON_VERSION
+ARG TEST_PYTHON_VERSION=3.9
 FROM python:${TEST_PYTHON_VERSION}
 
 ARG LIMA_PYTHON_VERSION
@@ -25,7 +23,7 @@ ENV LIMA_MODELS_REVISION=${LIMA_MODELS_REVISION}
 RUN pip install -U pip
 RUN pip install pytest pytest-cov pytest-runner pytest-depends
 
-COPY --from=lima_python /lima-python/wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl /
+COPY wheelhouse/aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl /
 RUN pip install /aymara-${LIMA_PYTHON_VERSION}-${PYTHON_WHEEL_VERSION}-${MANYLINUX}_x86_64.whl
 # Optional (aymara[spacy]): the spaCy tests are skipped where spaCy has no wheel
 RUN pip install --only-binary=:all: "spacy>=3.7,<4" || echo "spaCy not available: its tests are skipped"

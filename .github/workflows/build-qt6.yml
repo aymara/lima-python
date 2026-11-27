@@ -217,8 +217,17 @@ jobs:
           large-packages: false
           swap-storage: true
 
+      # The wheel built by this run (job lima-python), not the
+      # aymara/lima-python<py>:latest image, which concurrent runs (a pull
+      # request, master and a tag pushed together by bumpver) overwrite
+      - name: "Download the wheel of this run"
+        uses: actions/download-artifact@v4
+        with:
+          name: aymara-${{ env.LIMA_PYTHON_VERSION }}-${{ env.PYTHON_WHEEL_VERSION }}-${{ env.MANYLINUX }}_x86_64.whl
+          path: wheelhouse
+
       - name: "Build image"
-        run: docker build -f Dockerfile-tests-actions --build-arg MANYLINUX="${MANYLINUX}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg TEST_PYTHON_VERSION="${{ matrix.test_python }}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
+        run: ls -l wheelhouse && docker build -f Dockerfile-tests-actions --build-arg MANYLINUX="${MANYLINUX}" --build-arg TEST_PYTHON_VERSION="${{ matrix.test_python }}" --build-arg PYTHON_WHEEL_VERSION="${PYTHON_WHEEL_VERSION}" --build-arg LIMA_PYTHON_VERSION=${LIMA_PYTHON_VERSION} .
 
   # The Windows wheel (cp310-abi3, Qt 6.12.0) is built against the LIMA
   # Windows package of aymara/lima's build-win.yml (its "continuous"
