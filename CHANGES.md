@@ -1,11 +1,13 @@
 # Changes
 
-## Unreleased
+## 0.11.0 - 20261128
+
+Built on LIMA 3.2.0.
 
 * `LimaAnalyzer` (C++): the handlers of an analysis are the ones its
   pipeline's dumpers need, created from the LIMA configuration (aymara/lima#3,
   aymara/lima#247), instead of five hard-coded ones; `analyzeText` still
-  returns the output of `simpleStreamHandler`. Needs LIMA with #247.
+  returns the output of `simpleStreamHandler`.
 
 ## 0.10.0 - 20261127
 
